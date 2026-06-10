@@ -1,5 +1,4 @@
-v0.30.0: ponds & water
+v0.31.0: rainbow after the storm
 
-- ponds settle into the lowest terrain basins; shimmering translucent water discs (rippling shader, sky-tinted, dims at night)
-- creatures walk AROUND open water (steer away from the edge); flyers pass over it
-- re-settled on new biome / reset / load (ponds derive from terrain, not the save file)
+- when a storm clears (weather drops past 0.5) on a bright day, a rainbow arch springs up opposite the sun and fades over ~16s
+- half-torus with a ROYGBIV shader (red outer -> violet inner), soft tube edges, ends fading into the horizon

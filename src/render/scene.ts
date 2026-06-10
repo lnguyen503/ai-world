@@ -184,6 +184,11 @@ export class Scene3D {
   private rain!: THREE.Points;
   private rainPos!: Float32Array;
   private beam!: THREE.Mesh;
+  private rainbow!: THREE.Mesh;
+  private rainbowMat!: THREE.ShaderMaterial;
+  private rainbowLife = 0;
+  private prevWeather = 0;
+  private static readonly RAINBOW_LIFE = 16;
 
   private nameSprite!: THREE.Sprite;
   private nameCanvas = document.createElement('canvas');
@@ -248,6 +253,7 @@ export class Scene3D {
     this.makeWater();
     this.scene.add(this.pondGroup);
     this.makeWeather();
+    this.makeRainbow();
     this.makeNameTag();
     this.makeNight();
     this.scene.add(this.bursts.mesh);
@@ -483,6 +489,7 @@ export class Scene3D {
     this.syncSocial(world);
     this.updateSky(world.age);
     this.syncWeather(world);
+    this.updateRainbow(dt);
     this.updateNight(t);
 
     // birth / death particle bursts
@@ -591,6 +598,54 @@ export class Scene3D {
     );
     this.beam.visible = false;
     this.scene.add(this.beam);
+  }
+
+  /** A big rainbow arch (a half-torus) that springs up opposite the sun when a storm clears by day. */
+  private makeRainbow(): void {
+    const R = WORLD.half * 2.0;
+    const geo = new THREE.TorusGeometry(R, R * 0.05, 16, 120, Math.PI); // upper half-ring
+    this.rainbowMat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+      uniforms: { uOpacity: { value: 0 } },
+      vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `
+        uniform float uOpacity; varying vec2 vUv;
+        vec3 hsv2rgb(vec3 c){ vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0); vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www); return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y); }
+        void main(){
+          float hue = mix(0.0, 0.78, vUv.y);        // red outer edge → violet inner
+          vec3 col = hsv2rgb(vec3(hue, 0.85, 1.0));
+          float band = 1.0 - smoothstep(0.8, 1.0, abs(vUv.y - 0.5) * 2.0); // soft tube edges
+          float ends = smoothstep(0.0, 0.08, vUv.x) * smoothstep(1.0, 0.9, vUv.x); // fade where it meets the ground
+          gl_FragColor = vec4(col, uOpacity * band * ends * 0.6);
+        }`,
+    });
+    this.rainbow = new THREE.Mesh(geo, this.rainbowMat);
+    this.rainbow.visible = false;
+    this.scene.add(this.rainbow);
+  }
+
+  /** Spawn / fade the rainbow as storms clear in daylight. */
+  private updateRainbow(dt: number): void {
+    const w = params.weather;
+    const day = this.lastSky ? this.lastSky.dayFactor : 1;
+    // a clearing front (was stormy, now easing down) on a bright day → rainbow!
+    if (this.prevWeather > 0.5 && w <= 0.5 && day > 0.45 && this.rainbowLife <= 0) {
+      this.rainbowLife = Scene3D.RAINBOW_LIFE;
+      const d = this.lastSky ? this.lastSky.sunDir : [0.4, 0.6, 0.3];
+      this.rainbow.position.set(-d[0] * WORLD.half * 1.6, -WORLD.half * 0.35, -d[2] * WORLD.half * 1.6);
+      this.rainbow.lookAt(0, 0, 0);
+    }
+    this.prevWeather = w;
+    if (this.rainbowLife > 0) {
+      this.rainbowLife -= dt;
+      const e = Scene3D.RAINBOW_LIFE - this.rainbowLife; // elapsed
+      const fadeIn = Math.min(1, e / 2.5);
+      const fadeOut = Math.min(1, this.rainbowLife / 4);
+      this.rainbowMat.uniforms.uOpacity!.value = Math.min(fadeIn, fadeOut) * Math.min(1, day);
+      this.rainbow.visible = true;
+    } else {
+      this.rainbow.visible = false;
+    }
   }
 
   /** Rain, storm darkening, and lightning flashes — all driven by params.weather + world.lightningFlash. */
