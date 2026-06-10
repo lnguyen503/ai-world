@@ -1,4 +1,4 @@
-v0.31.0: rainbow after the storm
+v0.32.0: butterflies
 
-- when a storm clears (weather drops past 0.5) on a bright day, a rainbow arch springs up opposite the sun and fades over ~16s
-- half-torus with a ROYGBIV shader (red outer -> violet inner), soft tube edges, ends fading into the horizon
+- 26 colourful butterflies flutter low over the meadow by day (looping wander + wing-flap squash + bob) and fade away at night
+- purely decorative ambient fauna; sit above the terrain everywhere they roam

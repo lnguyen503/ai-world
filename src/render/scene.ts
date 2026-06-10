@@ -205,6 +205,7 @@ export class Scene3D {
   private motes!: THREE.Points;
   private motesBase!: Float32Array;
   private motesCur!: Float32Array;
+  private butterflies: { sp: THREE.Sprite; bx: number; bz: number; phase: number; speed: number }[] = [];
   private bursts = new BurstField();
   private lastT = 0;
 
@@ -256,6 +257,7 @@ export class Scene3D {
     this.makeRainbow();
     this.makeNameTag();
     this.makeNight();
+    this.makeButterflies();
     this.scene.add(this.bursts.mesh);
 
     const renderPass = new RenderPass(this.scene, this.camera);
@@ -856,11 +858,61 @@ export class Scene3D {
     this.scene.add(this.motes);
   }
 
+  /** A pair-of-wings texture (white, so the sprite's colour tints it). */
+  private butterflyTexture(): THREE.CanvasTexture {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const x = c.getContext('2d')!;
+    x.fillStyle = '#ffffff';
+    const wing = (cx: number, cy: number, rx: number, ry: number): void => { x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); x.fill(); };
+    wing(24, 26, 12, 15); wing(40, 26, 12, 15);   // upper wings
+    wing(26, 42, 9, 11); wing(38, 42, 9, 11);     // lower wings
+    x.fillStyle = '#2a2030'; x.fillRect(31, 20, 2, 30); // body
+    const tex = new THREE.CanvasTexture(c); tex.needsUpdate = true;
+    return tex;
+  }
+
+  /** Scattered butterflies that flutter low over the meadow by day and vanish at night. */
+  private makeButterflies(): void {
+    const tex = this.butterflyTexture();
+    const hues = [0.08, 0.14, 0.55, 0.78, 0.95, 0.0];
+    const col = new THREE.Color();
+    for (let i = 0; i < 26; i++) {
+      col.setHSL(hues[i % hues.length]!, 0.7, 0.62);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: col.clone(), transparent: true, depthWrite: false, opacity: 0 }));
+      sp.scale.set(1.2, 1.2, 1);
+      this.scene.add(sp);
+      this.butterflies.push({
+        sp, bx: (Math.random() * 2 - 1) * WORLD.half * 0.9, bz: (Math.random() * 2 - 1) * WORLD.half * 0.9,
+        phase: Math.random() * Math.PI * 2, speed: 0.5 + Math.random() * 0.6,
+      });
+    }
+  }
+
+  private updateButterflies(t: number, day: number): void {
+    const show = day > 0.15;
+    for (const b of this.butterflies) {
+      b.sp.visible = show;
+      if (!show) continue;
+      // slow looping wander around the drifting base point
+      b.bx += Math.cos(t * 0.3 + b.phase) * b.speed * 0.05;
+      b.bz += Math.sin(t * 0.27 + b.phase * 1.3) * b.speed * 0.05;
+      const x = b.bx + Math.sin(t * b.speed * 1.6 + b.phase) * 3;
+      const z = b.bz + Math.cos(t * b.speed * 1.4 + b.phase) * 3;
+      const y = this.biome.height(x, z) + 2 + Math.sin(t * 3 + b.phase) * 0.8; // bobbing flutter
+      b.sp.position.set(x, y, z);
+      const flap = 0.6 + Math.abs(Math.sin(t * 12 + b.phase)) * 0.7; // wing-flap squash
+      b.sp.scale.set(1.2 * flap, 1.2, 1);
+      (b.sp.material as THREE.SpriteMaterial).opacity = day * 0.95;
+    }
+  }
+
   /** Fireflies drift and the moon glows as night deepens. */
   private updateNight(t: number): void {
     if (!this.lastSky) return;
     const night = 1 - this.lastSky.dayFactor;
     this.cosmos.update(t);
+    this.updateButterflies(t, this.lastSky.dayFactor);
     const ff = this.fireflies.material as THREE.PointsMaterial;
     ff.opacity = night * 0.9;
     this.fireflies.visible = night > 0.03;
