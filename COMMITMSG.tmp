@@ -1,4 +1,4 @@
-v0.34.0: cooperative ambush hunting
+v0.35.0: panic waves through the herd
 
-- pack roles emerge: the predator closest to the quarry becomes the CHASER (drives it forward); the others become AMBUSHERS and swing to the far side so the fleeing prey is driven onto them
-- a pincer that reads as real cooperative hunting; refines the v0.23 encircle
+- a prey that hears an alarm now catches the fright (startles) and re-broadcasts it, so panic ripples outward from the threat through the whole herd
+- '!' pops + startle hops chain across neighbours; stamina naturally caps the chaos (a tired herd settles)

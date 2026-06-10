@@ -192,6 +192,9 @@ export class Creature {
       }
     } else if (ni.hasAlarm) {
       turn += PRED.fleeGain * 0.8 * angDelta(this.heading, Math.atan2(this.z - ni.alarmZ, this.x - ni.alarmX)); // heed a neighbor's alarm
+      // catch the herd's fright and pass it on — a panic wave ripples outward from the threat
+      this.startleTimer = Math.max(this.startleTimer, PRED.startleTime * 0.6);
+      this.alarmTimer = SOCIAL.alarmTime; this.threatX = ni.alarmX; this.threatZ = ni.alarmZ;
     }
 
     // --- as weather worsens, the grounded head for the nearest tree (flyers can't shelter) ---
