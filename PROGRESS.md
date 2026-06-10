@@ -249,6 +249,18 @@ day. **v0.62**: little **mushrooms** at the tree bases softly **bioluminesce**
 **distant hills** surrounds the meadow, tinted to each biome's palette, giving
 the world a real horizon and parallax as you orbit.
 
+### v0.64.0 — Emergent speech
+Once a lineage has evolved far enough (generation 4+), its **mature, brighter
+critters** (the smart species) occasionally blurt a short, spontaneous line shown
+in a **speech bubble** over their head — a reward for evolving. When AI narration
+is enabled the lines are written by the **local LLM** and are context-aware
+(eating, fleeing, drinking, night, hunting); otherwise a pool of cute canned
+lines is used. It's deliberately sparse — at most 4 bubbles, ~5s each, with a
+long cooldown — so it stays charming, never spammy. New `src/ui/chatter.ts`
+drives it; the scene renders a small pool of bubble sprites. (Like everything
+sim-timed, the bubbles only appear in a foreground tab where the world actually
+evolves — a background tab throttles the loop and the world stays at age 0.)
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

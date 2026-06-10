@@ -112,6 +112,7 @@ src/
 - v0.61 ✓ — **dragonflies** dart over the ponds by day.
 - v0.62 ✓ — **glowing mushrooms** bioluminesce near the trees at night.
 - v0.63 ✓ — hazy **distant hills** ring the horizon for depth.
+- v0.64 ✓ — **critters talk!** Once a lineage evolves far enough (gen 4+), its clever, grown-up critters blurt short, spontaneous lines in **speech bubbles** — written by the local LLM when AI narration is on, with cute canned lines otherwise.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.
