@@ -89,6 +89,36 @@ grey **poof** at a death.
 A fading **intro title card** and a soft **vignette** frame, so the world feels
 like a nature documentary the moment it loads.
 
+### v0.18.0 – v0.21.0 — A real night sky (deep space)
+A new `src/render/cosmos.ts` owns the celestial dome so `scene.ts` stays
+manageable. **v0.18** replaced the flat 1,400-point starfield with **3,600 stars**
+of varied size and colour temperature (white / blue-giant / gold) that twinkle
+individually via a small shader. **v0.19** added five large, faint, slowly-breathing
+**nebula** clouds. **v0.20** added a rotating golden **3-arm spiral galaxy** (with
+pink HII-region knots and a glowing core) plus a small bluish companion. **v0.21**
+added **shooting stars** — point-trails that streak across the deep-night sky.
+
+### v0.22.0 — Auto-weather
+A **🎲 auto** button by the Weather lever. When on, a slow random-walk driver eases
+the weather through rolling fronts — long calm spells punctuated by occasional
+storms (~6s half-life, weighted toward calm). The slider tracks the live value;
+dragging it manually takes back control.
+
+### v0.23.0 – v0.26.0 — Wolves & the chase
+The predator/prey loop grew teeth. **v0.23**: predators sharing a quarry **fan out
+and circle it** (tangential steering, sides split by id) instead of all charging
+from one direction. **v0.24**: a **stalk → dart** rhythm — they creep while lining
+up, then explode into a fast committed **lunge** with a duration and cooldown.
+**v0.25**: a **cartoon pounce** (squash-and-stretch + a springy hop, leaning into
+the dive) and a comic white/orange **"POW" star-burst** on a kill. **v0.26**: prey
+**panic** — a close predator triggers a **fright sprint** with quick startle hops
+and a bobbing yellow **"!"** overhead, so the hunt reads as nature from both sides.
+
+### v0.27.0 — Aurora
+A shimmering green→magenta **aurora** curtain waves along the horizon on clear,
+calm nights (custom GLSL, gated by night depth and calm weather). It caps the
+deep-space sky overhaul.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

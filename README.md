@@ -66,6 +66,16 @@ src/
 - v0.15 ✓ — visible **seasons** (foliage drifts green↔autumn) and daytime **drifting motes** (pollen / insects).
 - v0.16 ✓ — **life moments**: gold **sparkles** when a creature is born, a grey **poof** when one dies.
 - v0.17 ✓ — cinematic polish: a fading **intro title card** and a soft **vignette** frame.
+- v0.18 ✓ — a **deeper, twinkling starfield**: thousands of stars with varied size and colour (white / blue-giant / gold) that shimmer individually.
+- v0.19 ✓ — **deep-space nebulae**: large, faint, slowly-breathing colour clouds high in the night sky.
+- v0.20 ✓ — **spiral galaxies**: a big golden 3-arm galaxy (with pink HII knots) rotating overhead, plus a small bluish companion.
+- v0.21 ✓ — **shooting stars** streak across the deep-night sky every few seconds.
+- v0.22 ✓ — a **🎲 auto-weather** button: slow random fronts roll through on their own (calm spells punctuated by storms).
+- v0.23 ✓ — **wolf-pack hunting**: predators sharing a quarry **fan out and circle it** instead of charging from one side.
+- v0.24 ✓ — a **stalk → dart** rhythm: predators creep, then explode into a fast committed **lunge** (with a cooldown).
+- v0.25 ✓ — a **cartoon pounce** (squash-and-stretch + a springy hop) and a comic **"POW" star-burst** on a kill.
+- v0.26 ✓ — **prey panic**: a close predator spooks prey into a **fright sprint** with startle hops and a bobbing **"!"**.
+- v0.27 ✓ — a shimmering **aurora** ribbon along the horizon on clear, calm nights.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.
