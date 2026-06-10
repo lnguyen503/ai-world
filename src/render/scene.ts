@@ -228,6 +228,8 @@ export class Scene3D {
   private flocks: { group: THREE.Group; birds: THREE.Sprite[]; speed: number }[] = [];
   private flowers!: THREE.Points;
   private flowerCount = 420;
+  private leaves!: THREE.Points;
+  private leafSpeed!: Float32Array;
   private bursts = new BurstField();
   private lastT = 0;
 
@@ -289,6 +291,7 @@ export class Scene3D {
     this.makeClouds();
     this.makeBirds();
     this.makeFlowers();
+    this.makeLeaves();
     this.scene.add(this.bursts.mesh);
 
     const renderPass = new RenderPass(this.scene, this.camera);
@@ -538,6 +541,7 @@ export class Scene3D {
     this.updateRainbow(dt);
     this.updateClouds(dt, this.lastSky ? this.lastSky.dayFactor : 1, params.weather);
     this.updateBirds(t, dt, this.lastSky ? this.lastSky.dayFactor : 1);
+    this.updateLeaves(t, dt, this.lastSky ? this.lastSky.dayFactor : 1, world.age);
     this.updateTrees(t);
     this.updateNight(t);
 
@@ -978,6 +982,63 @@ export class Scene3D {
       b.sp.scale.set(1.2 * flap, 1.2, 1);
       (b.sp.material as THREE.SpriteMaterial).opacity = day * 0.95;
     }
+  }
+
+  /** A small tilted leaf shape (white, so per-leaf colour tints it). */
+  private leafTexture(): THREE.CanvasTexture {
+    const c = document.createElement('canvas');
+    c.width = c.height = 32;
+    const x = c.getContext('2d')!;
+    x.fillStyle = '#ffffff';
+    x.beginPath(); x.ellipse(16, 16, 6, 11, Math.PI / 5, 0, Math.PI * 2); x.fill();
+    const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t;
+  }
+
+  /** Autumn leaves that drift down (only when the season turns the foliage brown). */
+  private makeLeaves(): void {
+    const n = 150;
+    const pos = new Float32Array(n * 3);
+    const col = new Float32Array(n * 3);
+    this.leafSpeed = new Float32Array(n);
+    const c = new THREE.Color();
+    const H = WORLD.half - 3;
+    for (let i = 0; i < n; i++) {
+      const x = (Math.random() * 2 - 1) * H, z = (Math.random() * 2 - 1) * H;
+      pos[i * 3] = x; pos[i * 3 + 1] = this.biome.height(x, z) + 1 + Math.random() * 9; pos[i * 3 + 2] = z;
+      this.leafSpeed[i] = 2.4 + Math.random() * 3;
+      c.setHSL(0.03 + Math.random() * 0.07, 0.7, 0.45 + Math.random() * 0.15); // autumn reds / ambers
+      col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    this.leaves = new THREE.Points(geo, new THREE.PointsMaterial({
+      map: this.leafTexture(), size: 0.7, vertexColors: true, transparent: true, opacity: 0, depthWrite: false,
+    }));
+    this.leaves.frustumCulled = false;
+    this.scene.add(this.leaves);
+  }
+
+  /** Fall + flutter the leaves, recycling them to the canopy; visible only deep in autumn. */
+  private updateLeaves(t: number, dt: number, day: number, age: number): void {
+    const autumn = (Math.sin((age / Math.max(1, params.seasonLengthSec)) % 1 * Math.PI * 2) + 1) / 2;
+    const op = Math.max(0, (autumn - 0.3) / 0.7) * day * 0.9;
+    this.leaves.visible = op > 0.02;
+    (this.leaves.material as THREE.PointsMaterial).opacity = op;
+    if (!this.leaves.visible) return;
+    const pos = this.leaves.geometry.getAttribute('position') as THREE.BufferAttribute;
+    const H = WORLD.half - 3;
+    for (let i = 0; i < pos.count; i++) {
+      let x = pos.getX(i) + Math.sin(t * 1.5 + i) * 0.06; // flutter
+      let z = pos.getZ(i) + Math.cos(t * 1.2 + i * 0.7) * 0.04;
+      let y = pos.getY(i) - this.leafSpeed[i]! * dt;
+      if (y < this.biome.height(x, z) + 0.2) { // landed → drift down again from the canopy
+        x = (Math.random() * 2 - 1) * H; z = (Math.random() * 2 - 1) * H;
+        y = this.biome.height(x, z) + 7 + Math.random() * 5;
+      }
+      pos.setXYZ(i, x, y, z);
+    }
+    pos.needsUpdate = true;
   }
 
   /** A simple 5-petal flower (white petals + yellow heart) for the meadow. */

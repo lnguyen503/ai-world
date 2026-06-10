@@ -1,5 +1,4 @@
-v0.50.0: meadow wildflowers
+v0.51.0: falling autumn leaves
 
-- ~420 soft 5-petal wildflowers scattered across the meadow in six pastel hues
-- re-seated to match the terrain on every New Biome; gently dim at night
-- small cutout sprites (alphaTest) so they read as planted flecks of colour, not clutter
+- when the season turns the foliage brown, autumn-coloured leaves drift and flutter down, recycling back to the canopy
+- tied to the same seasonal cycle as the foliage colour; daytime only, fading in/out with the season
