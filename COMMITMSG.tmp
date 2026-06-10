@@ -1,5 +1,4 @@
-v0.52.0: critters drink at the ponds
+v0.53.0: live species population in the HUD
 
-- a calm, well-fed prey now occasionally wanders to a pond's edge, slows to a stop and dips its head to drink (head-dip animation)
-- attraction toward the water balances against the avoid-the-water force, so it settles right at the shoreline — ponds become gathering spots
-- a predator nearby instantly cancels the drink
+- the stats panel now lists each species with its current count, so you can watch the mix shift as smarter/faster archetypes out-compete the rest over generations
+- WorldStats gains speciesCounts; HUD rows are built once and updated by textContent (no per-frame DOM rebuild)

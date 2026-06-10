@@ -1,4 +1,4 @@
-import { WORLD, SOCIAL, TREES, PONDS, WEATHER, params } from '../config';
+import { WORLD, SOCIAL, TREES, PONDS, WEATHER, SPECIES, params } from '../config';
 import type { Biome } from '../biome';
 import { type Genome, randomGenome } from './genome';
 import { type Food, makeFood } from './food';
@@ -19,6 +19,7 @@ export interface WorldStats {
   predators: number;
   flyers: number;
   avgWings: number;
+  speciesCounts: number[];
 }
 
 const MAX_CREATURES = 700;
@@ -356,11 +357,14 @@ export class World implements CreatureContext {
 
   stats(): WorldStats {
     let s = 0, sp = 0, se = 0, ag = 0, so = 0, preds = 0, wi = 0, flyers = 0;
+    const speciesCounts = new Array<number>(SPECIES.length).fill(0);
     for (const c of this.creatures) {
       s += c.genome.size; sp += c.genome.speed; se += c.genome.sense; ag += c.age; so += c.genome.social;
       wi += c.genome.wings;
       if (c.isPredator) preds++;
       if (c.canFly) flyers++;
+      const si = c.genome.species ?? 0;
+      if (si >= 0 && si < speciesCounts.length) speciesCounts[si]!++;
     }
     const n = this.creatures.length || 1;
     return {
@@ -371,7 +375,7 @@ export class World implements CreatureContext {
       deaths: this.deaths,
       age: this.age,
       avgSize: s / n, avgSpeed: sp / n, avgSense: se / n, avgAge: ag / n, avgSocial: so / n,
-      predators: preds, flyers, avgWings: wi / n,
+      predators: preds, flyers, avgWings: wi / n, speciesCounts,
     };
   }
 }

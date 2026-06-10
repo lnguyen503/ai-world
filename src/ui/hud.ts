@@ -27,6 +27,7 @@ export class Hud {
   private socialEl = $('s-social');
   private predEl = $('s-pred');
   private flyEl = $('s-fly');
+  private speciesEls: HTMLElement[] = [];
 
   private selPanel = $('hud-selected');
   private selTitle = $('sel-title');
@@ -48,6 +49,19 @@ export class Hud {
       });
     }
     $('sel-close').addEventListener('click', () => this.onDeselect());
+
+    // build the per-species count rows once
+    const cont = document.getElementById('s-species');
+    if (cont) {
+      for (const sp of SPECIES) {
+        const row = document.createElement('div'); row.className = 'stat';
+        const label = document.createElement('span'); label.textContent = sp.name;
+        const val = document.createElement('span'); val.textContent = '0';
+        row.append(label, val); cont.appendChild(row);
+        this.speciesEls.push(val);
+      }
+    }
+
     this.resizeGraph();
     window.addEventListener('resize', () => this.resizeGraph());
   }
@@ -71,6 +85,9 @@ export class Hud {
     this.socialEl.textContent = `${(s.avgSocial * 100).toFixed(0)}%`;
     this.predEl.textContent = `${s.predators} / ${s.population}`;
     this.flyEl.textContent = `${s.flyers} / ${s.population}`;
+    for (let i = 0; i < this.speciesEls.length; i++) {
+      this.speciesEls[i]!.textContent = String(s.speciesCounts[i] ?? 0);
+    }
 
     if (this.frame++ % 12 === 0) {
       this.history.push(s.population);
