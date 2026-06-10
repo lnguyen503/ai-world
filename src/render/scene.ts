@@ -3,9 +3,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { WORLD, FOOD, SOCIAL, WEATHER, FLIGHT, params } from '../config';
+import { WORLD, FOOD, SOCIAL, WEATHER, FLIGHT, LIFE, params } from '../config';
 import type { World } from '../sim/world';
-import type { Biome } from '../biome';
+import type { Biome, SkyState } from '../biome';
 
 const MAX_PULSES = 256; // max simultaneous "found food!" signal rings drawn
 const RAIN_HEIGHT = 60; // how high rain spawns above the ground
@@ -116,6 +116,12 @@ export class Scene3D {
   private nameTex!: THREE.CanvasTexture;
   private lastNameId = -1;
 
+  private fireflies!: THREE.Points;
+  private fireflyBase!: Float32Array;
+  private fireflyCur!: Float32Array;
+  private moon!: THREE.Mesh;
+  private lastSky!: SkyState;
+
   private selectedId: number | null = null;
   onSelect: (id: number | null) => void = () => {};
 
@@ -161,6 +167,7 @@ export class Scene3D {
     this.scene.add(this.treeGroup);
     this.makeWeather();
     this.makeNameTag();
+    this.makeNight();
 
     const renderPass = new RenderPass(this.scene, this.camera);
     const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.85, 0.5, 0.62);
@@ -315,7 +322,8 @@ export class Scene3D {
       const hasTail = ((look >> 2) & 1) === 1;
       const eyeScale = 1 + ((look >> 3) & 3) * 0.12;
       const squash = 0.88 + ((look >> 5) & 3) * 0.08;
-      const bodyScale = c.genome.size * (pred ? 1.28 : 1);
+      const growth = Math.min(1, 0.4 + 0.6 * Math.min(1, c.age / LIFE.matureAge)); // babies start small, grow up
+      const bodyScale = c.genome.size * (pred ? 1.28 : 1) * growth;
       const flying = c.canFly;
       const asleep = c.asleep;
 
@@ -378,6 +386,7 @@ export class Scene3D {
     this.syncSocial(world);
     this.updateSky(world.age);
     this.syncWeather(world);
+    this.updateNight(t);
   }
 
   private syncFood(world: World): void {
@@ -566,6 +575,56 @@ export class Scene3D {
     this.sun.intensity = s.sunIntensity;
     this.hemi.intensity = s.ambIntensity;
     (this.stars.material as THREE.PointsMaterial).opacity = s.starAlpha * 0.9;
+    this.lastSky = s;
+  }
+
+  private makeNight(): void {
+    const n = 280;
+    const base = new Float32Array(n * 3);
+    const h = WORLD.half;
+    for (let i = 0; i < n; i++) {
+      base[i * 3] = (Math.random() * 2 - 1) * h;
+      base[i * 3 + 1] = 1 + Math.random() * 8;
+      base[i * 3 + 2] = (Math.random() * 2 - 1) * h;
+    }
+    this.fireflyBase = base;
+    this.fireflyCur = base.slice();
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(this.fireflyCur, 3));
+    this.fireflies = new THREE.Points(geo, new THREE.PointsMaterial({
+      color: 0xfff2a0, size: 0.7, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
+    }));
+    this.fireflies.frustumCulled = false;
+    this.scene.add(this.fireflies);
+
+    this.moon = new THREE.Mesh(
+      new THREE.SphereGeometry(7, 24, 24),
+      new THREE.MeshBasicMaterial({ color: 0xeef0ff, transparent: true, opacity: 0 }),
+    );
+    this.scene.add(this.moon);
+  }
+
+  /** Fireflies drift and the moon glows as night deepens. */
+  private updateNight(t: number): void {
+    if (!this.lastSky) return;
+    const night = 1 - this.lastSky.dayFactor;
+    const ff = this.fireflies.material as THREE.PointsMaterial;
+    ff.opacity = night * 0.9;
+    this.fireflies.visible = night > 0.03;
+    if (this.fireflies.visible) {
+      const b = this.fireflyBase, c = this.fireflyCur;
+      for (let i = 0; i < b.length; i += 3) {
+        const p = i * 0.7;
+        c[i] = b[i]! + Math.sin(t * 0.5 + p) * 2.2;
+        c[i + 1] = b[i + 1]! + Math.sin(t * 0.9 + p) * 1.3;
+        c[i + 2] = b[i + 2]! + Math.cos(t * 0.4 + p) * 2.2;
+      }
+      (this.fireflies.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+    }
+    const d = this.lastSky.sunDir;
+    this.moon.position.set(-d[0] * WORLD.half * 2, 8 + (1 - d[1]) * 38, -d[2] * WORLD.half * 2);
+    (this.moon.material as THREE.MeshBasicMaterial).opacity = night;
+    this.moon.visible = night > 0.03;
   }
 
   follow(world: World): void {

@@ -196,8 +196,8 @@ export class Creature {
       }
     }
 
-    // --- reproduce ---
-    if (this.energy >= LIFE.reproThreshold * this.maxEnergy) {
+    // --- reproduce (only once grown up) ---
+    if (this.age >= LIFE.matureAge && this.energy >= LIFE.reproThreshold * this.maxEnergy) {
       const childEnergy = this.energy * 0.5;
       this.energy *= 0.5;
       const a = Math.random() * Math.PI * 2;

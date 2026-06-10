@@ -37,6 +37,7 @@ export const LIFE = {
   maxAgeBase: 55,
   maxAgePerSize: 28,
   eatRadiusBase: 0.6, // plus body radius
+  matureAge: 12, // seconds before a juvenile grows up and can reproduce
 };
 
 export const MUTATION = {
