@@ -272,6 +272,7 @@ export class Scene3D {
   private butterflies: { sp: THREE.Sprite; bx: number; bz: number; phase: number; speed: number }[] = [];
   private clouds: { sprite: THREE.Sprite; shadow: THREE.Mesh; x: number; z: number; speed: number }[] = [];
   private flocks: { group: THREE.Group; birds: THREE.Sprite[]; speed: number }[] = [];
+  private mist: { sprite: THREE.Sprite; x: number; z: number; speed: number }[] = [];
   private flowers!: THREE.Points;
   private flowerCount = 420;
   private leaves!: THREE.Points;
@@ -341,6 +342,7 @@ export class Scene3D {
     this.makeButterflies();
     this.makeClouds();
     this.makeBirds();
+    this.makeMist();
     this.makeFlowers();
     this.makeLeaves();
     this.scene.add(this.bursts.mesh);
@@ -611,6 +613,7 @@ export class Scene3D {
     this.syncWeather(world);
     this.updateRainbow(dt);
     this.updateClouds(dt, this.lastSky ? this.lastSky.dayFactor : 1, params.weather);
+    this.updateMist(dt, this.lastSky ? this.lastSky.dayFactor : 1);
     this.updateBirds(t, dt, this.lastSky ? this.lastSky.dayFactor : 1);
     this.updateLeaves(t, dt, this.lastSky ? this.lastSky.dayFactor : 1, world.age);
     this.updateTrees(t);
@@ -1276,6 +1279,31 @@ export class Scene3D {
       group.position.set((Math.random() * 2 - 1) * WORLD.half, WORLD.half * (0.85 + f * 0.12), (Math.random() * 2 - 1) * WORLD.half);
       this.scene.add(group);
       this.flocks.push({ group, birds, speed: 5 + Math.random() * 3 });
+    }
+  }
+
+  /** Low banks of mist that gather near dawn and burn off as the sun climbs. */
+  private makeMist(): void {
+    const tex = this.cloudTexture();
+    const W = WORLD.half;
+    for (let i = 0; i < 12; i++) {
+      const w = 30 + Math.random() * 32;
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: 0xdde8f2, transparent: true, depthWrite: false, opacity: 0 }));
+      sprite.scale.set(w, w * 0.32, 1);
+      this.scene.add(sprite);
+      this.mist.push({ sprite, x: (Math.random() * 2 - 1) * W, z: (Math.random() * 2 - 1) * W, speed: 0.6 + Math.random() * 1.2 });
+    }
+  }
+
+  private updateMist(dt: number, day: number): void {
+    const band = Math.max(0, 1 - Math.abs(day - 0.32) / 0.28); // thickest at dawn, gone by midday & night
+    const W = WORLD.half + 10;
+    for (const m of this.mist) {
+      m.x += m.speed * dt;
+      if (m.x > W) m.x -= 2 * W;
+      m.sprite.position.set(m.x, this.biome.height(m.x, m.z) + 3.5, m.z);
+      (m.sprite.material as THREE.SpriteMaterial).opacity = band * 0.4;
+      m.sprite.visible = band > 0.02;
     }
   }
 
