@@ -31,6 +31,8 @@ export class Hud {
   private selPanel = $('hud-selected');
   private selTitle = $('sel-title');
   private selBody = $('sel-body');
+  private selId = -1;
+  private dyn: SelRefs | null = null;
 
   private graph = $('graph') as HTMLCanvasElement;
   private gctx = this.graph.getContext('2d')!;
@@ -97,37 +99,90 @@ export class Hud {
     ctx.fillText(`peak ${max}`, 4, 11);
   }
 
+  /**
+   * Build the panel ONCE per selected creature, then update only the live values each frame.
+   * (Rebuilding innerHTML every frame forced a full DOM re-parse + layout 60×/sec — the cause of
+   * the jank while following.)
+   */
   showSelected(c: Creature | null): void {
-    if (!c) { this.selPanel.classList.remove('show'); return; }
+    if (!c) { this.selPanel.classList.remove('show'); this.selId = -1; this.dyn = null; return; }
     this.selPanel.classList.add('show');
+    if (c.id !== this.selId) { this.buildSelected(c); this.selId = c.id; }
+    this.updateSelected(c);
+  }
+
+  private buildSelected(c: Creature): void {
     const g = c.genome;
-    const energyPct = Math.max(0, Math.min(1, c.energy / c.maxEnergy)) * 100;
-    const agePct = Math.max(0, Math.min(1, c.age / c.maxAge)) * 100;
     const hueColor = `hsl(${(g.hue * 360).toFixed(0)}, 65%, 60%)`;
-    this.selTitle.innerHTML =
-      `Following <span style="color:${hueColor}">${c.name}</span>`;
-    const seesFood = c.senseIn[2]! > 0.01;
-    const turnPct = ((c.act[0] + 1) / 2) * 100; // 50% = straight
-    const throttlePct = ((c.act[1] + 1) / 2) * 100;
+    this.selTitle.innerHTML = `Following <span style="color:${hueColor}">${c.name}</span>`;
     this.selBody.innerHTML = `
       ${row('Generation', String(c.generation))}
-      ${row('Lineage', `clan #${c.genome.clan}`)}
+      ${row('Lineage', `clan #${g.clan}`)}
       ${row('Type', c.isPredator ? '🥩 predator' : '🌿 prey')}
-      ${bar('Energy', energyPct, '#4ade80')}
-      ${bar('Stamina', Math.max(0, Math.min(1, c.stamina)) * 100, '#f87171')}
-      ${bar('Age', agePct, '#f59e0b')}
+      ${barId('Energy', 'sb-energy', '#4ade80')}
+      ${barId('Stamina', 'sb-stam', '#f87171')}
+      ${barId('Age', 'sb-age', '#f59e0b')}
       ${bar('Size', norm(g.size, GENE_RANGES.size) * 100, hueColor)}
       ${bar('Speed', norm(g.speed, GENE_RANGES.speed) * 100, hueColor)}
       ${bar('Sense', norm(g.sense, GENE_RANGES.sense) * 100, hueColor)}
       ${bar('Sociability', g.social * 100, '#34d399')}
       ${bar('Wings', g.wings * 100, '#7dd3fc')}
-      <div class="stat" style="margin-top:8px"><span>🕊 Flight</span><span>${c.canFly ? 'can fly' : 'grounded'}</span></div>
-      <div class="stat"><span>📣 Social</span><span>${c.signalTimer > 0 ? 'calling: found food!' : 'quiet'}</span></div>
-      <div class="stat"><span>🧠 Brain</span><span>${seesFood ? 'sees food' : 'searching'}</span></div>
-      ${bar('↻ Turn', turnPct, '#60a5fa')}
-      ${bar('» Throttle', throttlePct, '#a78bfa')}
+      <div class="stat" style="margin-top:8px"><span>🕊 Flight</span><span id="sv-flight"></span></div>
+      <div class="stat"><span>📣 Social</span><span id="sv-signal"></span></div>
+      <div class="stat"><span>🧠 Brain</span><span id="sv-brain"></span></div>
+      ${barId('↻ Turn', 'sb-turn', '#60a5fa')}
+      ${barId('» Throttle', 'sb-throttle', '#a78bfa')}
     `;
+    const q = (sel: string): HTMLElement => this.selBody.querySelector(sel) as HTMLElement;
+    const pair = (id: string): [HTMLElement, HTMLElement] => [q(`#${id} .pct`), q(`#${id} i`)];
+    const [eV, eB] = pair('sb-energy'), [sV, sB] = pair('sb-stam'), [aV, aB] = pair('sb-age');
+    const [tV, tB] = pair('sb-turn'), [thV, thB] = pair('sb-throttle');
+    this.dyn = {
+      energyV: eV, energyB: eB, stamV: sV, stamB: sB, ageV: aV, ageB: aB,
+      flight: q('#sv-flight'), signal: q('#sv-signal'), brain: q('#sv-brain'),
+      turnV: tV, turnB: tB, throttleV: thV, throttleB: thB,
+    };
   }
+
+  private updateSelected(c: Creature): void {
+    const d = this.dyn;
+    if (!d) return;
+    setBar(d.energyV, d.energyB, Math.max(0, Math.min(1, c.energy / c.maxEnergy)) * 100);
+    setBar(d.stamV, d.stamB, Math.max(0, Math.min(1, c.stamina)) * 100);
+    setBar(d.ageV, d.ageB, Math.max(0, Math.min(1, c.age / c.maxAge)) * 100);
+    setBar(d.turnV, d.turnB, ((c.act[0] + 1) / 2) * 100); // 50% = straight
+    setBar(d.throttleV, d.throttleB, ((c.act[1] + 1) / 2) * 100);
+    setText(d.flight, c.canFly ? 'can fly' : 'grounded');
+    setText(d.signal, c.signalTimer > 0 ? 'calling: found food!' : 'quiet');
+    setText(d.brain, c.senseIn[2]! > 0.01 ? 'sees food' : 'searching');
+  }
+}
+
+/** Cached references to the live (per-frame) elements in the follow panel. */
+interface SelRefs {
+  energyV: HTMLElement; energyB: HTMLElement;
+  stamV: HTMLElement; stamB: HTMLElement;
+  ageV: HTMLElement; ageB: HTMLElement;
+  flight: HTMLElement; signal: HTMLElement; brain: HTMLElement;
+  turnV: HTMLElement; turnB: HTMLElement;
+  throttleV: HTMLElement; throttleB: HTMLElement;
+}
+
+/** A bar row with a stable id so its value span + fill can be updated in place. */
+function barId(label: string, id: string, color: string): string {
+  return `<div id="${id}">
+    <div class="stat"><span>${label}</span><span class="pct">0%</span></div>
+    <div class="bar"><i style="width:0%;background:${color}"></i></div>
+  </div>`;
+}
+
+function setBar(v: HTMLElement, fill: HTMLElement, pct: number): void {
+  const p = `${pct.toFixed(0)}%`;
+  if (v.textContent !== p) { v.textContent = p; fill.style.width = p; }
+}
+
+function setText(el: HTMLElement, text: string): void {
+  if (el.textContent !== text) el.textContent = text;
 }
 
 function row(label: string, value: string): string {
