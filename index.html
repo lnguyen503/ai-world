@@ -108,6 +108,14 @@
       #narration-body p { margin: 0 0 10px; font-family: Georgia, 'Times New Roman', serif; font-style: italic;
         font-size: 13px; line-height: 1.55; color: #eef3f8; transition: opacity 0.8s ease; }
 
+      #tips { position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-8px);
+        z-index: 30; max-width: 460px; text-align: center; pointer-events: none;
+        font-size: 12.5px; line-height: 1.4; color: #dbe7f5; background: rgba(13,18,28,0.72);
+        border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; padding: 7px 16px;
+        backdrop-filter: blur(8px); box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        opacity: 0; transition: opacity 0.7s ease, transform 0.7s ease; }
+      #tips.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+      body.photo #tips { opacity: 0 !important; }
       #vignette { position: fixed; inset: 0; z-index: 5; pointer-events: none;
         background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.45) 100%); }
       #intro { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column;
@@ -122,6 +130,7 @@
   </head>
   <body>
     <div id="app"></div>
+    <div id="tips"></div>
     <div id="vignette"></div>
     <div id="intro"><h1>🌱 AI WORLD</h1><p>a tiny living planet — sit back and watch it evolve</p></div>
     <div class="panel" id="hud-top">

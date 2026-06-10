@@ -1,4 +1,5 @@
-v0.55.0: tidy the HUD layout for the species panel
+v0.56.0: gentle feature tips
 
-- moved the per-species counts into the top-right panel (under the population graph) and slid the narration panel down, so nothing overlaps
-- all five species counts are now visible at a glance
+- a subtle assistant: a small pill fades in at the top now and then with one fun thing to try (stargaze, photo mode, follow a critter, speed up time, weather, species race, drinking, AI narration...)
+- non-invasive: doesn't block clicks, auto-fades after ~9s, long gaps between tips, and hides entirely in photo mode
+- new src/ui/tips.ts, cycles randomly without repeating

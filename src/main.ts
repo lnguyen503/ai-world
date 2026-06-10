@@ -7,6 +7,7 @@ import { Controls } from './ui/controls';
 import { Narrator } from './ui/narrator';
 import { Speaker } from './ui/tts';
 import { SoundManager } from './ui/sound';
+import { Tips } from './ui/tips';
 
 const container = document.getElementById('app');
 if (!container) throw new Error('missing #app');
@@ -19,6 +20,7 @@ const controls = new Controls();
 const narrator = new Narrator();
 const speaker = new Speaker();
 const sound = new SoundManager();
+new Tips(); // gentle "did you know" nudges
 narrator.onLine = (text) => speaker.speak(text);
 
 const biomeEl = document.getElementById('s-biome');
