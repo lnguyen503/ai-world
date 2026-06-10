@@ -8,6 +8,7 @@ import { Narrator } from './ui/narrator';
 import { Speaker } from './ui/tts';
 import { SoundManager } from './ui/sound';
 import { Tips } from './ui/tips';
+import { Chatter } from './ui/chatter';
 
 const container = document.getElementById('app');
 if (!container) throw new Error('missing #app');
@@ -21,6 +22,7 @@ const narrator = new Narrator();
 const speaker = new Speaker();
 const sound = new SoundManager();
 new Tips(); // gentle "did you know" nudges
+const chatter = new Chatter(); // critters start talking once evolved enough
 narrator.onLine = (text) => speaker.speak(text);
 
 const biomeEl = document.getElementById('s-biome');
@@ -125,6 +127,8 @@ function frame(now: number): void {
   world.computeLinks();
   scene.sync(world);
   scene.follow(world);
+  chatter.update(world, simDt);
+  scene.syncBubbles(world, chatter.dialogs());
 
   const stats = world.stats();
   hud.updateStats(stats);

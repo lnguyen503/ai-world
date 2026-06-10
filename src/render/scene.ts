@@ -41,6 +41,31 @@ function zzzTexture(): THREE.CanvasTexture {
   return t;
 }
 
+/** Draw a rounded rectangle path. */
+function roundRectPath(x: CanvasRenderingContext2D, rx: number, ry: number, w: number, h: number, r: number): void {
+  x.beginPath();
+  x.moveTo(rx + r, ry);
+  x.arcTo(rx + w, ry, rx + w, ry + h, r);
+  x.arcTo(rx + w, ry + h, rx, ry + h, r);
+  x.arcTo(rx, ry + h, rx, ry, r);
+  x.arcTo(rx, ry, rx + w, ry, r);
+  x.closePath();
+}
+
+/** Word-wrap text into up to two centred lines. */
+function wrapLines(x: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let cur = '';
+  for (const w of words) {
+    const test = cur ? `${cur} ${w}` : w;
+    if (x.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; } else cur = test;
+    if (lines.length >= 1 && x.measureText(cur).width > maxW) break; // cap at 2 lines
+  }
+  if (cur) lines.push(cur);
+  return lines.slice(0, 2);
+}
+
 /** A soft round speck (for pollen motes + glowing fireflies, instead of hard square points). */
 function softDotTexture(): THREE.CanvasTexture {
   const c = document.createElement('canvas');
@@ -264,6 +289,11 @@ export class Scene3D {
   private nameTex!: THREE.CanvasTexture;
   private lastNameId = -1;
 
+  private bubbleSprites: THREE.Sprite[] = [];
+  private bubbleCanvas: HTMLCanvasElement[] = [];
+  private bubbleTex: THREE.CanvasTexture[] = [];
+  private bubbleText: string[] = [];
+
   private fireflies!: THREE.Points;
   private fireflyBase!: Float32Array;
   private fireflyCur!: Float32Array;
@@ -346,6 +376,7 @@ export class Scene3D {
     this.makeWeather();
     this.makeRainbow();
     this.makeNameTag();
+    this.makeBubbles();
     this.makeNight();
     this.makeButterflies();
     this.makeClouds();
@@ -938,6 +969,46 @@ export class Scene3D {
         this.pondGroup.add(pad);
         this.lilies.push({ mesh: pad, baseY: y, phase: Math.random() * Math.PI * 2 });
       }
+    }
+  }
+
+  /** A small pool of speech-bubble sprites for critter chatter. */
+  private makeBubbles(): void {
+    for (let i = 0; i < 4; i++) {
+      const c = document.createElement('canvas'); c.width = 256; c.height = 150;
+      const tex = new THREE.CanvasTexture(c);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false }));
+      sp.scale.set(8, 4.7, 1); sp.renderOrder = 1000; sp.visible = false;
+      this.scene.add(sp);
+      this.bubbleSprites.push(sp); this.bubbleCanvas.push(c); this.bubbleTex.push(tex); this.bubbleText.push('');
+    }
+  }
+
+  private drawBubble(i: number, text: string): void {
+    const cv = this.bubbleCanvas[i]!; const x = cv.getContext('2d')!;
+    x.clearRect(0, 0, cv.width, cv.height);
+    x.fillStyle = 'rgba(15,20,30,0.85)'; x.strokeStyle = 'rgba(255,255,255,0.28)'; x.lineWidth = 3;
+    roundRectPath(x, 12, 10, 232, 96, 20); x.fill(); x.stroke();
+    x.beginPath(); x.moveTo(112, 104); x.lineTo(128, 132); x.lineTo(144, 104); x.closePath(); x.fill(); // tail
+    x.fillStyle = '#eaf2ff'; x.font = '600 27px ui-sans-serif, system-ui, sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    const lines = wrapLines(x, text, 208);
+    const y0 = 58 - (lines.length - 1) * 16;
+    lines.forEach((ln, k) => x.fillText(ln, 128, y0 + k * 32));
+    this.bubbleTex[i]!.needsUpdate = true;
+  }
+
+  /** Position a speech bubble over each talking creature (built once, redrawn only when the text changes). */
+  syncBubbles(world: World, dialogs: { id: number; text: string }[]): void {
+    for (let i = 0; i < this.bubbleSprites.length; i++) {
+      const sp = this.bubbleSprites[i]!;
+      const d = dialogs[i];
+      const c = d ? world.creatures.find((x) => x.id === d.id) : undefined;
+      if (!d || !c) { sp.visible = false; continue; }
+      if (this.bubbleText[i] !== d.text) { this.drawBubble(i, d.text); this.bubbleText[i] = d.text; }
+      const y = this.biome.height(c.x, c.z) + c.genome.size * 1.9 + (c.canFly ? FLIGHT.altitude : 0) + 1.9;
+      sp.position.set(c.x, y, c.z);
+      sp.visible = true;
     }
   }
 
