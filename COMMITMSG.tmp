@@ -1,5 +1,5 @@
-v0.20.0: spiral galaxies in the night sky
+v0.21.0: shooting stars
 
-- a big golden 3-arm log-spiral galaxy of 5200 points with a glowing core, tilted so you see the spiral at an angle, rotating slowly in its own plane
-- a small bluish companion galaxy off to the side
-- pink HII-region knots in the arms; additive blending; fade in with night
+- a pool of meteors that streak across the deep-night sky every few seconds
+- each is a short point-trail (bright head -> dim tail) moving in 3D, so it reads from any camera angle
+- only appear once night is deep enough

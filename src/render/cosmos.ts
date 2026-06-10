@@ -14,6 +14,15 @@ export class Cosmos {
   private starMat: THREE.ShaderMaterial;
   private nebulae: THREE.Sprite[] = [];
   private galaxies: THREE.Group[] = [];
+  private meteors!: THREE.Points;
+  private meteorPos!: Float32Array;
+  private meteorCol!: Float32Array;
+  private meteorState: { x: number; y: number; z: number; vx: number; vy: number; vz: number; life: number; max: number }[] = [];
+  private meteorTimer = 4;
+  private lastT = 0;
+
+  private static readonly METEORS = 4;
+  private static readonly TRAIL = 10;
 
   constructor() {
     this.stars = this.makeStars();
@@ -22,6 +31,7 @@ export class Cosmos {
     this.makeNebulae();
     this.makeGalaxy(DOME * 0.95, 0.9, 1.0, 0xfff0d8);   // a big golden spiral overhead
     this.makeGalaxy(DOME * 0.9, 2.7, 0.42, 0xcfe0ff);   // a small bluish companion, off to the side
+    this.makeMeteors();
     this.group.renderOrder = -1; // behind everything
   }
 
@@ -208,6 +218,73 @@ export class Cosmos {
     this.group.add(g);
   }
 
+  /** A pool of meteors, each a short fading point-trail that streaks across the sky in 3D. */
+  private makeMeteors(): void {
+    const total = Cosmos.METEORS * Cosmos.TRAIL;
+    this.meteorPos = new Float32Array(total * 3);
+    this.meteorCol = new Float32Array(total * 3);
+    for (let m = 0; m < Cosmos.METEORS; m++) {
+      this.meteorState.push({ x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, life: 0, max: 1 });
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(this.meteorPos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(this.meteorCol, 3));
+    this.meteors = new THREE.Points(geo, new THREE.PointsMaterial({
+      size: 2.2, vertexColors: true, transparent: true, opacity: 1,
+      depthWrite: false, blending: THREE.AdditiveBlending,
+    }));
+    this.meteors.frustumCulled = false;
+    this.group.add(this.meteors);
+  }
+
+  private launchMeteor(m: number): void {
+    const st = this.meteorState[m]!;
+    const a = Math.random() * Math.PI * 2;
+    const el = 0.45 + Math.random() * 0.4;
+    const ring = Math.sqrt(Math.max(0, 1 - el * el));
+    st.x = Math.cos(a) * ring * DOME; st.y = el * DOME; st.z = Math.sin(a) * ring * DOME;
+    // a mostly-horizontal sweep with a downward bias
+    const dir = a + Math.PI / 2 + (Math.random() - 0.5);
+    const sp = DOME * (0.9 + Math.random() * 0.7);
+    st.vx = Math.cos(dir) * sp; st.vz = Math.sin(dir) * sp; st.vy = -DOME * (0.2 + Math.random() * 0.3);
+    st.max = 0.7 + Math.random() * 0.6; st.life = st.max;
+  }
+
+  private updateMeteors(dt: number, night: number): void {
+    this.meteorTimer -= dt;
+    if (this.meteorTimer <= 0 && night > 0.5) {
+      const free = this.meteorState.findIndex((s) => s.life <= 0);
+      if (free >= 0) this.launchMeteor(free);
+      this.meteorTimer = 2.5 + Math.random() * 7;
+    }
+    const T = Cosmos.TRAIL;
+    for (let m = 0; m < Cosmos.METEORS; m++) {
+      const st = this.meteorState[m]!;
+      const base = m * T;
+      if (st.life > 0) {
+        st.life -= dt;
+        st.x += st.vx * dt; st.y += st.vy * dt; st.z += st.vz * dt;
+        const fade = Math.max(0, st.life / st.max) * night;
+        for (let i = 0; i < T; i++) {
+          const back = (i / T) * 0.05; // trail stretches behind the head
+          const o = (base + i) * 3;
+          this.meteorPos[o] = st.x - st.vx * back;
+          this.meteorPos[o + 1] = st.y - st.vy * back;
+          this.meteorPos[o + 2] = st.z - st.vz * back;
+          const tail = (1 - i / T) * fade; // bright head → dim tail
+          this.meteorCol[o] = tail; this.meteorCol[o + 1] = tail * 0.95; this.meteorCol[o + 2] = tail * 0.8;
+        }
+      } else {
+        for (let i = 0; i < T; i++) {
+          const o = (base + i) * 3;
+          this.meteorCol[o] = this.meteorCol[o + 1] = this.meteorCol[o + 2] = 0;
+        }
+      }
+    }
+    (this.meteors.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+    (this.meteors.geometry.getAttribute('color') as THREE.BufferAttribute).needsUpdate = true;
+  }
+
   /** 0 = full daylight (sky hidden) .. 1 = deep night (sky at full brightness). */
   setNight(night: number): void {
     this.starMat.uniforms.uNight!.value = night;
@@ -223,6 +300,10 @@ export class Cosmos {
   }
 
   update(t: number): void {
+    const dt = Math.min(0.1, Math.max(0, t - this.lastT));
+    this.lastT = t;
+    const night = this.starMat.uniforms.uNight!.value as number;
+    this.updateMeteors(dt, night);
     if (!this.group.visible) return;
     this.starMat.uniforms.uTime!.value = t;
     for (const g of this.galaxies) g.rotateY((g.userData.spin as number) * 0.016);
