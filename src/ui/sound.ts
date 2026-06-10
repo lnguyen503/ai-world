@@ -11,8 +11,7 @@ const randItem = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)]!;
 /**
  * Procedural ambient audio (Web Audio, fully local). "Nature" = wind that swells with the weather
  * + random birdsong. "Music" = soft, randomized melodic notes from a pentatonic scale (gentle
- * attack/release, occasional harmony + bass) — a calm music-box feel, not a drone. An ominous low
- * tremor fades in whenever a predator is on the prowl.
+ * attack/release, occasional harmony + bass) — a calm music-box feel, not a drone.
  */
 export class SoundManager {
   private ctx: AudioContext | null = null;
@@ -22,7 +21,6 @@ export class SoundManager {
   private windGain: GainNode | null = null;
   private musicMaster: GainNode | null = null;
   private scale: number[] = SCALES[0]!;
-  private ominousGain: GainNode | null = null;
   private nextBird = 0;
   private nextNote = 0;
 
@@ -37,21 +35,9 @@ export class SoundManager {
       this.master = this.ctx.createGain();
       this.master.gain.value = 0.5;
       this.master.connect(this.ctx.destination);
-      this.buildOminous(this.ctx);
     }
     void this.ctx.resume();
     return this.ctx;
-  }
-
-  private buildOminous(ctx: AudioContext): void {
-    const g = ctx.createGain(); g.gain.value = 0;
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 220;
-    lp.connect(g).connect(this.master!);
-    for (const f of [55, 58.27]) { // a low, uneasy minor-second tremor
-      const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
-      o.connect(lp); o.start();
-    }
-    this.ominousGain = g;
   }
 
   setMode(mode: Mode): void {
@@ -103,14 +89,10 @@ export class SoundManager {
     o.start(when); o.stop(when + dur + 0.05);
   }
 
-  /** Per-frame: wind/birds for nature, the note sequencer for music, ominous on prowl. */
-  update(weather: number, prowling: boolean): void {
+  /** Per-frame: wind/birds for nature, the note sequencer for music. */
+  update(weather: number): void {
     const ctx = this.ctx;
     if (!ctx) return;
-    if (this.ominousGain) {
-      const target = prowling && this.mode !== 'off' ? 0.5 : 0;
-      this.ominousGain.gain.value += (target - this.ominousGain.gain.value) * 0.04;
-    }
     if (this.mode === 'nature') {
       if (this.windGain) this.windGain.gain.value = 0.1 + weather * 0.5;
       if (ctx.currentTime >= this.nextBird) {
