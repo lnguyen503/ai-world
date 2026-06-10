@@ -57,5 +57,6 @@ src/
 - v0.7 ✓ — **David Attenborough narration** (a reactive documentary voiceover), and **evolvable flight**: a `wings` gene where flyers escape ground predators but can't shelter from storms — so calm worlds grow wings while storm-wracked worlds keep them grounded. (Brains keep evolving smarter, too.)
 - v0.8 ✓ — the narrator can **speak**: local, on-device **text-to-speech** (Web Speech API) with an enable button + voice picker that auto-selects a British male voice. No cloud, no API key.
 - v0.9 ✓ — **names** for every critter; **lineage/family coloring**; **mating** (two parents mix genomes); **alarm calls** (prey warn the herd); **predator packs**; the **flying-predator arms race**; **save & load** a world; **ambient nature sounds + music**; and a **local neural-TTS hook** (falls back to the system voice).
+- v0.10 ✓ — critters **sleep at night** (closed eyes, tipped-over pose, floating **zzz**) while predators **prowl**; an **ominous drone** fades in when a hunter is stalking; **randomized soft music** + varied nature; and a **non-repeating narrator** that mirrors the world's mood (nightfall, storms, hunts, dawn).
 
 Built with TypeScript + Three.js + Vite.

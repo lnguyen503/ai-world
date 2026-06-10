@@ -28,6 +28,7 @@ export interface CreatureContext {
   spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number): void;
   neighbors(x: number, z: number, radius: number, selfId: number, selfPredator: boolean): NeighborInfo;
   nearestTree(x: number, z: number): TreeInfo;
+  dayFactor: number; // 0 = deep night, 1 = midday
 }
 
 let nextCreatureId = 1;
@@ -48,6 +49,7 @@ export class Creature {
   signalTimer = 0; // >0 means broadcasting "found food!" to neighbors
   alarmTimer = 0; // >0 means raising the alarm (a predator is near)
   threatX = 0; threatZ = 0; // last sensed predator position (shared via the alarm)
+  asleep = false; // resting through the night
 
   constructor(genome: Genome, x: number, z: number, generation: number, energy: number) {
     this.id = nextCreatureId++;
@@ -92,6 +94,17 @@ export class Creature {
     const ni = ctx.neighbors(this.x, this.z, SOCIAL.radius, this.id, predator);
     const tree = ctx.nearestTree(this.x, this.z);
     const sheltered = tree.sheltered && !flying; // flyers are aloft — no shelter from the storm
+
+    // --- sleep: prey rest at night when safe; predators stay on the nocturnal prowl ---
+    const threatened = ni.hasPredator || ni.hasAlarm;
+    this.asleep = ctx.dayFactor < 0.28 && !predator && !flying && !threatened;
+    if (this.asleep) {
+      this.energy -= LIFE.baseMetabolism * params.metabolism * 0.35 * dt; // resting burns little
+      if (weather > WEATHER.startAt && !sheltered) this.energy -= WEATHER.damagePerSec * (weather - WEATHER.startAt) * dt;
+      this.age += dt;
+      if (this.energy <= 0 || this.age >= this.maxAge) this.alive = false;
+      return;
+    }
 
     // --- pick a target: prey (predators) or plant food (prey animals) ---
     let tx = 0, tz = 0, hasTarget = false;

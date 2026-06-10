@@ -111,6 +111,8 @@ export class World implements CreatureContext {
   lightningFlash = 0;
   lightningX = 0;
   lightningZ = 0;
+  dayFactor = 1; // 0 = night, 1 = midday (creatures read this to sleep)
+  prowling = 0; // # of predators currently stalking nearby prey (ominous audio + narration)
   private lightningTimer = 0;
 
   private biome: Biome;
@@ -225,6 +227,7 @@ export class World implements CreatureContext {
   }
 
   step(dt: number): void {
+    this.dayFactor = this.biome.dayFactor(this.age);
     // food regrows toward an abundance- and season-scaled cap
     const targetCap = Math.min(WORLD.foodMax, Math.round(WORLD.initialFood * params.foodAbundance));
     this.foodDebt += WORLD.foodRegrowPerSec * params.foodAbundance * this.biome.seasonFood(this.age) * dt;
@@ -270,6 +273,19 @@ export class World implements CreatureContext {
     }
 
     if (this.food.some((f) => !f.alive)) this.food = this.food.filter((f) => f.alive);
+
+    // a predator is "on the prowl" when it has prey within striking range — drives ominous audio
+    let prowl = 0;
+    for (const c of this.creatures) {
+      if (!c.isPredator) continue;
+      let near = false;
+      this.creatureGrid.forEachNear(c.x, c.z, 14, (o) => {
+        if (near || o === c || !o.alive || o.isPredator) return;
+        if ((o.x - c.x) ** 2 + (o.z - c.z) ** 2 <= 196) near = true;
+      });
+      if (near) prowl++;
+    }
+    this.prowling = prowl;
 
     this.age += dt;
   }

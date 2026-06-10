@@ -24,6 +24,20 @@ function toonGradient(): THREE.DataTexture {
   return tex;
 }
 
+/** A small "z z z" sprite texture drawn on a canvas, billboarded above sleeping creatures. */
+function zzzTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 64;
+  const x = c.getContext('2d')!;
+  x.font = 'bold 30px Georgia, serif';
+  x.fillStyle = 'rgba(255,255,255,0.92)';
+  x.textBaseline = 'middle';
+  x.fillText('z', 18, 46); x.fillText('z', 50, 33); x.fillText('z', 84, 20);
+  const t = new THREE.CanvasTexture(c);
+  t.needsUpdate = true;
+  return t;
+}
+
 /** The cosmetic mesh rig for one creature (built once, reused via the pool). */
 interface CreatureRig {
   body: THREE.Mesh;
@@ -35,6 +49,7 @@ interface CreatureRig {
   tail: THREE.Mesh;
   mouth: THREE.Mesh;
   wings: THREE.Mesh[];
+  zzz: THREE.Sprite;
 }
 
 export class Scene3D {
@@ -65,6 +80,7 @@ export class Scene3D {
   private mouthGeo = new THREE.SphereGeometry(0.09, 8, 8);
   private wingGeo = new THREE.ConeGeometry(0.32, 0.62, 4);
   private wingMat = new THREE.MeshToonMaterial({ color: 0xeaf2ff, gradientMap: this.toonGrad, transparent: true, opacity: 0.82 });
+  private zzzMat = new THREE.SpriteMaterial({ map: zzzTexture(), transparent: true, depthWrite: false });
   private whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   private darkMat = new THREE.MeshBasicMaterial({ color: 0x232334 });
   private mouthMat = new THREE.MeshBasicMaterial({ color: 0x3a2030 });
@@ -255,12 +271,14 @@ export class Scene3D {
       return m;
     };
     const wingL = wing(0.2, 1), wingR = wing(-0.2, -1);
+    const zzz = new THREE.Sprite(this.zzzMat);
+    zzz.scale.set(1.4, 0.7, 1); zzz.position.set(0.1, 1.2, 0); zzz.visible = false;
 
     group.add(body, outline, eyeL, eyeR, pupil(0.2), pupil(-0.2), hi(0.16), hi(-0.16),
-      earRL, earRR, earPL, earPR, ...antL, ...antR, tail, mouth, wingL, wingR);
+      earRL, earRR, earPL, earPR, ...antL, ...antR, tail, mouth, wingL, wingR, zzz);
     const rig: CreatureRig = {
       body, mat, eyes: [eyeL, eyeR], earRound: [earRL, earRR],
-      earPointy: [earPL, earPR], antenna: [...antL, ...antR], tail, mouth, wings: [wingL, wingR],
+      earPointy: [earPL, earPR], antenna: [...antL, ...antR], tail, mouth, wings: [wingL, wingR], zzz,
     };
     group.userData.rig = rig;
     this.scene.add(group);
@@ -288,13 +306,17 @@ export class Scene3D {
       const squash = 0.88 + ((look >> 5) & 3) * 0.08;
       const bodyScale = c.genome.size * (pred ? 1.28 : 1);
       const flying = c.canFly;
+      const asleep = c.asleep;
 
       let gy = this.biome.height(c.x, c.z) + bodyScale * 0.5 * squash + 0.05;
       if (flying) gy += FLIGHT.altitude;
-      const bob = Math.sin(t * (1.5 + c.genome.speed * 0.4) + c.id) * (flying ? 0.18 : 0.07) * c.genome.size;
+      const bob = Math.sin(t * (asleep ? 1.0 : 1.5 + c.genome.speed * 0.4) + c.id) * (flying ? 0.18 : asleep ? 0.03 : 0.07) * c.genome.size;
       g.position.set(c.x, gy + bob, c.z);
       g.scale.set(bodyScale, bodyScale * squash, bodyScale);
       g.rotation.y = -c.heading;
+      g.rotation.z = asleep ? 0.42 : 0; // tip over to sleep
+      rig.zzz.visible = asleep;
+      if (asleep) rig.zzz.position.y = 1.2 + Math.sin(t * 2 + c.id) * 0.12;
 
       const vigor = Math.max(0.06, Math.min(1, c.energy / c.maxEnergy));
       const lineageHue = (c.genome.clan * 0.61803) % 1; // golden-ratio hash → spread-out family colors
@@ -321,9 +343,9 @@ export class Scene3D {
         rig.wings[1]!.rotation.z = -flap;
       }
 
-      // big cute eyes that occasionally blink (predators have narrowed, meaner eyes)
+      // big cute eyes that blink; closed when asleep; narrower for predators
       const blink = Math.sin(t * 3 + c.id * 1.7) > 0.97 ? 0.12 : 1;
-      const eyeY = pred ? 0.62 : 1;
+      const eyeY = (pred ? 0.62 : 1) * (asleep ? 0.06 : 1);
       for (const e of rig.eyes) e.scale.set(eyeScale, eyeScale * blink * eyeY, eyeScale);
     }
     for (const [id, g] of this.groups) {

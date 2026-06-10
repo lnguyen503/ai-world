@@ -85,8 +85,8 @@ function frame(now: number): void {
   hud.updateStats(stats);
   const sel = scene.getSelected();
   hud.showSelected(sel != null ? (world.creatures.find((c) => c.id === sel) ?? null) : null);
-  narrator.update(stats, biome.name, params.weather, world.lightningFlash > 0);
-  sound.update(params.weather);
+  narrator.update(stats, biome.name, params.weather, world.lightningFlash > 0, world.dayFactor, world.prowling > 0);
+  sound.update(params.weather, world.prowling > 0);
 
   scene.render();
   requestAnimationFrame(frame);

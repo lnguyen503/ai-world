@@ -119,17 +119,21 @@ export class Biome {
     return mix(high, rock, (h01 - 0.6) / 0.4);
   }
 
+  /** 0 = deep night, 1 = midday. Drives sky color, sleep, and narration. */
+  dayFactor(t: number): number {
+    if (!params.dayNight) return 1;
+    const elevation = Math.sin((t / Math.max(1, params.dayLengthSec)) % 1 * Math.PI * 2);
+    return Math.max(0, Math.min(1, elevation * 1.4 + 0.25));
+  }
+
   /** Sky / sun / ambient for the current time, driving the day-night cycle. */
   sky(t: number): SkyState {
     const p = this.preset;
-    let dayFactor = 1;
+    const dayFactor = this.dayFactor(t);
     let sunDir: [number, number, number] = [0.4, 0.85, 0.3];
     if (params.dayNight) {
-      const phase = (t / Math.max(1, params.dayLengthSec)) % 1;
-      const ang = phase * Math.PI * 2;
-      const elevation = Math.sin(ang); // -1 .. 1
-      dayFactor = Math.max(0, Math.min(1, elevation * 1.4 + 0.25));
-      sunDir = [Math.cos(ang) * 0.9, Math.max(0.05, elevation), 0.25];
+      const ang = (t / Math.max(1, params.dayLengthSec)) % 1 * Math.PI * 2;
+      sunDir = [Math.cos(ang) * 0.9, Math.max(0.05, Math.sin(ang)), 0.25];
     }
     const dayTop = hexToRgb(p.skyTop);
     const dayBottom = hexToRgb(p.skyBottom);
