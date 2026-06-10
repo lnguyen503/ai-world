@@ -1,4 +1,5 @@
-v0.32.0: butterflies
+v0.33.0: stamina (chases that tire out)
 
-- 26 colourful butterflies flutter low over the meadow by day (looping wander + wing-flap squash + bob) and fade away at night
-- purely decorative ambient fauna; sit above the terrain everywhere they roam
+- creatures have a 0..1 sprint reserve: a predator's dart and a prey's fright bolt drain it; rest refills it
+- a predator needs stamina to commit to a dart (low → it must stalk and recover = an escape window); a prey's bolt fades as it tires
+- stamina bar added to the follow panel

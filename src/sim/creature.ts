@@ -1,4 +1,4 @@
-import { LIFE, FOOD, BRAIN, SOCIAL, PRED, WEATHER, FLIGHT, PONDS, params } from '../config';
+import { LIFE, FOOD, BRAIN, SOCIAL, PRED, WEATHER, FLIGHT, PONDS, STAMINA, params } from '../config';
 import { type Genome, mutate, crossover } from './genome';
 import { think } from './brain';
 import type { Food } from './food';
@@ -59,6 +59,7 @@ export class Creature {
   lungeCd = 0; // cooldown before the next dart
   justKilled = 0; // >0 briefly after a successful kill — drives the cartoon impact
   startleTimer = 0; // >0 means a prey is spooked (fright sprint + startle hop + "!" pop)
+  stamina = 1; // 0..1 sprint reserve — drains while darting/bolting, recovers at rest
 
   constructor(genome: Genome, x: number, z: number, generation: number, energy: number) {
     this.id = nextCreatureId++;
@@ -157,8 +158,8 @@ export class Creature {
       if (ni.hasPrey) {
         const toPrey = Math.atan2(ni.preyZ - this.z, ni.preyX - this.x);
         const dPrey = Math.hypot(ni.preyX - this.x, ni.preyZ - this.z);
-        // in range and rested → commit to a dart (a fast committed burst)
-        if (dPrey <= PRED.lungeRange && this.lungeTimer <= 0 && this.lungeCd <= 0) {
+        // in range, rested AND with stamina to spare → commit to a dart
+        if (dPrey <= PRED.lungeRange && this.lungeTimer <= 0 && this.lungeCd <= 0 && this.stamina >= STAMINA.lungeMin) {
           this.lungeTimer = PRED.lungeDuration; this.lungeCd = PRED.lungeCooldown;
         }
         if (this.lungeTimer > 0) {
@@ -206,10 +207,15 @@ export class Creature {
 
     // --- move (predators creep while lining up, then explode forward mid-dart) ---
     const throttle = BRAIN.minThrottle + (1 - BRAIN.minThrottle) * (this.act[1] + 1) / 2;
+    // stamina: sprinting drains it, resting refills it
+    if (predator && this.lungeTimer > 0) this.stamina = Math.max(0, this.stamina - STAMINA.lungeDrain * dt);
+    else if (!predator && this.startleTimer > 0) this.stamina = Math.max(0, this.stamina - STAMINA.sprintDrain * dt);
+    else this.stamina = Math.min(1, this.stamina + STAMINA.regen * dt);
+
     let speedMult = 1;
     if (predator && this.lungeTimer > 0) speedMult = PRED.lungeSpeedMult;
     else if (predator && ni.hasPrey) speedMult = PRED.stalkSpeedMult;
-    else if (!predator && this.startleTimer > 0) speedMult = PRED.frightSpeedMult; // bolt for your life
+    else if (!predator && this.startleTimer > 0) speedMult = 1 + (PRED.frightSpeedMult - 1) * this.stamina; // a tiring bolt slows
     const speed = g.speed * throttle * (flying ? FLIGHT.speedMult : 1) * speedMult;
     this.x += Math.cos(this.heading) * speed * dt;
     this.z += Math.sin(this.heading) * speed * dt;

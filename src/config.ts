@@ -118,6 +118,15 @@ export const PRED = {
   frightSpeedMult: 1.7, // adrenaline bolt while fleeing for its life
 };
 
+// Stamina: sprinting (a predator's dart, a prey's fright bolt) burns a 0..1 reserve that recovers at
+// rest. Empty out and you can't dart / your bolt fades — so chases have an arc and an escape window.
+export const STAMINA = {
+  regen: 0.18, // per second recovered when not sprinting
+  lungeDrain: 1.0, // per second while mid-dart
+  sprintDrain: 0.5, // per second while a prey is bolting
+  lungeMin: 0.3, // a predator needs at least this much to commit to a dart
+};
+
 // Weather severity (params.weather) damages EXPOSED creatures; shelter under a tree protects them.
 export const WEATHER = {
   startAt: 0.18, // below this, weather is purely cosmetic

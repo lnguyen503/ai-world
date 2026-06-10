@@ -114,6 +114,7 @@ export class Hud {
       ${row('Lineage', `clan #${c.genome.clan}`)}
       ${row('Type', c.isPredator ? '🥩 predator' : '🌿 prey')}
       ${bar('Energy', energyPct, '#4ade80')}
+      ${bar('Stamina', Math.max(0, Math.min(1, c.stamina)) * 100, '#f87171')}
       ${bar('Age', agePct, '#f59e0b')}
       ${bar('Size', norm(g.size, GENE_RANGES.size) * 100, hueColor)}
       ${bar('Speed', norm(g.speed, GENE_RANGES.speed) * 100, hueColor)}
