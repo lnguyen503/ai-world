@@ -2,6 +2,16 @@ import type { WorldStats } from '../sim/world';
 
 const pick = (arr: string[]): string => arr[Math.floor(Math.random() * arr.length)]!;
 
+/** Quick, reactive lines for the instant a kill lands — the play-by-play of the hunt. */
+const KILL_LINES = [
+  'And there it is — the chase ends in an instant. One life feeds another.',
+  'The trap closes. For one of them, the run is over.',
+  'Caught. In this world nothing is wasted — a death is also a meal.',
+  'The pack has its prize: brutal, efficient, and entirely without malice.',
+  'A flash of speed, and it is done. The herd scatters, hearts pounding.',
+  'The ambush works perfectly. The driven prey runs straight into the jaws that waited.',
+];
+
 /** Pull narration text out of a few common local-LLM response shapes (Ollama / OpenAI-style). */
 function extractText(d: unknown): string {
   if (typeof d === 'string') return d;
@@ -34,6 +44,7 @@ export class Narrator {
   private prevNight = false;
   private prevProwl = false;
   private lastLightning = -999;
+  private lastKill = -999;
   private lastText = '';
   private llmOn: HTMLInputElement | null;
   private llmUrl: HTMLInputElement | null;
@@ -58,10 +69,21 @@ export class Narrator {
     return !!this.llmOn?.checked && !!this.llmUrl?.value.trim();
   }
 
-  update(s: WorldStats, biome: string, weather: number, lightning: boolean, dayFactor: number, prowling: boolean): void {
+  update(s: WorldStats, biome: string, weather: number, lightning: boolean, dayFactor: number, prowling: boolean, hunt: 'kill' | 'chase' | 'none' = 'none'): void {
     if (lightning) this.lastLightning = s.age;
     const night = dayFactor < 0.28;
     if (this.prevPop < 0) { this.prevPop = s.population; this.prevBiome = biome; this.prevNight = night; }
+
+    // a kill interjects a quick play-by-play line, bypassing the slow ambient cadence
+    if (hunt === 'kill' && s.age - this.lastKill > 5) {
+      this.lastKill = s.age;
+      let line = pick(KILL_LINES);
+      for (let i = 0; i < 4 && line === this.lastText; i++) line = pick(KILL_LINES);
+      this.show(line);
+      this.nextAt = Math.max(this.nextAt, s.age + 6); // let it breathe before the next ambient line
+      return;
+    }
+
     if (s.age < this.nextAt) return;
     this.nextAt = s.age + 11 + Math.random() * 8;
 

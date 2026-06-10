@@ -1,4 +1,4 @@
-v0.35.0: panic waves through the herd
+v0.36.0: hunt play-by-play narration
 
-- a prey that hears an alarm now catches the fright (startles) and re-broadcasts it, so panic ripples outward from the threat through the whole herd
-- '!' pops + startle hops chain across neighbours; stamina naturally caps the chaos (a tired herd settles)
+- a kill now interjects a quick reactive narration line (bypassing the slow ambient cadence), so David calls the moment of the strike
+- world exposes killFlash; main routes a kill/chase/none signal to the narrator; dedup avoids repeats

@@ -104,7 +104,8 @@ function frame(now: number): void {
   hud.updateStats(stats);
   const sel = scene.getSelected();
   hud.showSelected(sel != null ? (world.creatures.find((c) => c.id === sel) ?? null) : null);
-  narrator.update(stats, biome.name, params.weather, world.lightningFlash > 0, world.dayFactor, world.prowling > 0);
+  const hunt = world.killFlash > 0 ? 'kill' : world.prowling > 0 ? 'chase' : 'none';
+  narrator.update(stats, biome.name, params.weather, world.lightningFlash > 0, world.dayFactor, world.prowling > 0, hunt);
   sound.update(params.weather, world.prowling > 0);
 
   scene.render();
