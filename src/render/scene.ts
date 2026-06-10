@@ -226,6 +226,8 @@ export class Scene3D {
   private butterflies: { sp: THREE.Sprite; bx: number; bz: number; phase: number; speed: number }[] = [];
   private clouds: { sprite: THREE.Sprite; shadow: THREE.Mesh; x: number; z: number; speed: number }[] = [];
   private flocks: { group: THREE.Group; birds: THREE.Sprite[]; speed: number }[] = [];
+  private flowers!: THREE.Points;
+  private flowerCount = 420;
   private bursts = new BurstField();
   private lastT = 0;
 
@@ -286,6 +288,7 @@ export class Scene3D {
     this.makeButterflies();
     this.makeClouds();
     this.makeBirds();
+    this.makeFlowers();
     this.scene.add(this.bursts.mesh);
 
     const renderPass = new RenderPass(this.scene, this.camera);
@@ -341,6 +344,7 @@ export class Scene3D {
     this.terrain.rotation.x = -Math.PI / 2;
     this.terrain.receiveShadow = true;
     this.scene.add(this.terrain);
+    this.fillFlowers(); // re-seat the wildflowers on the new terrain
   }
 
   private makeFoodMesh(): THREE.InstancedMesh {
@@ -976,6 +980,50 @@ export class Scene3D {
     }
   }
 
+  /** A simple 5-petal flower (white petals + yellow heart) for the meadow. */
+  private flowerTexture(): THREE.CanvasTexture {
+    const c = document.createElement('canvas');
+    c.width = c.height = 32;
+    const x = c.getContext('2d')!;
+    x.fillStyle = '#ffffff';
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      x.beginPath(); x.ellipse(16 + Math.cos(a) * 7, 16 + Math.sin(a) * 7, 5, 5, 0, 0, Math.PI * 2); x.fill();
+    }
+    x.fillStyle = '#ffd24a'; x.beginPath(); x.arc(16, 16, 4.5, 0, Math.PI * 2); x.fill();
+    const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t;
+  }
+
+  /** Scatter soft wildflowers across the meadow (rebuilt to match new terrain). */
+  private makeFlowers(): void {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(this.flowerCount * 3), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(this.flowerCount * 3), 3));
+    this.flowers = new THREE.Points(geo, new THREE.PointsMaterial({
+      map: this.flowerTexture(), size: 0.95, vertexColors: true, transparent: true,
+      opacity: 0.9, depthWrite: true, alphaTest: 0.45, fog: true,
+    }));
+    this.flowers.frustumCulled = false;
+    this.scene.add(this.flowers);
+    this.fillFlowers();
+  }
+
+  private fillFlowers(): void {
+    if (!this.flowers) return;
+    const pos = this.flowers.geometry.getAttribute('position') as THREE.BufferAttribute;
+    const col = this.flowers.geometry.getAttribute('color') as THREE.BufferAttribute;
+    const hues = [0.0, 0.07, 0.13, 0.55, 0.78, 0.92]; // red, orange, yellow, blue, violet, pink
+    const c = new THREE.Color();
+    const h = WORLD.half - 3;
+    for (let i = 0; i < this.flowerCount; i++) {
+      const x = (Math.random() * 2 - 1) * h, z = (Math.random() * 2 - 1) * h;
+      pos.setXYZ(i, x, this.biome.height(x, z) + 0.35, z);
+      c.setHSL(hues[Math.floor(Math.random() * hues.length)]!, 0.68, 0.72);
+      col.setXYZ(i, c.r, c.g, c.b);
+    }
+    pos.needsUpdate = true; col.needsUpdate = true;
+  }
+
   /** A soft white puff texture for cloud billboards. */
   private cloudTexture(): THREE.CanvasTexture {
     const c = document.createElement('canvas');
@@ -1099,6 +1147,7 @@ export class Scene3D {
     const night = 1 - this.lastSky.dayFactor;
     this.cosmos.update(t);
     this.updateButterflies(t, this.lastSky.dayFactor);
+    (this.flowers.material as THREE.PointsMaterial).opacity = 0.4 + 0.55 * this.lastSky.dayFactor; // dim at night
     const ff = this.fireflies.material as THREE.PointsMaterial;
     ff.opacity = night * 0.9;
     this.fireflies.visible = night > 0.03;

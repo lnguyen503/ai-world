@@ -1,5 +1,5 @@
-v0.49.0: softer, fewer floating motes (cleaner meadow)
+v0.50.0: meadow wildflowers
 
-- daytime motes were hard white square points that speckled the screen — now soft round glowing specks, fewer (80 vs 140) and dimmer, reading as gentle drifting pollen
-- fireflies also get the soft round glow instead of square points
-- finishes decluttering the scene after the food fix
+- ~420 soft 5-petal wildflowers scattered across the meadow in six pastel hues
+- re-seated to match the terrain on every New Biome; gently dim at night
+- small cutout sprites (alphaTest) so they read as planted flecks of colour, not clutter
