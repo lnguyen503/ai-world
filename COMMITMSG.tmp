@@ -1,5 +1,4 @@
-v0.27.0: aurora on calm nights
+v0.28.0: named constellations
 
-- a waving green->magenta aurora curtain shimmers along the horizon on clear, calm nights
-- custom GLSL curtains drift + undulate; gated by night depth AND calm weather (storms wash it out)
-- caps the deep-space night-sky overhaul (stars + nebulae + galaxies + meteors + aurora)
+- four star patterns (The Critter, The Wing, The Drop, The Hunter) drawn as bright marker stars joined by faint lines, each with a subtle label
+- placed around the dome via a tangent-plane projection; only emerge in proper darkness and stay subtle

@@ -22,6 +22,7 @@ export class Cosmos {
   private lastT = 0;
   private aurora!: THREE.Mesh;
   private auroraMat!: THREE.ShaderMaterial;
+  private constellations: THREE.Group[] = [];
 
   private static readonly METEORS = 4;
   private static readonly TRAIL = 10;
@@ -33,6 +34,7 @@ export class Cosmos {
     this.makeNebulae();
     this.makeGalaxy(DOME * 0.95, 0.9, 1.0, 0xfff0d8);   // a big golden spiral overhead
     this.makeGalaxy(DOME * 0.9, 2.7, 0.42, 0xcfe0ff);   // a small bluish companion, off to the side
+    this.makeConstellations();
     this.makeMeteors();
     this.makeAurora();
     this.group.renderOrder = -1; // behind everything
@@ -288,6 +290,74 @@ export class Cosmos {
     (this.meteors.geometry.getAttribute('color') as THREE.BufferAttribute).needsUpdate = true;
   }
 
+  /** A faint label drawn under each constellation. */
+  private starLabel(text: string): THREE.Sprite {
+    const c = document.createElement('canvas');
+    c.width = 256; c.height = 64;
+    const x = c.getContext('2d')!;
+    x.font = '600 26px ui-sans-serif, system-ui, sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillStyle = 'rgba(180,205,255,0.85)';
+    x.fillText(text, 128, 34);
+    const tex = new THREE.CanvasTexture(c); tex.needsUpdate = true;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false, opacity: 0 }));
+    sp.scale.set(DOME * 0.16, DOME * 0.04, 1);
+    return sp;
+  }
+
+  /** A few named star patterns: bright marker stars joined by faint lines, with a label. */
+  private makeConstellations(): void {
+    // each pattern: vertices in a local [-1,1] plane + edges (index pairs) + name + placement
+    const patterns: { name: string; v: [number, number][]; e: [number, number][]; az: number; el: number; scale: number }[] = [
+      { name: 'The Critter', v: [[-0.8, 0.3], [-0.3, 0.6], [0.2, 0.5], [0.6, 0.2], [0.3, -0.4], [-0.2, -0.3], [-0.6, -0.5]],
+        e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [5, 1]], az: 0.7, el: 0.62, scale: 0.5 },
+      { name: 'The Wing', v: [[-0.9, 0], [-0.4, 0.4], [0, 0.1], [0.4, 0.4], [0.9, 0], [0, -0.3]],
+        e: [[0, 1], [1, 2], [2, 3], [3, 4], [2, 5]], az: 2.3, el: 0.5, scale: 0.46 },
+      { name: 'The Drop', v: [[0, 0.7], [-0.4, 0], [0, -0.6], [0.4, 0]],
+        e: [[0, 1], [1, 2], [2, 3], [3, 0]], az: 4.0, el: 0.7, scale: 0.34 },
+      { name: 'The Hunter', v: [[-0.6, 0.5], [-0.2, 0.2], [0.2, 0.4], [0.5, 0.1], [0.1, -0.2], [-0.3, -0.5], [0.4, -0.6]],
+        e: [[0, 1], [1, 2], [2, 3], [1, 4], [4, 5], [4, 6]], az: 5.2, el: 0.45, scale: 0.5 },
+    ];
+    const up = new THREE.Vector3(0, 1, 0);
+    for (const p of patterns) {
+      const g = new THREE.Group();
+      const center = new THREE.Vector3(Math.cos(p.az) * Math.sqrt(1 - p.el * p.el), p.el, Math.sin(p.az) * Math.sqrt(1 - p.el * p.el));
+      const right = new THREE.Vector3().crossVectors(up, center).normalize();
+      const top = new THREE.Vector3().crossVectors(center, right).normalize();
+      const pts3: THREE.Vector3[] = p.v.map(([u, w]) =>
+        center.clone().add(right.clone().multiplyScalar(u * p.scale)).add(top.clone().multiplyScalar(w * p.scale)).normalize().multiplyScalar(DOME * 0.97));
+
+      // bright marker stars
+      const starPos = new Float32Array(pts3.length * 3);
+      pts3.forEach((v, i) => { starPos[i * 3] = v.x; starPos[i * 3 + 1] = v.y; starPos[i * 3 + 2] = v.z; });
+      const sgeo = new THREE.BufferGeometry();
+      sgeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+      const smat = new THREE.PointsMaterial({ color: 0xeaf2ff, size: 4.5, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+      const stars = new THREE.Points(sgeo, smat);
+      stars.frustumCulled = false;
+
+      // connecting lines
+      const linePos = new Float32Array(p.e.length * 2 * 3);
+      p.e.forEach(([a, b], i) => {
+        const va = pts3[a]!, vb = pts3[b]!;
+        linePos.set([va.x, va.y, va.z, vb.x, vb.y, vb.z], i * 6);
+      });
+      const lgeo = new THREE.BufferGeometry();
+      lgeo.setAttribute('position', new THREE.BufferAttribute(linePos, 3));
+      const lines = new THREE.LineSegments(lgeo, new THREE.LineBasicMaterial({ color: 0x9fb8e6, transparent: true, opacity: 0, depthWrite: false }));
+      lines.frustumCulled = false;
+
+      const label = this.starLabel(p.name);
+      const lowest = pts3.reduce((a, b) => (b.y < a.y ? b : a));
+      label.position.copy(lowest).multiplyScalar(0.98);
+
+      g.add(stars, lines, label);
+      g.userData = { star: smat, line: lines.material as THREE.LineBasicMaterial, label: label.material as THREE.SpriteMaterial };
+      this.constellations.push(g);
+      this.group.add(g);
+    }
+  }
+
   /** A waving aurora curtain near the horizon — shows on clear, calm nights. */
   private makeAurora(): void {
     const h = DOME * 0.5;
@@ -336,6 +406,13 @@ export class Cosmos {
       const base = g.userData.baseOpacity as number;
       (g.userData.disk as THREE.PointsMaterial).opacity = base * night;
       (g.userData.core as THREE.SpriteMaterial).opacity = base * 0.6 * night;
+    }
+    // constellations only emerge in proper darkness (and stay subtle)
+    const cn = Math.max(0, (night - 0.45) / 0.55);
+    for (const g of this.constellations) {
+      (g.userData.star as THREE.PointsMaterial).opacity = cn;
+      (g.userData.line as THREE.LineBasicMaterial).opacity = cn * 0.32;
+      (g.userData.label as THREE.SpriteMaterial).opacity = cn * 0.6;
     }
   }
 
