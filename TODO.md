@@ -9,8 +9,9 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).
-- [ ] **Species stats overlay**: population per species over time; watch one out-compete another.
-- [ ] **Camera drama**: when not following anyone, the camera drifts toward an active hunt or a dramatic moment.
+- [ ] **Water reflections** in the ponds (mirror the sky / nearby creatures).
+- [ ] **Per-species lines on the population graph** (not just current counts).
+- [ ] **Lily pads / fish** in the ponds; ripples when a creature drinks.
 - [ ] **Drinking at the pond**: thirsty creatures path to the shoreline and pause to drink (gathering, not just avoiding).
 - [ ] **Reflections in the water**: mirror the sky / nearby creatures in the pond surface.
 - [ ] **Herd defense**: big prey turn and stand their ground instead of always fleeing.

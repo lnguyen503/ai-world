@@ -207,6 +207,19 @@ The daytime **motes** had been hard white square points that speckled the view;
 they're now soft round glowing specks (drifting pollen), fewer and dimmer, and
 the fireflies got the same soft glow. Finishes the decluttering pass.
 
+### v0.50.0 – v0.55.0 — Life & detail
+**v0.50**: ~420 soft 5-petal **wildflowers** in six pastel hues scatter across the
+meadow (re-seated on each new biome, dimming at night). **v0.51**: **autumn
+leaves** drift and flutter down whenever the season turns the foliage brown,
+recycling to the canopy. **v0.52**: calm, well-fed prey **drink at the ponds** —
+an attraction toward the water balances the avoid-the-water force so they settle
+at the shoreline and dip their heads (a predator instantly cancels it). **v0.53**:
+the HUD shows a live **per-species population** so you can watch the smarter/faster
+archetypes out-compete the rest. **v0.54**: when you're not following anyone, the
+cinematic camera gently **drifts toward a fresh kill** then eases back — subtle,
+never snapping. **v0.55**: tidied the HUD so the new species panel (top-right,
+under the population graph) and the narration panel no longer overlap.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

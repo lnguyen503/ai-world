@@ -98,6 +98,12 @@ src/
 - v0.47 ✓ — **snow** instead of rain in cold biomes (Frost Tundra).
 - v0.48 ✓ — **trees sway** in the wind (gentle when calm, whipping in a storm).
 - v0.49 ✓ — softer, fewer floating **motes** (drifting pollen) and round-glow fireflies — a cleaner meadow.
+- v0.50 ✓ — **meadow wildflowers** scattered across the ground in pastel hues.
+- v0.51 ✓ — **falling autumn leaves** when the season turns the foliage brown.
+- v0.52 ✓ — critters **drink at the ponds** (wander to the shoreline and dip their heads).
+- v0.53 ✓ — live **per-species population** counts in the HUD — watch the archetypes compete.
+- v0.54 ✓ — a **cinematic camera** that gently drifts toward a fresh kill when you're not following anyone.
+- v0.55 ✓ — HUD tidy-up so the species panel and narration don't overlap.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.
