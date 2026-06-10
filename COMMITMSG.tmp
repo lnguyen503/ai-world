@@ -1,6 +1,5 @@
-v0.64.0: critters talk once evolved (speech bubbles)
+v0.65.0: smartness-aware critter dialogue
 
-- once a lineage reaches generation 4+, its mature, sufficiently-bright critters (smart species) occasionally blurt a short, spontaneous line in a speech bubble over their head
-- lines come from the local LLM when AI narration is enabled (context-aware: eating / fleeing / drinking / night / hunting); otherwise a pool of cute canned lines
-- sparse + brief (max 4 bubbles, ~5s each, long cooldown) so it stays fun, not spammy; new src/ui/chatter.ts + a bubble-sprite pool in the scene
-- NOTE: bubbles only appear after the world evolves to gen 4+; verify in a foreground tab (background tabs throttle the sim)
+- the LLM prompt now explicitly tells the model how clever the critter is (witty for Foxlings, plain for Hopkins, goofy/simple for Slinks) and shapes tone + length to match
+- richer situation: adds hunger, and sharper phrasing (fleeing for your life / stalking prey / happily eating)
+- witty critters get a slightly longer line; raised the trim cap to fit

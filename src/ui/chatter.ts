@@ -95,14 +95,28 @@ export class Chatter {
   private ask(c: Creature, world: World): Promise<string> {
     const url = this.llmUrl!.value.trim();
     const model = this.llmModel?.value.trim() || 'llama3.2';
-    const sp = SPECIES[c.genome.species]?.name ?? 'creature';
-    const time = world.dayFactor < 0.28 ? 'night' : 'day';
-    const doing = c.startleTimer > 0 ? 'fleeing a predator' : c.drinkTimer > 0 ? 'drinking at a pond'
-      : c.signalTimer > 0 ? 'eating' : c.isPredator ? 'hunting' : 'wandering the meadow';
+    const def = SPECIES[c.genome.species];
+    const sp = def?.name ?? 'creature';
+    const smarts = def?.smarts ?? 1;
+    // how clever this critter is shapes HOW it talks
+    const wit = smarts >= 1.2 ? 'remarkably clever, curious and a little witty'
+      : smarts >= 1.0 ? 'of average wits — cheerful and simple'
+      : 'a simple, goofy little soul';
+    const time = world.dayFactor < 0.28 ? 'night' : 'daytime';
+    const hungry = c.energy < 0.35 * c.maxEnergy;
+    const doing = c.startleTimer > 0 ? 'fleeing for your life from a predator'
+      : c.drinkTimer > 0 ? 'drinking at a pond'
+      : c.signalTimer > 0 ? 'happily eating'
+      : c.isPredator ? 'stalking your prey'
+      : hungry ? 'wandering, hungry, hunting for food'
+      : 'wandering the meadow';
+    const style = smarts >= 1.2 ? 'up to 8 words, and a touch witty or curious'
+      : 'max 5 words, simple and playful';
     const prompt = [
-      `You are ${c.name}, a small cute ${sp} creature in a tiny evolving world.`,
+      `You are ${c.name}, a small cute ${sp} in a tiny evolving world.`,
+      `You are ${wit} — let that come through in how you speak.`,
       `It is ${time}. Right now you are ${doing}.`,
-      'Say ONE short, fun, spontaneous line (max 6 words), playful and cute. No quotation marks.',
+      `Say ONE short, spontaneous, in-character line (${style}). Cute. No quotation marks.`,
     ].join(' ');
     return fetch(url, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -114,6 +128,6 @@ export class Chatter {
 
   private clean(s: string): string {
     const t = s.replace(/["'\n\r]/g, ' ').replace(/\s+/g, ' ').trim();
-    return t.length > 42 ? `${t.slice(0, 40)}…` : t;
+    return t.length > 54 ? `${t.slice(0, 52)}…` : t;
   }
 }
