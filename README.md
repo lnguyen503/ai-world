@@ -58,5 +58,9 @@ src/
 - v0.8 ✓ — the narrator can **speak**: local, on-device **text-to-speech** (Web Speech API) with an enable button + voice picker that auto-selects a British male voice. No cloud, no API key.
 - v0.9 ✓ — **names** for every critter; **lineage/family coloring**; **mating** (two parents mix genomes); **alarm calls** (prey warn the herd); **predator packs**; the **flying-predator arms race**; **save & load** a world; **ambient nature sounds + music**; and a **local neural-TTS hook** (falls back to the system voice).
 - v0.10 ✓ — critters **sleep at night** (closed eyes, tipped-over pose, floating **zzz**) while predators **prowl**; an **ominous drone** fades in when a hunter is stalking; **randomized soft music** + varied nature; and a **non-repeating narrator** that mirrors the world's mood (nightfall, storms, hunts, dawn).
+- v0.11 ✓ — **floating name tags** above the critter you click; predators are now **always red-rimmed** (clear even in lineage mode); and an optional **local-LLM narration** hook (Ollama-style — reads the biome + world state and writes the line, with template fallback).
+
+## Connecting a local LLM for narration
+Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.
 
 Built with TypeScript + Three.js + Vite.

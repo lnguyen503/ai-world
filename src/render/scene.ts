@@ -50,6 +50,7 @@ interface CreatureRig {
   mouth: THREE.Mesh;
   wings: THREE.Mesh[];
   zzz: THREE.Sprite;
+  outline: THREE.Mesh;
 }
 
 export class Scene3D {
@@ -85,6 +86,7 @@ export class Scene3D {
   private darkMat = new THREE.MeshBasicMaterial({ color: 0x232334 });
   private mouthMat = new THREE.MeshBasicMaterial({ color: 0x3a2030 });
   private outlineMat = new THREE.MeshBasicMaterial({ color: 0x15121f, side: THREE.BackSide });
+  private redOutlineMat = new THREE.MeshBasicMaterial({ color: 0xff2a2a, side: THREE.BackSide });
   private groups = new Map<number, THREE.Group>();
 
   private trunkGeo = new THREE.CylinderGeometry(0.5, 0.75, 4.2, 8);
@@ -107,6 +109,11 @@ export class Scene3D {
   private rain!: THREE.Points;
   private rainPos!: Float32Array;
   private beam!: THREE.Mesh;
+
+  private nameSprite!: THREE.Sprite;
+  private nameCanvas = document.createElement('canvas');
+  private nameTex!: THREE.CanvasTexture;
+  private lastNameId = -1;
 
   private selectedId: number | null = null;
   onSelect: (id: number | null) => void = () => {};
@@ -151,6 +158,7 @@ export class Scene3D {
     this.makeSocialViz();
     this.scene.add(this.treeGroup);
     this.makeWeather();
+    this.makeNameTag();
 
     const renderPass = new RenderPass(this.scene, this.camera);
     const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.85, 0.5, 0.62);
@@ -278,7 +286,7 @@ export class Scene3D {
       earRL, earRR, earPL, earPR, ...antL, ...antR, tail, mouth, wingL, wingR, zzz);
     const rig: CreatureRig = {
       body, mat, eyes: [eyeL, eyeR], earRound: [earRL, earRR],
-      earPointy: [earPL, earPR], antenna: [...antL, ...antR], tail, mouth, wings: [wingL, wingR], zzz,
+      earPointy: [earPL, earPR], antenna: [...antL, ...antR], tail, mouth, wings: [wingL, wingR], zzz, outline,
     };
     group.userData.rig = rig;
     this.scene.add(group);
@@ -334,6 +342,7 @@ export class Scene3D {
       for (const a of rig.antenna) a.visible = earType === 2;
       rig.tail.visible = hasTail;
       rig.mouth.scale.set(pred ? 1.1 : 0.7, pred ? 0.85 : 0.5, pred ? 1.9 : 1.4);
+      rig.outline.material = pred ? this.redOutlineMat : this.outlineMat; // predators always red-rimmed
 
       // wings: visible + flapping only for flyers
       rig.wings[0]!.visible = rig.wings[1]!.visible = flying;
@@ -490,6 +499,28 @@ export class Scene3D {
     }
   }
 
+  private makeNameTag(): void {
+    this.nameCanvas.width = 256; this.nameCanvas.height = 64;
+    this.nameTex = new THREE.CanvasTexture(this.nameCanvas);
+    const mat = new THREE.SpriteMaterial({ map: this.nameTex, transparent: true, depthWrite: false, depthTest: false });
+    this.nameSprite = new THREE.Sprite(mat);
+    this.nameSprite.scale.set(7, 1.75, 1);
+    this.nameSprite.renderOrder = 999;
+    this.nameSprite.visible = false;
+    this.scene.add(this.nameSprite);
+  }
+
+  private drawName(name: string): void {
+    const c = this.nameCanvas;
+    const x = c.getContext('2d')!;
+    x.clearRect(0, 0, c.width, c.height);
+    x.font = 'bold 34px ui-sans-serif, system-ui, sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.lineWidth = 6; x.strokeStyle = 'rgba(0,0,0,0.85)'; x.strokeText(name, 128, 34);
+    x.fillStyle = '#ffe9a8'; x.fillText(name, 128, 34);
+    this.nameTex.needsUpdate = true;
+  }
+
   /** Provide the world's shelter-tree positions; builds the tree meshes on the terrain. */
   setTrees(trees: { x: number; z: number }[]): void {
     this.treePositions = trees;
@@ -524,12 +555,24 @@ export class Scene3D {
   }
 
   follow(world: World): void {
+    const sel = this.selectedId != null ? world.creatures.find((x) => x.id === this.selectedId) : undefined;
+
+    // floating name tag above the selected creature
+    if (sel) {
+      if (sel.id !== this.lastNameId) { this.drawName(sel.name); this.lastNameId = sel.id; }
+      const ny = this.biome.height(sel.x, sel.z) + sel.genome.size * 1.6 + (sel.canFly ? FLIGHT.altitude : 0) + 1.1;
+      this.nameSprite.position.set(sel.x, ny, sel.z);
+      this.nameSprite.visible = true;
+    } else {
+      this.nameSprite.visible = false;
+      this.lastNameId = -1;
+    }
+
     if (this.selectedId == null) { this.controls.update(); return; }
-    const c = world.creatures.find((x) => x.id === this.selectedId);
-    if (!c) { this.setSelected(null); this.controls.update(); return; }
-    TMP.set(c.x, this.biome.height(c.x, c.z) + c.radius + 0.5, c.z);
+    if (!sel) { this.setSelected(null); this.controls.update(); return; }
+    TMP.set(sel.x, this.biome.height(sel.x, sel.z) + sel.radius + 0.5, sel.z);
     this.controls.target.lerp(TMP, 0.12);
-    const desired = 5 + c.genome.size * 3;
+    const desired = 5 + sel.genome.size * 3;
     if (this.camera.position.distanceTo(this.controls.target) > desired * 1.6) {
       const dir = this.camera.position.clone().sub(this.controls.target).normalize();
       this.camera.position.lerp(this.controls.target.clone().add(dir.multiplyScalar(desired)), 0.08);

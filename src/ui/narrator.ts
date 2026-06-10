@@ -2,6 +2,19 @@ import type { WorldStats } from '../sim/world';
 
 const pick = (arr: string[]): string => arr[Math.floor(Math.random() * arr.length)]!;
 
+/** Pull narration text out of a few common local-LLM response shapes (Ollama / OpenAI-style). */
+function extractText(d: unknown): string {
+  if (typeof d === 'string') return d;
+  const o = d as Record<string, unknown>;
+  if (typeof o?.['response'] === 'string') return o['response']; // Ollama /api/generate
+  const choices = o?.['choices'] as Array<Record<string, unknown>> | undefined;
+  const ch = choices?.[0];
+  const msg = ch?.['message'] as Record<string, unknown> | undefined;
+  if (typeof msg?.['content'] === 'string') return msg['content'];
+  if (typeof ch?.['text'] === 'string') return ch['text'];
+  return '';
+}
+
 /**
  * A David-Attenborough-style voiceover. It is event- and state-driven: it narrates transitions
  * (nightfall, dawn, a gathering storm, a lightning strike, the first flight, a predator on the
@@ -22,11 +35,27 @@ export class Narrator {
   private prevProwl = false;
   private lastLightning = -999;
   private lastText = '';
+  private llmOn: HTMLInputElement | null;
+  private llmUrl: HTMLInputElement | null;
+  private llmModel: HTMLInputElement | null;
+  private busy = false;
 
   constructor() {
     const b = document.getElementById('narration-body');
     if (!b) throw new Error('missing #narration-body');
     this.body = b;
+    this.llmOn = document.getElementById('llm-on') as HTMLInputElement | null;
+    this.llmUrl = document.getElementById('llm-url') as HTMLInputElement | null;
+    this.llmModel = document.getElementById('llm-model') as HTMLInputElement | null;
+    this.llmOn?.addEventListener('change', () => {
+      const show = !!this.llmOn?.checked;
+      this.llmUrl?.classList.toggle('show', show);
+      this.llmModel?.classList.toggle('show', show);
+    });
+  }
+
+  private llmReady(): boolean {
+    return !!this.llmOn?.checked && !!this.llmUrl?.value.trim();
   }
 
   update(s: WorldStats, biome: string, weather: number, lightning: boolean, dayFactor: number, prowling: boolean): void {
@@ -34,15 +63,55 @@ export class Narrator {
     const night = dayFactor < 0.28;
     if (this.prevPop < 0) { this.prevPop = s.population; this.prevBiome = biome; this.prevNight = night; }
     if (s.age < this.nextAt) return;
+    this.nextAt = s.age + 11 + Math.random() * 8;
 
-    let line = this.compose(s, biome, weather, night, prowling);
-    for (let i = 0; i < 4 && line === this.lastText; i++) line = this.compose(s, biome, weather, night, prowling);
-    if (line !== this.lastText) { this.emit(line); this.lastText = line; }
+    // a template line is always ready as the fallback (and the non-LLM path)
+    let fallback = this.compose(s, biome, weather, night, prowling);
+    for (let i = 0; i < 4 && fallback === this.lastText; i++) fallback = this.compose(s, biome, weather, night, prowling);
 
-    this.nextAt = s.age + 10 + Math.random() * 8;
+    if (this.llmReady() && !this.busy) {
+      this.busy = true;
+      this.fetchLLM(this.buildPrompt(s, biome, weather, night, prowling))
+        .then((line) => { this.busy = false; this.show(line.trim() || fallback); })
+        .catch(() => { this.busy = false; this.show(fallback); });
+    } else {
+      this.show(fallback);
+    }
+
     this.prevPop = s.population; this.prevSevere = weather >= 0.8; this.prevFlyers = s.flyers;
     this.prevGenTier = Math.floor(s.generation / 5); this.prevBiome = biome;
     this.prevNight = night; this.prevProwl = prowling;
+  }
+
+  /** Ask a local LLM (Ollama /api/generate shape) for one narration line; rejects on any failure. */
+  private fetchLLM(prompt: string): Promise<string> {
+    const url = this.llmUrl?.value.trim() ?? '';
+    const model = this.llmModel?.value.trim() || 'llama3.2';
+    return fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, prompt, stream: false }),
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`llm ${r.status}`))))
+      .then((d: unknown) => extractText(d).replace(/^["']|["']$/g, ''));
+  }
+
+  private buildPrompt(s: WorldStats, biome: string, weather: number, night: boolean, prowling: boolean): string {
+    const w = weather < 0.18 ? 'calm and clear' : weather < 0.5 ? 'light rain' : weather < 0.8 ? 'a gathering storm' : 'a violent storm';
+    const time = night ? 'night — most prey are asleep' : 'daytime';
+    return [
+      'You are Sir David Attenborough narrating a tiny artificial-life world of evolving creatures.',
+      'Write ONE short, vivid, present-tense sentence of narration (max ~25 words). No preamble, no quotation marks.',
+      `Biome: ${biome}. Time: ${time}. Weather: ${w}.`,
+      `There are ${s.population} creatures (${s.predators} predators, ${s.flyers} can fly), in generation ${s.generation}.`,
+      prowling ? 'Right now, a predator is stalking nearby prey.' : '',
+      `Their average sociability is ${(s.avgSocial * 100) | 0}% and they have lived an average of ${s.avgAge | 0} seconds.`,
+    ].filter(Boolean).join('\n');
+  }
+
+  private show(text: string): void {
+    if (!text || text === this.lastText) return;
+    this.emit(text);
+    this.lastText = text;
   }
 
   private compose(s: WorldStats, biome: string, weather: number, night: boolean, prowling: boolean): string {
