@@ -1,5 +1,4 @@
-v0.54.0: cinematic camera finds the drama
+v0.55.0: tidy the HUD layout for the species panel
 
-- when you're not following anyone, the auto-orbit gently drifts its look-at toward a fresh kill for a few seconds, then eases back to centre
-- subtle (slow lerp, partial offset) so it never snaps or hijacks the view; following a creature or stargazing takes over as before
-- world now remembers the last kill location
+- moved the per-species counts into the top-right panel (under the population graph) and slid the narration panel down, so nothing overlaps
+- all five species counts are now visible at a glance
