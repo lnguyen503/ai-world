@@ -1,6 +1,5 @@
-v0.24.0: stalk -> dart hunting rhythm
+v0.25.0: cartoon pounce + comic-impact kill
 
-- predators now CREEP while lining up (stalkSpeedMult) then explode into a fast committed DART (lungeSpeedMult) once prey is in range
-- lunge has a duration + cooldown, so it reads as a real pounce, not a constant sprint
-- darting straight in overrides the circling; faster movement costs more energy
-- creature gains lungeTimer/lungeCd/justKilled state for the upcoming pounce animation
+- mid-dart, predators stretch forward, squash down, spring into a little pounce arc and lean into the dive (classic squash-and-stretch)
+- a successful kill triggers a punchy scale-pop on the predator and a bright white/orange 'POW' star-burst at the strike point (grey poof for the prey still plays too)
+- kill impact flows through a new context.burst() channel + world event type 2

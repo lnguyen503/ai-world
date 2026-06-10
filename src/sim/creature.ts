@@ -28,6 +28,7 @@ export interface CreatureContext {
   spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number): void;
   neighbors(x: number, z: number, radius: number, selfId: number, selfPredator: boolean): NeighborInfo;
   nearestTree(x: number, z: number): TreeInfo;
+  burst(type: number, x: number, z: number): void; // queue a particle burst (2 = kill impact)
   dayFactor: number; // 0 = deep night, 1 = midday
 }
 
@@ -213,6 +214,7 @@ export class Creature {
           prey.energy = 0; prey.alive = false;
           this.signalTimer = SOCIAL.signalTime;
           this.justKilled = 0.4; this.lungeTimer = 0; // pounce lands → cartoon impact
+          ctx.burst(2, prey.x, prey.z); // a bright "POW" at the strike point
         }
       }
     } else if (food) {

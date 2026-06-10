@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { WORLD, FOOD, SOCIAL, WEATHER, FLIGHT, LIFE, params } from '../config';
+import { WORLD, FOOD, SOCIAL, WEATHER, FLIGHT, LIFE, PRED, params } from '../config';
 import type { World } from '../sim/world';
 import type { Biome, SkyState } from '../biome';
 import { Cosmos } from './cosmos';
@@ -387,8 +387,23 @@ export class Scene3D {
         gy = baseY + Math.sin(t * (asleep ? 1.0 : 1.5 + c.genome.speed * 0.4) + c.id) * (asleep ? 0.03 : 0.08) * c.genome.size;
       }
       rig.lastHeading = c.heading;
+
+      // cartoon pounce: predators stretch forward + squash + hop mid-dart, then punch-scale on a kill
+      let sx = 1, sy = squash, sz = 1;
+      if (pred && c.lungeTimer > 0) {
+        const k = Math.sin((c.lungeTimer / PRED.lungeDuration) * Math.PI); // 0 → 1 → 0
+        sx = 1 + 0.5 * k;            // stretch along travel (local +x = forward)
+        sy = squash * (1 - 0.28 * k); // flatten down
+        sz = 1 - 0.12 * k;
+        gy += k * 0.6;               // a springy pounce arc
+        pitch += 0.42 * k;           // lean into the dive
+      }
+      if (pred && c.justKilled > 0) {
+        const punch = 1 + 0.38 * Math.sin((c.justKilled / 0.4) * Math.PI); // pop, then settle
+        sx *= punch; sy *= punch; sz *= punch;
+      }
       g.position.set(c.x, gy, c.z);
-      g.scale.set(bodyScale, bodyScale * squash, bodyScale);
+      g.scale.set(bodyScale * sx, bodyScale * sy, bodyScale * sz);
       g.rotation.set(pitch, -c.heading, roll);
       rig.zzz.visible = asleep;
       if (asleep) rig.zzz.position.y = 1.2 + Math.sin(t * 2 + c.id) * 0.12;
@@ -440,7 +455,10 @@ export class Scene3D {
       const e = ev[i]!;
       const y = this.biome.height(e.x, e.z) + 0.6;
       if (e.t === 0) this.bursts.emit(e.x, y, e.z, 0xffd479, 8, 2.2); // birth: rising gold sparkle
-      else this.bursts.emit(e.x, y, e.z, 0x9aa0aa, 7, 0.6); // death: grey poof
+      else if (e.t === 2) { // kill impact: a punchy white/orange "POW" star-burst
+        this.bursts.emit(e.x, y, e.z, 0xfff2c2, 14, 2.8);
+        this.bursts.emit(e.x, y, e.z, 0xff8a3a, 8, 1.6);
+      } else this.bursts.emit(e.x, y, e.z, 0x9aa0aa, 7, 0.6); // death: grey poof
     }
     ev.length = 0;
     this.bursts.update(dt);

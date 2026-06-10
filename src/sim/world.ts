@@ -113,7 +113,7 @@ export class World implements CreatureContext {
   lightningZ = 0;
   dayFactor = 1; // 0 = night, 1 = midday (creatures read this to sleep)
   prowling = 0; // # of predators currently stalking nearby prey (ominous audio + narration)
-  events: { t: 0 | 1; x: number; z: number }[] = []; // transient birth(0)/death(1) events for particle bursts
+  events: { t: 0 | 1 | 2; x: number; z: number }[] = []; // transient birth(0)/death(1)/kill-impact(2) events
   private lightningTimer = 0;
 
   private biome: Biome;
@@ -153,6 +153,10 @@ export class World implements CreatureContext {
   }
 
   eatFood(food: Food): void { food.alive = false; }
+
+  burst(type: number, x: number, z: number): void {
+    if (this.events.length < 300) this.events.push({ t: type as 0 | 1 | 2, x, z });
+  }
 
   spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number): void {
     if (this.creatures.length + this.pendingChildren.length >= MAX_CREATURES) return;
