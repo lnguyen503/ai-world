@@ -1,4 +1,4 @@
-v0.36.0: hunt play-by-play narration
+v0.37.0: photo mode
 
-- a kill now interjects a quick reactive narration line (bypassing the slow ambient cadence), so David calls the moment of the strike
-- world exposes killFlash; main routes a kill/chase/none signal to the narrator; dedup avoids repeats
+- a clean cinematic view: hide every UI panel + hint with the 'Photo' button or the H key
+- panels fade out smoothly; a dimmed toggle stays so you can bring the UI back

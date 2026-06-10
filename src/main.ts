@@ -30,6 +30,17 @@ scene.setPonds(world.ponds);
 hud.onSpeedChange = (s) => { params.timeSpeed = s; };
 hud.onDeselect = () => scene.setSelected(null);
 
+// photo mode — hide all UI for a clean cinematic frame (button or the H key)
+const photoBtn = document.getElementById('photo-btn');
+const togglePhoto = (): void => {
+  const on = document.body.classList.toggle('photo');
+  if (photoBtn) photoBtn.textContent = on ? '📷 Show UI' : '📷 Photo';
+};
+photoBtn?.addEventListener('click', togglePhoto);
+window.addEventListener('keydown', (e) => {
+  if ((e.key === 'h' || e.key === 'H') && !(e.target instanceof HTMLInputElement)) togglePhoto();
+});
+
 controls.onNewBiome = () => {
   biome.reseed();
   scene.buildTerrain();

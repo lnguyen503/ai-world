@@ -20,7 +20,15 @@
         backdrop-filter: blur(8px);
         padding: 12px 14px;
         box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+        transition: opacity 0.35s ease;
       }
+      /* photo mode: hide all UI for a clean cinematic frame (toggle with the button or the H key) */
+      body.photo .panel, body.photo #hint { opacity: 0; pointer-events: none; }
+      #photo-btn { position: fixed; z-index: 20; bottom: 14px; left: 14px; font: inherit; font-size: 12px;
+        font-weight: 600; color: #e6edf3; background: rgba(13,18,28,0.6); border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 8px; padding: 6px 10px; cursor: pointer; backdrop-filter: blur(8px); transition: opacity 0.3s; }
+      #photo-btn:hover { background: rgba(255,255,255,0.16); }
+      body.photo #photo-btn { opacity: 0.32; }
       #hud-top { top: 14px; left: 14px; min-width: 240px; }
       #hud-top h1 { margin: 0 0 8px; font-size: 14px; letter-spacing: 0.4px; font-weight: 600; color: #9ad0ff; }
       .stat { display: flex; justify-content: space-between; gap: 18px; font-size: 12.5px; line-height: 1.7; }
@@ -154,6 +162,7 @@
     </div>
 
     <div id="hint" class="">Drag to look · scroll to zoom · click a creature to follow it</div>
+    <button id="photo-btn" title="Photo mode — hide the UI (H)">📷 Photo</button>
 
     <details class="panel" id="hud-controls" open>
       <summary>LEVERS — shape the world</summary>
