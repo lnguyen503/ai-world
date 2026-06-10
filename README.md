@@ -76,6 +76,16 @@ src/
 - v0.25 ✓ — a **cartoon pounce** (squash-and-stretch + a springy hop) and a comic **"POW" star-burst** on a kill.
 - v0.26 ✓ — **prey panic**: a close predator spooks prey into a **fright sprint** with startle hops and a bobbing **"!"**.
 - v0.27 ✓ — a shimmering **aurora** ribbon along the horizon on clear, calm nights.
+- v0.28 ✓ — named **constellations** (The Critter, The Wing, The Drop, The Hunter) emerge in deep darkness.
+- v0.29 ✓ — the **moon waxes and wanes** through its phases over several in-world days.
+- v0.30 ✓ — **ponds**: shimmering pools settle into terrain basins; creatures walk **around** the water.
+- v0.31 ✓ — a **rainbow** arches across the sky when a storm clears in daylight.
+- v0.32 ✓ — **butterflies** flutter over the meadow by day.
+- v0.33 ✓ — **stamina**: a predator's dart and a prey's bolt tire them out, giving chases an arc and an escape window.
+- v0.34 ✓ — **cooperative ambush**: one predator drives the prey while the others flank to the far side (a pincer).
+- v0.35 ✓ — **panic waves**: fright ripples outward through the herd as each spooked prey alarms the next.
+- v0.36 ✓ — the narrator calls the **play-by-play** the instant a kill lands.
+- v0.37 ✓ — **photo mode**: hide all the UI for a clean cinematic frame (button or the **H** key).
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.

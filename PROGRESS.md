@@ -119,6 +119,37 @@ A shimmering green→magenta **aurora** curtain waves along the horizon on clear
 calm nights (custom GLSL, gated by night depth and calm weather). It caps the
 deep-space sky overhaul.
 
+### v0.28.0 – v0.29.0 — A richer night sky
+**v0.28** added four named **constellations** (The Critter, The Wing, The Drop,
+The Hunter) — bright marker stars joined by faint lines with subtle labels,
+placed around the dome and only emerging in deep darkness. **v0.29** made the
+**moon waxes and wanes**: a shader terminator sweeps across the disk over a
+lunar month (~8 in-world days), with faint earthshine on the dark limb.
+
+### v0.30.0 – v0.32.0 — A living landscape
+**v0.30** added **ponds** — shimmering translucent pools (rippling shader,
+sky-tinted, dimming at night) that settle into the lowest terrain basins;
+creatures steer **around** open water while flyers pass over it. **v0.31**: a
+**rainbow** arch springs up opposite the sun and fades whenever a storm clears
+on a bright day. **v0.32**: 26 colourful **butterflies** flutter low over the
+meadow by day and vanish at night.
+
+### v0.33.0 – v0.36.0 — The hunt, deepened
+**v0.33** gave every creature a **stamina** reserve — a predator's dart and a
+prey's fright bolt drain it, rest refills it; a hunter must have stamina to
+commit (low → it stalks and recovers, an escape window), and a tiring prey's
+bolt fades (shown as a bar in the follow panel). **v0.34**: **cooperative
+ambush** — the predator closest to the quarry drives it forward while the others
+swing to the far side, so the fleeing prey is driven into the jaws that waited.
+**v0.35**: **panic waves** — a prey that hears an alarm catches the fright and
+re-broadcasts it, so panic ('!' pops + startle hops) ripples through the whole
+herd. **v0.36**: the narrator interjects a quick **play-by-play** line the
+instant a kill lands, bypassing its slow ambient cadence.
+
+### v0.37.0 — Photo mode
+A clean cinematic frame: hide every UI panel with the 📷 button or the **H** key
+(a dimmed toggle stays so you can bring the UI back).
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

@@ -3,17 +3,17 @@
 Ideas for where the world could grow next. Nothing here is committed; it's a
 backlog of things that would make the zoo richer or more enjoyable to watch.
 
-## Recently shipped (v0.18–v0.27)
-Deep-space night sky (twinkling stars, nebulae, spiral galaxies, shooting stars,
-aurora), an auto-weather button, and a proper hunt: wolf-pack encircling, a
-stalk→dart lunge, a cartoon pounce + comic kill impact, and prey panic.
+## Recently shipped
+- v0.18–v0.27: deep-space night sky (twinkling stars, nebulae, spiral galaxies, shooting stars, aurora), auto-weather, and a proper hunt (wolf-pack encircling, stalk→dart lunge, cartoon pounce + comic kill, prey panic).
+- v0.28–v0.37: constellations, moon phases, ponds, rainbows, butterflies, stamina, cooperative ambush, panic waves, hunt play-by-play narration, and photo mode.
 
 ## Building on the new work
-- [ ] **Constellations & a moon-phase cycle**: named star patterns; the moon waxes/wanes over several days.
-- [ ] **Pack roles**: some predators drive prey toward others lying in ambush (true cooperative hunting).
-- [ ] **Stamina**: a fright sprint / lunge that can't last forever, so chases have an arc and an escape window.
-- [ ] **Herd defense**: big prey turn and stand their ground; the "!" spreads panic through the herd as a wave.
-- [ ] **Day-of-the-hunt narration**: the narrator calls the chase play-by-play and the camera snaps to it.
+- [ ] **Camera drama**: when not following anyone, the camera drifts toward an active hunt or a dramatic moment.
+- [ ] **Drinking at the pond**: thirsty creatures path to the shoreline and pause to drink (gathering, not just avoiding).
+- [ ] **Reflections in the water**: mirror the sky / nearby creatures in the pond surface.
+- [ ] **Herd defense**: big prey turn and stand their ground instead of always fleeing.
+- [ ] **Migrating butterflies / flocks of birds** crossing the sky at dawn and dusk.
+- [ ] **Seasonal night sky**: constellations rotate / different stars rise across the in-world year.
 
 ## World & ecosystem
 - [ ] **Water**: ponds / rivers that creatures drink from or avoid; aquatic lineages over time.
