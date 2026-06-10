@@ -364,10 +364,10 @@ export class Cosmos {
     const geo = new THREE.CylinderGeometry(DOME * 0.72, DOME * 0.72, h, 80, 1, true);
     this.auroraMat = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
-      uniforms: { uTime: { value: 0 }, uNight: { value: 0 }, uCalm: { value: 1 } },
+      uniforms: { uTime: { value: 0 }, uNight: { value: 0 }, uCalm: { value: 1 }, uStrength: { value: 0 } },
       vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: `
-        uniform float uTime; uniform float uNight; uniform float uCalm; varying vec2 vUv;
+        uniform float uTime; uniform float uNight; uniform float uCalm; uniform float uStrength; varying vec2 vUv;
         float h1(float x){ return fract(sin(x * 12.9898) * 43758.5453); }
         float nz(float x){ float i = floor(x), f = fract(x); return mix(h1(i), h1(i + 1.0), smoothstep(0.0, 1.0, f)); }
         void main(){
@@ -378,7 +378,7 @@ export class Cosmos {
           // brightest near the horizon, fading up into space; soft wavy lower edge
           float lo = 0.05 + 0.06 * sin(vUv.x * 14.0 + uTime * 0.4);
           float vfade = smoothstep(0.95, 0.1, vUv.y) * smoothstep(lo, lo + 0.12, vUv.y);
-          float a = band * vfade * uNight * uCalm * 0.55;
+          float a = band * vfade * uNight * uCalm * uStrength * 0.55;
           vec3 col = mix(vec3(0.18, 1.0, 0.55), vec3(0.65, 0.3, 1.0), 0.5 + 0.5 * sin(vUv.x * 5.0 + uTime * 0.25));
           gl_FragColor = vec4(col, a);
         }`,
@@ -392,6 +392,11 @@ export class Cosmos {
   /** Calm weather (0 stormy .. 1 clear) gates the aurora — storms wash it out. */
   setCalm(calm: number): void {
     if (this.auroraMat) this.auroraMat.uniforms.uCalm!.value = calm;
+  }
+
+  /** Per-night aurora intensity (0 = no show tonight). Rolled fresh each nightfall. */
+  setAuroraStrength(v: number): void {
+    if (this.auroraMat) this.auroraMat.uniforms.uStrength!.value = v;
   }
 
   /** 0 = full daylight (sky hidden) .. 1 = deep night (sky at full brightness). */

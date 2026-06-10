@@ -202,6 +202,7 @@ export class Scene3D {
   private moon!: THREE.Mesh;
   private moonMat!: THREE.ShaderMaterial;
   private lastAge = 0;
+  private prevNightForAurora = false;
   private lastSky!: SkyState;
   private motes!: THREE.Points;
   private motesBase!: Float32Array;
@@ -797,6 +798,14 @@ export class Scene3D {
     this.sun.intensity = s.sunIntensity;
     this.hemi.intensity = s.ambIntensity;
     this.cosmos.setNight(s.starAlpha);
+    // roll a fresh aurora each nightfall — most nights none/faint, occasionally a real show
+    const isNight = s.starAlpha > 0.5;
+    if (isNight && !this.prevNightForAurora) {
+      const r = Math.random();
+      const strength = r < 0.45 ? 0 : r < 0.8 ? 0.2 + Math.random() * 0.25 : 0.55 + Math.random() * 0.45;
+      this.cosmos.setAuroraStrength(strength);
+    }
+    this.prevNightForAurora = isNight;
     // water reflects the sky colour + dims at night
     (this.waterMat.uniforms.uSky!.value as THREE.Color).copy(toVec3(s.bottom));
     this.waterMat.uniforms.uOpacity!.value = 0.5 + 0.4 * s.dayFactor;
