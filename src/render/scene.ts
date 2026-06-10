@@ -10,6 +10,27 @@ import type { Biome } from '../biome';
 const TMP = new THREE.Vector3();
 const toVec3 = (hex: number): THREE.Color => new THREE.Color(hex);
 
+/** 4-step grayscale ramp that turns standard lighting into flat cel/toon bands. */
+function toonGradient(): THREE.DataTexture {
+  const c = new Uint8Array([95, 95, 95, 255, 165, 165, 165, 255, 220, 220, 220, 255, 255, 255, 255, 255]);
+  const tex = new THREE.DataTexture(c, 4, 1, THREE.RGBAFormat);
+  tex.minFilter = THREE.NearestFilter;
+  tex.magFilter = THREE.NearestFilter;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** The cosmetic mesh rig for one creature (built once, reused via the pool). */
+interface CreatureRig {
+  body: THREE.Mesh;
+  mat: THREE.MeshToonMaterial;
+  eyes: THREE.Mesh[];
+  earRound: THREE.Mesh[];
+  earPointy: THREE.Mesh[];
+  antenna: THREE.Mesh[];
+  tail: THREE.Mesh;
+}
+
 export class Scene3D {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
@@ -25,10 +46,19 @@ export class Scene3D {
   private stars: THREE.Points;
   private terrain!: THREE.Mesh;
 
-  private bodyGeo = new THREE.IcosahedronGeometry(0.5, 2);
-  private noseGeo = new THREE.ConeGeometry(0.2, 0.6, 10);
-  private eyeGeo = new THREE.SphereGeometry(0.12, 8, 8);
-  private eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x222222, emissiveIntensity: 0.4 });
+  private toonGrad = toonGradient();
+  private bodyGeo = new THREE.SphereGeometry(0.5, 18, 14);
+  private eyeGeo = new THREE.SphereGeometry(0.17, 12, 12);
+  private pupilGeo = new THREE.SphereGeometry(0.085, 10, 10);
+  private hiGeo = new THREE.SphereGeometry(0.038, 6, 6);
+  private earRoundGeo = new THREE.SphereGeometry(0.17, 10, 10);
+  private earPointyGeo = new THREE.ConeGeometry(0.14, 0.36, 8);
+  private antStemGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.32, 6);
+  private antBallGeo = new THREE.SphereGeometry(0.08, 8, 8);
+  private tailGeo = new THREE.SphereGeometry(0.14, 8, 8);
+  private whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  private darkMat = new THREE.MeshBasicMaterial({ color: 0x232334 });
+  private outlineMat = new THREE.MeshBasicMaterial({ color: 0x15121f, side: THREE.BackSide });
   private groups = new Map<number, THREE.Group>();
   private pool: THREE.Group[] = [];
   private pickables: THREE.Mesh[] = [];
@@ -162,14 +192,37 @@ export class Scene3D {
     const g = this.pool.pop();
     if (g) { g.visible = true; return g; }
     const group = new THREE.Group();
-    const body = new THREE.Mesh(this.bodyGeo, new THREE.MeshStandardMaterial({ roughness: 0.5 }));
+    const mat = new THREE.MeshToonMaterial({ gradientMap: this.toonGrad });
+    const body = new THREE.Mesh(this.bodyGeo, mat);
     body.castShadow = true;
-    const nose = new THREE.Mesh(this.noseGeo, body.material);
-    nose.rotation.z = -Math.PI / 2; nose.position.set(0.55, 0.02, 0);
-    const eyeL = new THREE.Mesh(this.eyeGeo, this.eyeMat); eyeL.position.set(0.34, 0.22, 0.24);
-    const eyeR = new THREE.Mesh(this.eyeGeo, this.eyeMat); eyeR.position.set(0.34, 0.22, -0.24);
-    group.add(body, nose, eyeL, eyeR);
-    group.userData.body = body;
+    const outline = new THREE.Mesh(this.bodyGeo, this.outlineMat);
+    outline.scale.setScalar(1.08);
+
+    const eye = (z: number): THREE.Mesh => { const m = new THREE.Mesh(this.eyeGeo, this.whiteMat); m.position.set(0.34, 0.16, z); return m; };
+    const pupil = (z: number): THREE.Mesh => { const m = new THREE.Mesh(this.pupilGeo, this.darkMat); m.position.set(0.46, 0.16, z); return m; };
+    const hi = (z: number): THREE.Mesh => { const m = new THREE.Mesh(this.hiGeo, this.whiteMat); m.position.set(0.5, 0.23, z); return m; };
+    const eyeL = eye(0.2), eyeR = eye(-0.2);
+
+    const round = (z: number): THREE.Mesh => { const m = new THREE.Mesh(this.earRoundGeo, mat); m.position.set(-0.04, 0.48, z); return m; };
+    const pointy = (z: number): THREE.Mesh => { const m = new THREE.Mesh(this.earPointyGeo, mat); m.position.set(-0.04, 0.56, z); return m; };
+    const earRL = round(0.26), earRR = round(-0.26);
+    const earPL = pointy(0.22), earPR = pointy(-0.22);
+
+    const ant = (z: number): THREE.Mesh[] => {
+      const stem = new THREE.Mesh(this.antStemGeo, this.darkMat); stem.position.set(0, 0.62, z);
+      const ball = new THREE.Mesh(this.antBallGeo, mat); ball.position.set(0, 0.8, z);
+      return [stem, ball];
+    };
+    const antL = ant(0.12), antR = ant(-0.12);
+    const tail = new THREE.Mesh(this.tailGeo, mat); tail.position.set(-0.5, -0.02, 0);
+
+    group.add(body, outline, eyeL, eyeR, pupil(0.2), pupil(-0.2), hi(0.16), hi(-0.16),
+      earRL, earRR, earPL, earPR, ...antL, ...antR, tail);
+    const rig: CreatureRig = {
+      body, mat, eyes: [eyeL, eyeR], earRound: [earRL, earRR],
+      earPointy: [earPL, earPR], antenna: [...antL, ...antR], tail,
+    };
+    group.userData.rig = rig;
     this.scene.add(group);
     return group;
   }
@@ -182,21 +235,36 @@ export class Scene3D {
       seen.add(c.id);
       let g = this.groups.get(c.id);
       if (!g) { g = this.acquireGroup(); this.groups.set(c.id, g); }
-      const body = g.userData.body as THREE.Mesh;
-      body.userData.creatureId = c.id;
-      this.pickables.push(body);
+      const rig = g.userData.rig as CreatureRig;
+      rig.body.userData.creatureId = c.id;
+      this.pickables.push(rig.body);
 
-      const gy = this.biome.height(c.x, c.z) + c.radius + 0.05;
-      const bob = Math.sin(t * (1.5 + c.genome.speed * 0.4) + c.id) * 0.06 * c.genome.size;
+      // appearance derived from the heritable "look" gene
+      const look = c.genome.look | 0;
+      const earType = look % 3; // 0 round ears, 1 pointy ears, 2 antennae
+      const hasTail = ((look >> 2) & 1) === 1;
+      const eyeScale = 1 + ((look >> 3) & 3) * 0.12;
+      const squash = 0.88 + ((look >> 5) & 3) * 0.08;
+
+      const gy = this.biome.height(c.x, c.z) + c.radius * squash + 0.05;
+      const bob = Math.sin(t * (1.5 + c.genome.speed * 0.4) + c.id) * 0.07 * c.genome.size;
       g.position.set(c.x, gy + bob, c.z);
-      g.scale.setScalar(c.genome.size);
+      g.scale.set(c.genome.size, c.genome.size * squash, c.genome.size);
       g.rotation.y = -c.heading;
 
-      const mat = body.material as THREE.MeshStandardMaterial;
-      mat.color.setHSL(c.genome.hue, 0.65, 0.55);
+      // pastel cartoon color; brighter when well-fed (glows a touch under bloom)
+      rig.mat.color.setHSL(c.genome.hue, 0.55, 0.68);
       const vigor = Math.max(0.06, Math.min(1, c.energy / c.maxEnergy));
-      mat.emissive.setHSL(c.genome.hue, 0.8, 0.18 * vigor);
-      mat.emissiveIntensity = 0.6 + vigor * 0.8;
+      rig.mat.emissive.setHSL(c.genome.hue, 0.7, 0.14 * vigor);
+
+      rig.earRound[0]!.visible = rig.earRound[1]!.visible = earType === 0;
+      rig.earPointy[0]!.visible = rig.earPointy[1]!.visible = earType === 1;
+      for (const a of rig.antenna) a.visible = earType === 2;
+      rig.tail.visible = hasTail;
+
+      // big cute eyes that occasionally blink
+      const blink = Math.sin(t * 3 + c.id * 1.7) > 0.97 ? 0.12 : 1;
+      for (const e of rig.eyes) e.scale.set(eyeScale, eyeScale * blink, eyeScale);
     }
     for (const [id, g] of this.groups) {
       if (!seen.has(id)) { g.visible = false; this.pool.push(g); this.groups.delete(id); }
