@@ -41,6 +41,19 @@ function zzzTexture(): THREE.CanvasTexture {
   return t;
 }
 
+/** A bright "!" sprite, billboarded above startled prey. */
+function bangTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const x = c.getContext('2d')!;
+  x.font = 'bold 52px Georgia, serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.lineWidth = 7; x.strokeStyle = 'rgba(0,0,0,0.85)'; x.strokeText('!', 32, 34);
+  x.fillStyle = '#ffe14d'; x.fillText('!', 32, 34);
+  const t = new THREE.CanvasTexture(c); t.needsUpdate = true;
+  return t;
+}
+
 /** The cosmetic mesh rig for one creature (built once, reused via the pool). */
 interface CreatureRig {
   body: THREE.Mesh;
@@ -53,6 +66,7 @@ interface CreatureRig {
   mouth: THREE.Mesh;
   wings: THREE.Mesh[];
   zzz: THREE.Sprite;
+  alarm: THREE.Sprite;
   outline: THREE.Mesh;
   lastHeading: number;
 }
@@ -139,6 +153,7 @@ export class Scene3D {
   private wingGeo = new THREE.ConeGeometry(0.32, 0.62, 4);
   private wingMat = new THREE.MeshToonMaterial({ color: 0xeaf2ff, gradientMap: this.toonGrad, transparent: true, opacity: 0.82 });
   private zzzMat = new THREE.SpriteMaterial({ map: zzzTexture(), transparent: true, depthWrite: false });
+  private bangMat = new THREE.SpriteMaterial({ map: bangTexture(), transparent: true, depthWrite: false, depthTest: false });
   private whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   private darkMat = new THREE.MeshBasicMaterial({ color: 0x232334 });
   private mouthMat = new THREE.MeshBasicMaterial({ color: 0x3a2030 });
@@ -334,12 +349,14 @@ export class Scene3D {
     const wingL = wing(0.2, 1), wingR = wing(-0.2, -1);
     const zzz = new THREE.Sprite(this.zzzMat);
     zzz.scale.set(1.4, 0.7, 1); zzz.position.set(0.1, 1.2, 0); zzz.visible = false;
+    const alarm = new THREE.Sprite(this.bangMat);
+    alarm.scale.set(0.9, 0.9, 1); alarm.position.set(0, 1.3, 0); alarm.visible = false; alarm.renderOrder = 998;
 
     group.add(body, outline, eyeL, eyeR, pupil(0.2), pupil(-0.2), hi(0.16), hi(-0.16),
-      earRL, earRR, earPL, earPR, ...antL, ...antR, tail, mouth, wingL, wingR, zzz);
+      earRL, earRR, earPL, earPR, ...antL, ...antR, tail, mouth, wingL, wingR, zzz, alarm);
     const rig: CreatureRig = {
       body, mat, eyes: [eyeL, eyeR], earRound: [earRL, earRR],
-      earPointy: [earPL, earPR], antenna: [...antL, ...antR], tail, mouth, wings: [wingL, wingR], zzz, outline,
+      earPointy: [earPL, earPR], antenna: [...antL, ...antR], tail, mouth, wings: [wingL, wingR], zzz, alarm, outline,
       lastHeading: 0,
     };
     group.userData.rig = rig;
@@ -402,11 +419,23 @@ export class Scene3D {
         const punch = 1 + 0.38 * Math.sin((c.justKilled / 0.4) * Math.PI); // pop, then settle
         sx *= punch; sy *= punch; sz *= punch;
       }
+      if (!pred && c.startleTimer > 0 && !asleep) {
+        const s = c.startleTimer / PRED.startleTime; // 1 → 0
+        gy += Math.abs(Math.sin(s * Math.PI * 4)) * 0.35 * s; // quick panicked hops, fading out
+      }
       g.position.set(c.x, gy, c.z);
       g.scale.set(bodyScale * sx, bodyScale * sy, bodyScale * sz);
       g.rotation.set(pitch, -c.heading, roll);
       rig.zzz.visible = asleep;
       if (asleep) rig.zzz.position.y = 1.2 + Math.sin(t * 2 + c.id) * 0.12;
+      // startled prey flash a bobbing "!" above their head
+      const startled = !pred && c.startleTimer > 0 && !asleep;
+      rig.alarm.visible = startled;
+      if (startled) {
+        const pulse = 0.85 + Math.sin(t * 22 + c.id) * 0.18;
+        rig.alarm.scale.set(0.9 * pulse, 0.9 * pulse, 1);
+        rig.alarm.position.y = 1.35 + Math.sin(t * 10 + c.id) * 0.08;
+      }
 
       const vigor = Math.max(0.06, Math.min(1, c.energy / c.maxEnergy));
       const lineageHue = (c.genome.clan * 0.61803) % 1; // golden-ratio hash → spread-out family colors

@@ -1,5 +1,5 @@
-v0.25.0: cartoon pounce + comic-impact kill
+v0.26.0: prey panic reactions
 
-- mid-dart, predators stretch forward, squash down, spring into a little pounce arc and lean into the dive (classic squash-and-stretch)
-- a successful kill triggers a punchy scale-pop on the predator and a bright white/orange 'POW' star-burst at the strike point (grey poof for the prey still plays too)
-- kill impact flows through a new context.burst() channel + world event type 2
+- a predator within panic range spooks prey into a fright sprint (frightSpeedMult) so the hunt has a real chase
+- startled prey do quick panicked hops and flash a bobbing yellow '!' above their head
+- reads as nature from both sides: stalk/circle/dart from the hunter, bolt-and-startle from the hunted (still cute)

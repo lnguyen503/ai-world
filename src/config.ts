@@ -112,6 +112,10 @@ export const PRED = {
   lungeDuration: 0.55, // seconds a lunge burst lasts
   lungeSpeedMult: 2.6, // speed multiplier during the dart
   stalkSpeedMult: 0.72, // creeps a little slower than full pace while lining up
+  // prey panic: a close predator spooks prey into a brief fright sprint (with a startle hop + "!" pop)
+  panicRadius: 6, // a predator this close startles the prey
+  startleTime: 1, // seconds the prey stays spooked
+  frightSpeedMult: 1.7, // adrenaline bolt while fleeing for its life
 };
 
 // Weather severity (params.weather) damages EXPOSED creatures; shelter under a tree protects them.

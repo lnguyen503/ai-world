@@ -54,6 +54,7 @@ export class Creature {
   lungeTimer = 0; // >0 means mid-dart (a committed burst at prey) — drives the pounce animation
   lungeCd = 0; // cooldown before the next dart
   justKilled = 0; // >0 briefly after a successful kill — drives the cartoon impact
+  startleTimer = 0; // >0 means a prey is spooked (fright sprint + startle hop + "!" pop)
 
   constructor(genome: Genome, x: number, z: number, generation: number, energy: number) {
     this.id = nextCreatureId++;
@@ -97,6 +98,7 @@ export class Creature {
     this.lungeTimer = Math.max(0, this.lungeTimer - dt);
     this.lungeCd = Math.max(0, this.lungeCd - dt);
     this.justKilled = Math.max(0, this.justKilled - dt);
+    this.startleTimer = Math.max(0, this.startleTimer - dt);
 
     const ni = ctx.neighbors(this.x, this.z, SOCIAL.radius, this.id, predator);
     const tree = ctx.nearestTree(this.x, this.z);
@@ -171,6 +173,10 @@ export class Creature {
     } else if (ni.hasPredator) {
       turn += PRED.fleeGain * angDelta(this.heading, Math.atan2(this.z - ni.predZ, this.x - ni.predX));
       this.alarmTimer = SOCIAL.alarmTime; this.threatX = ni.predX; this.threatZ = ni.predZ; // sound the alarm
+      // a predator right on top of it → panic! (fright sprint + startle)
+      if ((ni.predX - this.x) ** 2 + (ni.predZ - this.z) ** 2 < PRED.panicRadius * PRED.panicRadius) {
+        this.startleTimer = PRED.startleTime;
+      }
     } else if (ni.hasAlarm) {
       turn += PRED.fleeGain * 0.8 * angDelta(this.heading, Math.atan2(this.z - ni.alarmZ, this.x - ni.alarmX)); // heed a neighbor's alarm
     }
@@ -185,10 +191,11 @@ export class Creature {
 
     // --- move (predators creep while lining up, then explode forward mid-dart) ---
     const throttle = BRAIN.minThrottle + (1 - BRAIN.minThrottle) * (this.act[1] + 1) / 2;
-    let predMult = 1;
-    if (predator && this.lungeTimer > 0) predMult = PRED.lungeSpeedMult;
-    else if (predator && ni.hasPrey) predMult = PRED.stalkSpeedMult;
-    const speed = g.speed * throttle * (flying ? FLIGHT.speedMult : 1) * predMult;
+    let speedMult = 1;
+    if (predator && this.lungeTimer > 0) speedMult = PRED.lungeSpeedMult;
+    else if (predator && ni.hasPrey) speedMult = PRED.stalkSpeedMult;
+    else if (!predator && this.startleTimer > 0) speedMult = PRED.frightSpeedMult; // bolt for your life
+    const speed = g.speed * throttle * (flying ? FLIGHT.speedMult : 1) * speedMult;
     this.x += Math.cos(this.heading) * speed * dt;
     this.z += Math.sin(this.heading) * speed * dt;
     this.bounceOffEdges(ctx.half);
