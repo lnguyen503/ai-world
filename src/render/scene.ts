@@ -270,6 +270,7 @@ export class Scene3D {
   private motesBase!: Float32Array;
   private motesCur!: Float32Array;
   private butterflies: { sp: THREE.Sprite; bx: number; bz: number; phase: number; speed: number }[] = [];
+  private dragonflies: { sp: THREE.Sprite; phase: number; speed: number }[] = [];
   private clouds: { sprite: THREE.Sprite; shadow: THREE.Mesh; x: number; z: number; speed: number }[] = [];
   private flocks: { group: THREE.Group; birds: THREE.Sprite[]; speed: number }[] = [];
   private mist: { sprite: THREE.Sprite; x: number; z: number; speed: number }[] = [];
@@ -345,6 +346,7 @@ export class Scene3D {
     this.makeMist();
     this.makeFlowers();
     this.makeLeaves();
+    this.makeDragonflies();
     this.scene.add(this.bursts.mesh);
 
     const renderPass = new RenderPass(this.scene, this.camera);
@@ -1325,12 +1327,57 @@ export class Scene3D {
     }
   }
 
+  /** A thin dragonfly: slender body + two pairs of wings (white, tinted by the sprite colour). */
+  private dragonflyTexture(): THREE.CanvasTexture {
+    const c = document.createElement('canvas');
+    c.width = 32; c.height = 16;
+    const x = c.getContext('2d')!;
+    x.fillStyle = '#ffffff';
+    x.fillRect(15, 3, 2, 11); // body
+    for (const [wx, wy] of [[9, 5], [23, 5], [9, 10], [23, 10]] as const) {
+      x.beginPath(); x.ellipse(wx, wy, 6, 2.4, 0, 0, Math.PI * 2); x.fill();
+    }
+    const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t;
+  }
+
+  /** Dragonflies that hover and dart low over the ponds by day. */
+  private makeDragonflies(): void {
+    const tex = this.dragonflyTexture();
+    const hues = [0.5, 0.55, 0.42, 0.62];
+    const col = new THREE.Color();
+    for (let i = 0; i < 14; i++) {
+      col.setHSL(hues[i % hues.length]!, 0.7, 0.6);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: col.clone(), transparent: true, depthWrite: false, opacity: 0 }));
+      sp.scale.set(1.7, 0.75, 1);
+      this.scene.add(sp);
+      this.dragonflies.push({ sp, phase: Math.random() * Math.PI * 2, speed: 0.7 + Math.random() * 0.6 });
+    }
+  }
+
+  private updateDragonflies(t: number, day: number): void {
+    const ponds = this.pondData;
+    const show = day > 0.15 && ponds.length > 0;
+    for (let i = 0; i < this.dragonflies.length; i++) {
+      const d = this.dragonflies[i]!;
+      d.sp.visible = show;
+      if (!show) continue;
+      const a = ponds[i % ponds.length]!;
+      const px = a.x + Math.sin(t * 0.8 * d.speed + d.phase) * a.r * 0.7 + Math.cos(t * 4 + d.phase) * 1.6;
+      const pz = a.z + Math.cos(t * 0.7 * d.speed + d.phase * 1.3) * a.r * 0.7 + Math.sin(t * 4.5 + d.phase) * 1.6;
+      const py = this.biome.height(a.x, a.z) + 1.7 + Math.sin(t * 3 + d.phase) * 0.5;
+      d.sp.position.set(px, py, pz);
+      d.sp.scale.set(1.7 * (0.8 + 0.4 * Math.abs(Math.sin(t * 22 + d.phase))), 0.75, 1); // wing shimmer
+      (d.sp.material as THREE.SpriteMaterial).opacity = day * 0.9;
+    }
+  }
+
   /** Fireflies drift and the moon glows as night deepens. */
   private updateNight(t: number): void {
     if (!this.lastSky) return;
     const night = 1 - this.lastSky.dayFactor;
     this.cosmos.update(t);
     this.updateButterflies(t, this.lastSky.dayFactor);
+    this.updateDragonflies(t, this.lastSky.dayFactor);
     (this.flowers.material as THREE.PointsMaterial).opacity = 0.4 + 0.55 * this.lastSky.dayFactor; // dim at night
     const ff = this.fireflies.material as THREE.PointsMaterial;
     ff.opacity = night * 0.9;
