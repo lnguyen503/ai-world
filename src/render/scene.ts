@@ -224,6 +224,9 @@ export class Scene3D {
   private foliageGeo = new THREE.IcosahedronGeometry(2.5, 1);
   private trunkMat = new THREE.MeshToonMaterial({ color: 0x6b4a2b, gradientMap: this.toonGrad });
   private foliageMat = new THREE.MeshToonMaterial({ color: 0x3f8f4a, gradientMap: this.toonGrad });
+  private shroomStemGeo = new THREE.CylinderGeometry(0.06, 0.09, 0.4, 6);
+  private shroomCapGeo = new THREE.SphereGeometry(0.22, 8, 6);
+  private glowMats: THREE.MeshToonMaterial[] = [];
   private treeGroup = new THREE.Group();
   private treePositions: { x: number; z: number }[] = [];
   private treeSway: { foliage: THREE.Mesh; bx: number; bz: number; phase: number }[] = [];
@@ -925,6 +928,8 @@ export class Scene3D {
   buildTrees(): void {
     this.treeGroup.clear();
     this.treeSway = [];
+    this.glowMats = [];
+    const glowHues = [0.5, 0.78, 0.33, 0.95];
     for (const t of this.treePositions) {
       const y = this.biome.height(t.x, t.z);
       const trunk = new THREE.Mesh(this.trunkGeo, this.trunkMat);
@@ -935,6 +940,22 @@ export class Scene3D {
       foliage.castShadow = true;
       this.treeGroup.add(trunk, foliage);
       this.treeSway.push({ foliage, bx: t.x, bz: t.z, phase: Math.random() * Math.PI * 2 });
+
+      // a cluster of little mushrooms at the base that glow softly after dark
+      const shrooms = Math.floor(Math.random() * 3);
+      for (let k = 0; k < shrooms; k++) {
+        const ang = Math.random() * Math.PI * 2, dist = 1.2 + Math.random() * 1.6;
+        const mx = t.x + Math.cos(ang) * dist, mz = t.z + Math.sin(ang) * dist, my = this.biome.height(mx, mz);
+        const stem = new THREE.Mesh(this.shroomStemGeo, this.trunkMat);
+        stem.position.set(mx, my + 0.2, mz);
+        const capMat = new THREE.MeshToonMaterial({ gradientMap: this.toonGrad, color: 0xcfd6e0 });
+        capMat.emissive = new THREE.Color().setHSL(glowHues[Math.floor(Math.random() * glowHues.length)]!, 0.8, 0.55);
+        capMat.emissiveIntensity = 0;
+        const cap = new THREE.Mesh(this.shroomCapGeo, capMat);
+        cap.position.set(mx, my + 0.42, mz); cap.scale.set(1, 0.7, 1);
+        this.treeGroup.add(stem, cap);
+        this.glowMats.push(capMat);
+      }
     }
   }
 
@@ -1379,6 +1400,8 @@ export class Scene3D {
     this.updateButterflies(t, this.lastSky.dayFactor);
     this.updateDragonflies(t, this.lastSky.dayFactor);
     (this.flowers.material as THREE.PointsMaterial).opacity = 0.4 + 0.55 * this.lastSky.dayFactor; // dim at night
+    const shroomGlow = night * 1.8; // mushrooms bioluminesce after dark
+    for (const m of this.glowMats) m.emissiveIntensity = shroomGlow;
     const ff = this.fireflies.material as THREE.PointsMaterial;
     ff.opacity = night * 0.9;
     this.fireflies.visible = night > 0.03;
