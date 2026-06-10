@@ -23,6 +23,7 @@ export class Hud {
   private sizeEl = $('s-size');
   private speedEl = $('s-speed');
   private senseEl = $('s-sense');
+  private avgAgeEl = $('s-avgage');
 
   private selPanel = $('hud-selected');
   private selTitle = $('sel-title');
@@ -61,6 +62,7 @@ export class Hud {
     this.sizeEl.textContent = s.avgSize.toFixed(2);
     this.speedEl.textContent = s.avgSpeed.toFixed(2);
     this.senseEl.textContent = s.avgSense.toFixed(1);
+    this.avgAgeEl.textContent = `${s.avgAge.toFixed(0)}s`;
 
     if (this.frame++ % 12 === 0) {
       this.history.push(s.population);
@@ -98,6 +100,9 @@ export class Hud {
     const hueColor = `hsl(${(g.hue * 360).toFixed(0)}, 65%, 60%)`;
     this.selTitle.innerHTML =
       `Following <span style="color:${hueColor}">creature #${c.id}</span>`;
+    const seesFood = c.senseIn[2]! > 0.01;
+    const turnPct = ((c.act[0] + 1) / 2) * 100; // 50% = straight
+    const throttlePct = ((c.act[1] + 1) / 2) * 100;
     this.selBody.innerHTML = `
       ${row('Generation', String(c.generation))}
       ${row('Diet', 'herbivore')}
@@ -106,6 +111,9 @@ export class Hud {
       ${bar('Size', norm(g.size, GENE_RANGES.size) * 100, hueColor)}
       ${bar('Speed', norm(g.speed, GENE_RANGES.speed) * 100, hueColor)}
       ${bar('Sense', norm(g.sense, GENE_RANGES.sense) * 100, hueColor)}
+      <div class="stat" style="margin-top:8px"><span>🧠 Brain</span><span>${seesFood ? 'sees food' : 'searching'}</span></div>
+      ${bar('↻ Turn', turnPct, '#60a5fa')}
+      ${bar('» Throttle', throttlePct, '#a78bfa')}
     `;
   }
 }

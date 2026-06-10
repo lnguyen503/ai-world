@@ -1,11 +1,13 @@
 import { GENE_RANGES, params } from '../config';
+import { type Brain, randomBrain, mutateBrain } from './brain';
 
-/** The heritable traits of a creature. Color (hue) is a visible lineage marker. */
+/** The heritable traits of a creature. Color (hue) is a visible lineage marker; brain is its neural net. */
 export interface Genome {
   size: number;
   speed: number;
   sense: number;
   hue: number;
+  brain: Brain;
 }
 
 type Range = readonly [number, number];
@@ -29,6 +31,7 @@ export function randomGenome(): Genome {
     speed: lerp(Math.random(), GENE_RANGES.speed),
     sense: lerp(Math.random(), GENE_RANGES.sense),
     hue: Math.random(),
+    brain: randomBrain(),
   };
 }
 
@@ -45,5 +48,6 @@ export function mutate(g: Genome): Genome {
     sense: jitter(g.sense, GENE_RANGES.sense),
     // hue wraps around the color wheel and drifts slowly.
     hue: ((g.hue + (Math.random() > params.mutationRate ? 0 : gaussian() * 0.06)) % 1 + 1) % 1,
+    brain: mutateBrain(g.brain),
   };
 }

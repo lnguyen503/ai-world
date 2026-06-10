@@ -1,5 +1,6 @@
-import { LIFE, FOOD, params } from '../config';
+import { LIFE, FOOD, BRAIN, params } from '../config';
 import { type Genome, mutate } from './genome';
+import { think } from './brain';
 import type { Food } from './food';
 
 /** What a creature needs from the world to act, without importing the World class. */
@@ -22,6 +23,8 @@ export class Creature {
   age = 0;
   generation: number;
   alive = true;
+  senseIn: number[] = [0, 0, 0, 0, 1]; // last brain inputs (for the follow panel)
+  act: [number, number] = [0, 0]; // last brain outputs [turn, throttle]
 
   constructor(genome: Genome, x: number, z: number, generation: number, energy: number) {
     this.id = nextCreatureId++;
@@ -49,23 +52,32 @@ export class Creature {
   update(dt: number, ctx: CreatureContext): void {
     const g = this.genome;
 
-    // --- sense & steer ---
+    // --- sense: build the brain's inputs (food direction is heading-relative) ---
     const food = ctx.findNearestFood(this.x, this.z, g.sense);
+    let fSin = 0, fCos = 0, fClose = 0;
     if (food) {
-      const target = Math.atan2(food.z - this.z, food.x - this.x);
-      this.heading = steerToward(this.heading, target, 6 * dt);
-    } else {
-      this.heading += (Math.random() - 0.5) * 2.2 * dt; // wander
+      const ang = Math.atan2(food.z - this.z, food.x - this.x) - this.heading;
+      fSin = Math.sin(ang);
+      fCos = Math.cos(ang);
+      const d = Math.hypot(food.x - this.x, food.z - this.z);
+      fClose = 1 - Math.min(1, d / g.sense); // 1 = right on top of it, 0 = at sense edge
     }
+    const energy01 = Math.max(0, Math.min(1, this.energy / this.maxEnergy));
+    this.senseIn = [fSin, fCos, fClose, energy01, 1];
+
+    // --- think & act: the evolved neural net decides turn + throttle ---
+    this.act = think(g.brain, this.senseIn);
+    this.heading += this.act[0] * BRAIN.maxTurn * dt;
+    const throttle = BRAIN.minThrottle + (1 - BRAIN.minThrottle) * (this.act[1] + 1) / 2;
+    const speed = g.speed * throttle;
 
     // --- move ---
-    const dist = g.speed * dt;
-    this.x += Math.cos(this.heading) * dist;
-    this.z += Math.sin(this.heading) * dist;
+    this.x += Math.cos(this.heading) * speed * dt;
+    this.z += Math.sin(this.heading) * speed * dt;
     this.bounceOffEdges(ctx.half);
 
-    // --- metabolism: baseline + movement cost ---
-    const moveCost = LIFE.moveCostK * g.size * g.speed * g.speed;
+    // --- metabolism: baseline + movement cost (uses ACTUAL speed, so throttling saves energy) ---
+    const moveCost = LIFE.moveCostK * g.size * speed * speed;
     this.energy -= (LIFE.baseMetabolism + moveCost) * params.metabolism * dt;
 
     // --- eat ---
@@ -113,13 +125,6 @@ function dist2(ax: number, az: number, bx: number, bz: number): number {
   const dx = ax - bx;
   const dz = az - bz;
   return dx * dx + dz * dz;
-}
-
-/** Rotate `from` toward `to` by at most `maxDelta` radians (shortest way). */
-function steerToward(from: number, to: number, maxDelta: number): number {
-  let diff = ((to - from + Math.PI) % (Math.PI * 2)) - Math.PI;
-  if (diff < -Math.PI) diff += Math.PI * 2;
-  return from + Math.max(-maxDelta, Math.min(maxDelta, diff));
 }
 
 export function newCreature(genome: Genome, x: number, z: number, generation = 0, energy = LIFE.startEnergy): Creature {

@@ -14,6 +14,7 @@ export interface WorldStats {
   avgSize: number;
   avgSpeed: number;
   avgSense: number;
+  avgAge: number;
 }
 
 const MAX_CREATURES = 700;
@@ -136,8 +137,8 @@ export class World implements CreatureContext {
   }
 
   stats(): WorldStats {
-    let s = 0, sp = 0, se = 0;
-    for (const c of this.creatures) { s += c.genome.size; sp += c.genome.speed; se += c.genome.sense; }
+    let s = 0, sp = 0, se = 0, ag = 0;
+    for (const c of this.creatures) { s += c.genome.size; sp += c.genome.speed; se += c.genome.sense; ag += c.age; }
     const n = this.creatures.length || 1;
     return {
       population: this.creatures.length,
@@ -146,7 +147,7 @@ export class World implements CreatureContext {
       births: this.births,
       deaths: this.deaths,
       age: this.age,
-      avgSize: s / n, avgSpeed: sp / n, avgSense: se / n,
+      avgSize: s / n, avgSpeed: sp / n, avgSense: se / n, avgAge: ag / n,
     };
   }
 }

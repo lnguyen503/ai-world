@@ -51,6 +51,11 @@ export const SIM = {
   maxSubStepsPerFrame: 40,
 };
 
+export const BRAIN = {
+  maxTurn: 3.2, // radians/sec the brain can steer
+  minThrottle: 0.3, // creatures always move at least this fraction of their speed
+};
+
 /**
  * Live, user-adjustable knobs (the "levers"). The controls panel writes here and
  * the simulation/render read from here every frame, so changes take effect instantly.
