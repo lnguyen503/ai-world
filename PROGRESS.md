@@ -220,6 +220,19 @@ cinematic camera gently **drifts toward a fresh kill** then eases back — subtl
 never snapping. **v0.55**: tidied the HUD so the new species panel (top-right,
 under the population graph) and the narration panel no longer overlap.
 
+### v0.56.0 — A gentle assistant
+A small pill (new `src/ui/tips.ts`) fades in at the top every ~40s with one fun
+thing the visitor can try — stargaze, photo mode, follow a critter, speed up
+time, the weather lever, the species race, drinking, AI narration, and more. It
+never blocks clicks, lingers ~9s, cycles without repeating, and hides itself in
+photo mode. A subtle nudge, never a nag.
+
+### v0.57.0 – v0.58.0 — Pond life
+**v0.57**: a few **lily pads** float and bob gently on each pond (rebuilt with
+the ponds). **v0.58**: a drinking critter now sends soft **ripples** spreading
+across the water from the shoreline in front of it (an instanced expanding-ring
+pool).
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

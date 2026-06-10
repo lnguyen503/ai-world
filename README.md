@@ -104,6 +104,9 @@ src/
 - v0.53 ✓ — live **per-species population** counts in the HUD — watch the archetypes compete.
 - v0.54 ✓ — a **cinematic camera** that gently drifts toward a fresh kill when you're not following anyone.
 - v0.55 ✓ — HUD tidy-up so the species panel and narration don't overlap.
+- v0.56 ✓ — gentle **feature tips**: a subtle pill fades in now and then suggesting a fun thing to try (never blocks the view, hides in photo mode).
+- v0.57 ✓ — **lily pads** float and bob on the ponds.
+- v0.58 ✓ — **ripples** spread across the water when a critter drinks.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.
