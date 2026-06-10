@@ -60,6 +60,8 @@ export class Creature {
   justKilled = 0; // >0 briefly after a successful kill — drives the cartoon impact
   startleTimer = 0; // >0 means a prey is spooked (fright sprint + startle hop + "!" pop)
   stamina = 1; // 0..1 sprint reserve — drains while darting/bolting, recovers at rest
+  drinkTimer = 0; // >0 means pausing at a pond's edge for a drink (head-dip)
+  drinkCd = 0; // cooldown before wanting another drink
 
   constructor(genome: Genome, x: number, z: number, generation: number, energy: number) {
     this.id = nextCreatureId++;
@@ -105,6 +107,8 @@ export class Creature {
     this.lungeCd = Math.max(0, this.lungeCd - dt);
     this.justKilled = Math.max(0, this.justKilled - dt);
     this.startleTimer = Math.max(0, this.startleTimer - dt);
+    this.drinkTimer = Math.max(0, this.drinkTimer - dt);
+    this.drinkCd = Math.max(0, this.drinkCd - dt);
 
     const ni = ctx.neighbors(this.x, this.z, SOCIAL.radius, this.id, predator);
     const tree = ctx.nearestTree(this.x, this.z);
@@ -112,6 +116,7 @@ export class Creature {
 
     // --- sleep: prey rest at night when safe; predators stay on the nocturnal prowl ---
     const threatened = ni.hasPredator || ni.hasAlarm;
+    if (threatened) this.drinkTimer = 0; // no time for a drink with a predator about
     this.asleep = ctx.dayFactor < 0.28 && !predator && !flying && !threatened;
     if (this.asleep) {
       this.energy -= LIFE.baseMetabolism * params.metabolism * 0.35 * dt; // resting burns little
@@ -203,14 +208,23 @@ export class Creature {
       turn += weather * WEATHER.shelterSeekGain * angDelta(this.heading, Math.atan2(tree.z - this.z, tree.x - this.x));
     }
 
-    // --- walk around open water: steer away when near a pond's edge (flyers pass over it) ---
+    // --- ponds: walk around open water, but a calm prey will pause at the edge for a drink ---
     if (!flying) {
       const pond = ctx.nearestPond(this.x, this.z);
-      const edge = pond.r + this.radius + 1.2;
-      if (pond.hasPond && pond.dist < edge) {
-        const away = Math.atan2(this.z - pond.z, this.x - pond.x);
-        const urgency = 1 - pond.dist / edge; // stronger the closer to / inside the water
-        turn += PONDS.avoidGain * urgency * angDelta(this.heading, away);
+      if (pond.hasPond) {
+        // decide to drink: a relaxed, well-fed prey near water now and then dips in for a sip
+        if (!predator && !threatened && this.drinkTimer <= 0 && this.drinkCd <= 0 &&
+            this.energy > 0.4 * this.maxEnergy && pond.dist < pond.r + 11 && Math.random() < dt * 0.12) {
+          this.drinkTimer = 2.6; this.drinkCd = 16 + Math.random() * 22;
+        }
+        if (this.drinkTimer > 0) {
+          turn += 1.5 * angDelta(this.heading, Math.atan2(pond.z - this.z, pond.x - this.x)); // ease toward the water
+        }
+        const edge = pond.r + this.radius + 1.2;
+        if (pond.dist < edge) {
+          const away = Math.atan2(this.z - pond.z, this.x - pond.x);
+          turn += PONDS.avoidGain * (1 - pond.dist / edge) * angDelta(this.heading, away); // balances at the shoreline
+        }
       }
     }
 
@@ -228,6 +242,7 @@ export class Creature {
     if (predator && this.lungeTimer > 0) speedMult = PRED.lungeSpeedMult;
     else if (predator && ni.hasPrey) speedMult = PRED.stalkSpeedMult;
     else if (!predator && this.startleTimer > 0) speedMult = 1 + (PRED.frightSpeedMult - 1) * this.stamina; // a tiring bolt slows
+    else if (!predator && this.drinkTimer > 0) speedMult = 0.3; // slow right down to sip
     const speed = g.speed * throttle * (flying ? FLIGHT.speedMult : 1) * speedMult;
     this.x += Math.cos(this.heading) * speed * dt;
     this.z += Math.sin(this.heading) * speed * dt;

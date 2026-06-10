@@ -485,6 +485,7 @@ export class Scene3D {
         const s = c.startleTimer / PRED.startleTime; // 1 → 0
         gy += Math.abs(Math.sin(s * Math.PI * 4)) * 0.35 * s; // quick panicked hops, fading out
       }
+      if (!pred && c.drinkTimer > 0 && !asleep) { pitch += 0.55; gy -= 0.04; } // head dipped to drink
       g.position.set(c.x, gy, c.z);
       g.scale.set(bodyScale * sx, bodyScale * sy, bodyScale * sz);
       g.rotation.set(pitch, -c.heading, roll);

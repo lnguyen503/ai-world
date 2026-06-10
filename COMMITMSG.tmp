@@ -1,4 +1,5 @@
-v0.51.0: falling autumn leaves
+v0.52.0: critters drink at the ponds
 
-- when the season turns the foliage brown, autumn-coloured leaves drift and flutter down, recycling back to the canopy
-- tied to the same seasonal cycle as the foliage colour; daytime only, fading in/out with the season
+- a calm, well-fed prey now occasionally wanders to a pond's edge, slows to a stop and dips its head to drink (head-dip animation)
+- attraction toward the water balances against the avoid-the-water force, so it settles right at the shoreline — ponds become gathering spots
+- a predator nearby instantly cancels the drink
