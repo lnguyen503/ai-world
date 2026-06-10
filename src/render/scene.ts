@@ -230,6 +230,9 @@ export class Scene3D {
   private treeGroup = new THREE.Group();
   private treePositions: { x: number; z: number }[] = [];
   private treeSway: { foliage: THREE.Mesh; bx: number; bz: number; phase: number }[] = [];
+  private horizonGroup = new THREE.Group();
+  private horizonGeo = new THREE.ConeGeometry(1, 1, 5);
+  private horizonMat = new THREE.MeshToonMaterial({ gradientMap: this.toonGrad });
   private pondGroup = new THREE.Group();
   private pondData: { x: number; z: number; r: number }[] = [];
   private waterMat!: THREE.ShaderMaterial;
@@ -331,6 +334,7 @@ export class Scene3D {
     this.scene.add(this.cosmos.group);
 
     this.buildTerrain();
+    this.scene.add(this.horizonGroup);
 
     this.foodMesh = this.makeFoodMesh();
     this.scene.add(this.foodMesh);
@@ -406,6 +410,24 @@ export class Scene3D {
     this.terrain.receiveShadow = true;
     this.scene.add(this.terrain);
     this.fillFlowers(); // re-seat the wildflowers on the new terrain
+    this.buildHorizon(); // re-tint the distant hills to the new palette
+  }
+
+  /** A ring of hazy low-poly hills around the arena, fog-faded for a sense of distance and depth. */
+  private buildHorizon(): void {
+    this.horizonGroup.clear();
+    const [r, g, b] = this.biome.groundColorRgb(0.82);
+    this.horizonMat.color.setRGB(r / 255, g / 255, b / 255);
+    const n = 30, R = 135;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + Math.random() * 0.12;
+      const rr = R + (Math.random() - 0.5) * 30;
+      const h = 14 + Math.random() * 26, w = 18 + Math.random() * 22;
+      const hill = new THREE.Mesh(this.horizonGeo, this.horizonMat);
+      hill.position.set(Math.cos(a) * rr, h * 0.5 - 4, Math.sin(a) * rr);
+      hill.scale.set(w, h, w);
+      this.horizonGroup.add(hill);
+    }
   }
 
   private makeFoodMesh(): THREE.InstancedMesh {

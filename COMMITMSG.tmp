@@ -1,4 +1,4 @@
-v0.62.0: glowing mushrooms at night
+v0.63.0: distant hills on the horizon
 
-- little mushrooms cluster at the tree bases and softly bioluminesce (teal/violet/green/pink) after dark, fading out by day
-- rebuilt with the trees on each new biome
+- a ring of hazy low-poly hills surrounds the meadow, fog-faded for depth, tinted to each biome's palette
+- gives the world a real horizon and parallax as you orbit
