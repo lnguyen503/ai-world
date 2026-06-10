@@ -1,4 +1,5 @@
-v0.53.0: live species population in the HUD
+v0.54.0: cinematic camera finds the drama
 
-- the stats panel now lists each species with its current count, so you can watch the mix shift as smarter/faster archetypes out-compete the rest over generations
-- WorldStats gains speciesCounts; HUD rows are built once and updated by textContent (no per-frame DOM rebuild)
+- when you're not following anyone, the auto-orbit gently drifts its look-at toward a fresh kill for a few seconds, then eases back to centre
+- subtle (slow lerp, partial offset) so it never snaps or hijacks the view; following a creature or stargazing takes over as before
+- world now remembers the last kill location

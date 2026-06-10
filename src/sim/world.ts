@@ -117,6 +117,7 @@ export class World implements CreatureContext {
   dayFactor = 1; // 0 = night, 1 = midday (creatures read this to sleep)
   prowling = 0; // # of predators currently stalking nearby prey (ominous audio + narration)
   killFlash = 0; // >0 briefly after a kill — lets the narrator call the play-by-play
+  lastKillX = 0; lastKillZ = 0; // where the most recent kill happened (cinematic camera drifts there)
   events: { t: 0 | 1 | 2; x: number; z: number }[] = []; // transient birth(0)/death(1)/kill-impact(2) events
   private lightningTimer = 0;
 
@@ -187,7 +188,7 @@ export class World implements CreatureContext {
 
   burst(type: number, x: number, z: number): void {
     if (this.events.length < 300) this.events.push({ t: type as 0 | 1 | 2, x, z });
-    if (type === 2) this.killFlash = 1.2; // a kill just happened
+    if (type === 2) { this.killFlash = 1.2; this.lastKillX = x; this.lastKillZ = z; } // a kill just happened
   }
 
   spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number): void {

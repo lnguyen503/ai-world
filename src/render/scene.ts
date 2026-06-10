@@ -236,6 +236,10 @@ export class Scene3D {
   private selectedId: number | null = null;
   onSelect: (id: number | null) => void = () => {};
 
+  private lastDt = 0;
+  private dramaTimer = 0;
+  private dramaX = 0;
+  private dramaZ = 0;
   private stargaze = false;
   private savedView: {
     target: THREE.Vector3; maxPolar: number; minDist: number; maxDist: number;
@@ -418,6 +422,7 @@ export class Scene3D {
   sync(world: World): void {
     const t = this.clock.getElapsedTime();
     const dt = Math.min(0.1, t - this.lastT); this.lastT = t;
+    this.lastDt = dt;
     // the sky is infinitely far: keep its dome centred on the viewer so there's no parallax
     // when you orbit — it reads as a real planetary sky, not a nearby curved wall.
     this.skyMesh.position.copy(this.camera.position);
@@ -1264,7 +1269,18 @@ export class Scene3D {
       this.lastNameId = -1;
     }
 
-    if (this.selectedId == null) { this.controls.update(); return; }
+    if (this.selectedId == null) {
+      // cinematic: gently drift the orbit toward a fresh kill, then ease back to centre
+      if (world.killFlash > 0.001 && this.dramaTimer <= 0) {
+        this.dramaTimer = 6; this.dramaX = world.lastKillX; this.dramaZ = world.lastKillZ;
+      }
+      this.dramaTimer = Math.max(0, this.dramaTimer - this.lastDt);
+      const f = this.dramaTimer > 0 ? 0.35 : 0; // fraction of the way from centre to the action
+      TMP.set(this.dramaX * f, 2, this.dramaZ * f);
+      this.controls.target.lerp(TMP, 0.012);
+      this.controls.update();
+      return;
+    }
     if (!sel) { this.setSelected(null); this.controls.update(); return; }
     TMP.set(sel.x, this.biome.height(sel.x, sel.z) + sel.radius + 0.5, sel.z);
     this.controls.target.lerp(TMP, 0.12);
