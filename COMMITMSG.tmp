@@ -1,4 +1,4 @@
-v0.57.0: lily pads on the ponds
+v0.58.0: ripples when critters drink
 
-- each pond now has a few floating lily pads that bob and tilt gently on the water
-- rebuilt with the ponds on new biome / reset / load
+- a drinking critter now sends soft expanding rings spreading across the pond from the shoreline in front of it
+- new instanced RippleField (additive rings, expand + fade); spawns at the nearest pond's edge

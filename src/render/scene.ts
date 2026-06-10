@@ -138,6 +138,49 @@ class BurstField {
   }
 }
 
+/** A small pool of expanding flat rings — ripples spreading across the water. */
+class RippleField {
+  readonly mesh: THREE.InstancedMesh;
+  private n: number;
+  private px: Float32Array; private py: Float32Array; private pz: Float32Array;
+  private life: Float32Array; private max: Float32Array;
+  private dummy = new THREE.Object3D();
+  private col = new THREE.Color();
+
+  constructor(n = 30) {
+    this.n = n;
+    this.px = new Float32Array(n); this.py = new Float32Array(n); this.pz = new Float32Array(n);
+    this.life = new Float32Array(n); this.max = new Float32Array(n);
+    const geo = new THREE.RingGeometry(0.55, 0.72, 24); geo.rotateX(-Math.PI / 2);
+    const mat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+    this.mesh = new THREE.InstancedMesh(geo, mat, n);
+    this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.mesh.frustumCulled = false;
+    this.dummy.scale.set(0, 0, 0); this.dummy.updateMatrix();
+    for (let i = 0; i < n; i++) { this.mesh.setMatrixAt(i, this.dummy.matrix); this.mesh.setColorAt(i, this.col.set(0x000000)); }
+  }
+
+  emit(x: number, y: number, z: number): void {
+    for (let j = 0; j < this.n; j++) if (this.life[j]! <= 0) { this.px[j] = x; this.py[j] = y; this.pz[j] = z; this.life[j] = this.max[j] = 1.4; return; }
+  }
+
+  update(dt: number): void {
+    for (let i = 0; i < this.n; i++) {
+      if (this.life[i]! <= 0) continue;
+      this.life[i]! -= dt;
+      const f = Math.max(0, this.life[i]! / this.max[i]!); // 1 → 0
+      const s = 0.5 + (1 - f) * 3.6; // expand outward
+      this.dummy.position.set(this.px[i]!, this.py[i]!, this.pz[i]!);
+      this.dummy.scale.set(s, 1, s); this.dummy.updateMatrix();
+      this.mesh.setMatrixAt(i, this.dummy.matrix);
+      const b = f * 0.55;
+      this.mesh.setColorAt(i, this.col.setRGB(b * 0.7, b * 0.9, b));
+    }
+    this.mesh.instanceMatrix.needsUpdate = true;
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
+  }
+}
+
 export class Scene3D {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
@@ -189,6 +232,7 @@ export class Scene3D {
   private waterMat!: THREE.ShaderMaterial;
   private lilyMat = new THREE.MeshToonMaterial({ color: 0x3f7a3a, gradientMap: this.toonGrad });
   private lilies: { mesh: THREE.Mesh; baseY: number; phase: number }[] = [];
+  private ripples = new RippleField();
   private pool: THREE.Group[] = [];
   private pickables: THREE.Mesh[] = [];
 
@@ -289,6 +333,7 @@ export class Scene3D {
     this.scene.add(this.treeGroup);
     this.makeWater();
     this.scene.add(this.pondGroup);
+    this.scene.add(this.ripples.mesh);
     this.makeWeather();
     this.makeRainbow();
     this.makeNameTag();
@@ -537,6 +582,15 @@ export class Scene3D {
       const blink = Math.sin(t * 3 + c.id * 1.7) > 0.97 ? 0.12 : 1;
       const eyeY = (pred ? 0.62 : 1) * (asleep ? 0.06 : 1);
       for (const e of rig.eyes) e.scale.set(eyeScale, eyeScale * blink * eyeY, eyeScale);
+
+      // a drinking critter sends ripples across the pond
+      if (c.drinkTimer > 0 && Math.random() < dt * 1.5) {
+        const pd = this.nearestPondData(c.x, c.z);
+        if (pd) {
+          const dx = c.x - pd.x, dz = c.z - pd.z, d = Math.hypot(dx, dz) || 1;
+          this.ripples.emit(pd.x + (dx / d) * pd.r, this.biome.height(pd.x, pd.z) + 0.08, pd.z + (dz / d) * pd.r);
+        }
+      }
     }
     for (const [id, g] of this.groups) {
       if (!seen.has(id)) { g.visible = false; this.pool.push(g); this.groups.delete(id); }
@@ -571,6 +625,7 @@ export class Scene3D {
     }
     ev.length = 0;
     this.bursts.update(dt);
+    this.ripples.update(dt);
   }
 
   private syncFood(world: World): void {
@@ -809,6 +864,12 @@ export class Scene3D {
           gl_FragColor = vec4(col, a);
         }`,
     });
+  }
+
+  private nearestPondData(x: number, z: number): { x: number; z: number; r: number } | null {
+    let best = Infinity, found: { x: number; z: number; r: number } | null = null;
+    for (const p of this.pondData) { const d = (p.x - x) ** 2 + (p.z - z) ** 2; if (d < best) { best = d; found = p; } }
+    return found;
   }
 
   /** Provide the world's pond positions; lays flat shimmering water discs into the basins. */
