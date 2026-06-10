@@ -1,20 +1,18 @@
 type Mode = 'off' | 'nature' | 'music';
 
-// Soft, pleasant chords (low octaves) — music picks one at random and drifts between them.
-const CHORDS = [
-  [130.81, 164.81, 196.00, 246.94], // Cmaj7
-  [110.00, 130.81, 164.81, 196.00], // Amin7
-  [146.83, 174.61, 220.00, 261.63], // Dmin7
-  [98.00, 123.47, 146.83, 185.00], // Gmaj7
-  [116.54, 146.83, 174.61, 220.00], // Bbmaj7
-  [123.47, 155.56, 185.00, 233.08], // Bmin-ish
+// Pentatonic scales — any random pick of notes from these sounds pleasant (never dissonant).
+const SCALES = [
+  [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25], // C major pentatonic
+  [220.00, 261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 659.25], // A minor pentatonic
+  [196.00, 246.94, 293.66, 349.23, 392.00, 493.88, 587.33], // G-based
 ];
 const randItem = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)]!;
 
 /**
- * Procedural ambient audio (Web Audio, fully local — no files). "Nature" = wind that swells with
- * the weather + random birdsong in fair weather. "Music" = a soft, randomized drifting chord.
- * An ominous low drone fades in whenever a predator is on the prowl, whatever mode you're in.
+ * Procedural ambient audio (Web Audio, fully local). "Nature" = wind that swells with the weather
+ * + random birdsong. "Music" = soft, randomized melodic notes from a pentatonic scale (gentle
+ * attack/release, occasional harmony + bass) — a calm music-box feel, not a drone. An ominous low
+ * tremor fades in whenever a predator is on the prowl.
  */
 export class SoundManager {
   private ctx: AudioContext | null = null;
@@ -22,11 +20,11 @@ export class SoundManager {
   private mode: Mode = 'off';
   private windSrc: AudioBufferSourceNode | null = null;
   private windGain: GainNode | null = null;
-  private musicOsc: OscillatorNode[] = [];
-  private musicGain: GainNode | null = null;
+  private musicMaster: GainNode | null = null;
+  private scale: number[] = SCALES[0]!;
   private ominousGain: GainNode | null = null;
   private nextBird = 0;
-  private nextChord = 0;
+  private nextNote = 0;
 
   constructor() {
     const sel = document.getElementById('c-sound') as HTMLSelectElement | null;
@@ -45,12 +43,11 @@ export class SoundManager {
     return this.ctx;
   }
 
-  /** A quiet, always-running dissonant low drone whose gain we raise when a predator stalks. */
   private buildOminous(ctx: AudioContext): void {
     const g = ctx.createGain(); g.gain.value = 0;
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 220;
     lp.connect(g).connect(this.master!);
-    for (const f of [55, 58.27]) { // a low, uneasy minor-second
+    for (const f of [55, 58.27]) { // a low, uneasy minor-second tremor
       const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
       o.connect(lp); o.start();
     }
@@ -70,9 +67,7 @@ export class SoundManager {
   private stopAmbience(): void {
     if (this.windSrc) { try { this.windSrc.stop(); } catch { /* already stopped */ } this.windSrc.disconnect(); this.windSrc = null; }
     this.windGain?.disconnect(); this.windGain = null;
-    for (const o of this.musicOsc) { try { o.stop(); } catch { /* already stopped */ } o.disconnect(); }
-    this.musicOsc = [];
-    this.musicGain?.disconnect(); this.musicGain = null;
+    this.musicMaster?.disconnect(); this.musicMaster = null; // cuts any ringing note tails
   }
 
   private startNature(ctx: AudioContext): void {
@@ -89,25 +84,32 @@ export class SoundManager {
   }
 
   private startMusic(ctx: AudioContext): void {
-    const g = ctx.createGain(); g.gain.value = 0; g.connect(this.master!);
-    for (const f of randItem(CHORDS)) {
-      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
-      const og = ctx.createGain(); og.gain.value = 0.07;
-      o.connect(og).connect(g); o.start();
-      this.musicOsc.push(o);
-    }
-    g.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 3);
-    this.musicGain = g;
-    this.nextChord = ctx.currentTime + 12 + Math.random() * 8;
+    this.musicMaster = ctx.createGain();
+    this.musicMaster.gain.value = 0.5;
+    this.musicMaster.connect(this.master!);
+    this.scale = randItem(SCALES); // a random key each time
+    this.nextNote = ctx.currentTime + 0.3;
   }
 
-  /** Per-frame: wind swells in storms, birds sing in fair weather, music drifts, ominous on prowl. */
+  /** One soft note with a gentle attack and a long release — a music-box / soft-bell sound. */
+  private playNote(ctx: AudioContext, freq: number, when: number, dur: number, vel: number): void {
+    if (!this.musicMaster) return;
+    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(vel, when + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    o.connect(g).connect(this.musicMaster);
+    o.start(when); o.stop(when + dur + 0.05);
+  }
+
+  /** Per-frame: wind/birds for nature, the note sequencer for music, ominous on prowl. */
   update(weather: number, prowling: boolean): void {
     const ctx = this.ctx;
     if (!ctx) return;
     if (this.ominousGain) {
       const target = prowling && this.mode !== 'off' ? 0.5 : 0;
-      this.ominousGain.gain.value += (target - this.ominousGain.gain.value) * 0.04; // smooth fade
+      this.ominousGain.gain.value += (target - this.ominousGain.gain.value) * 0.04;
     }
     if (this.mode === 'nature') {
       if (this.windGain) this.windGain.gain.value = 0.1 + weather * 0.5;
@@ -115,10 +117,12 @@ export class SoundManager {
         if (weather < 0.4 && Math.random() < 0.6) this.chirp(ctx);
         this.nextBird = ctx.currentTime + 2 + Math.random() * 5;
       }
-    } else if (this.mode === 'music' && ctx.currentTime >= this.nextChord) {
-      const chord = randItem(CHORDS);
-      this.musicOsc.forEach((o, i) => o.frequency.linearRampToValueAtTime(chord[i] ?? o.frequency.value, ctx.currentTime + 2.5));
-      this.nextChord = ctx.currentTime + 12 + Math.random() * 8;
+    } else if (this.mode === 'music' && ctx.currentTime >= this.nextNote) {
+      const t = ctx.currentTime;
+      this.playNote(ctx, randItem(this.scale), t, 1.7, 0.16); // melody
+      if (Math.random() < 0.4) this.playNote(ctx, randItem(this.scale), t + 0.02, 1.9, 0.09); // soft harmony
+      if (Math.random() < 0.3) this.playNote(ctx, this.scale[0]! / 2, t, 2.6, 0.13); // gentle bass
+      this.nextNote = t + 0.55 + Math.random() * 0.95; // relaxed, slightly irregular tempo
     }
   }
 
@@ -126,7 +130,7 @@ export class SoundManager {
     const o = ctx.createOscillator(); o.type = 'sine';
     const g = ctx.createGain();
     const t = ctx.currentTime;
-    const base = 2000 + Math.random() * 2200; // random "species"
+    const base = 2000 + Math.random() * 2200;
     o.frequency.setValueAtTime(base, t);
     o.frequency.exponentialRampToValueAtTime(base * (0.5 + Math.random() * 0.3), t + 0.12);
     g.gain.setValueAtTime(0.0001, t);
