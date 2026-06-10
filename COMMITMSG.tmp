@@ -1,4 +1,5 @@
-v0.37.0: photo mode
+v0.38.0: a real planetary sky (no more 2D-plane feel)
 
-- a clean cinematic view: hide every UI panel + hint with the 'Photo' button or the H key
-- panels fade out smoothly; a dimmed toggle stays so you can bring the UI back
+- the sky dome, all deep-space objects, and the moon now follow the camera, so the viewer is always at the centre of the celestial sphere — zero parallax when you orbit, like an infinitely distant sky
+- deep-space materials (galaxies, nebulae, meteors, constellations) opt out of ground fog so they stay crisp at the fixed dome distance
+- fixes the report that stars felt fixed to a flat plane when rotating

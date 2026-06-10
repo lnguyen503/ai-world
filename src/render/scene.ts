@@ -136,6 +136,7 @@ export class Scene3D {
   private sun: THREE.DirectionalLight;
   private hemi: THREE.HemisphereLight;
   private skyMat: THREE.ShaderMaterial;
+  private skyMesh!: THREE.Mesh;
   private cosmos = new Cosmos();
   private terrain!: THREE.Mesh;
 
@@ -241,8 +242,8 @@ export class Scene3D {
     this.scene.add(this.sun, this.sun.target);
 
     this.skyMat = this.makeSkyMaterial();
-    const sky = new THREE.Mesh(new THREE.SphereGeometry(WORLD.half * 3.2, 32, 16), this.skyMat);
-    this.scene.add(sky);
+    this.skyMesh = new THREE.Mesh(new THREE.SphereGeometry(WORLD.half * 3.2, 32, 16), this.skyMat);
+    this.scene.add(this.skyMesh);
     this.scene.add(this.cosmos.group);
 
     this.buildTerrain();
@@ -382,6 +383,10 @@ export class Scene3D {
   sync(world: World): void {
     const t = this.clock.getElapsedTime();
     const dt = Math.min(0.1, t - this.lastT); this.lastT = t;
+    // the sky is infinitely far: keep its dome centred on the viewer so there's no parallax
+    // when you orbit — it reads as a real planetary sky, not a nearby curved wall.
+    this.skyMesh.position.copy(this.camera.position);
+    this.cosmos.group.position.copy(this.camera.position);
     const seen = new Set<number>();
     this.pickables.length = 0;
     for (const c of world.creatures) {
@@ -926,8 +931,10 @@ export class Scene3D {
       }
       (this.fireflies.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
     }
+    // the moon sits at a fixed direction relative to the viewer (also infinitely far)
     const d = this.lastSky.sunDir;
-    this.moon.position.set(-d[0] * WORLD.half * 2, 8 + (1 - d[1]) * 38, -d[2] * WORLD.half * 2);
+    const cam = this.camera.position;
+    this.moon.position.set(cam.x - d[0] * WORLD.half * 2, cam.y + 30 + (1 - d[1]) * 38, cam.z - d[2] * WORLD.half * 2);
     this.moonMat.uniforms.uOpacity!.value = night;
     this.moonMat.uniforms.uPhase!.value = (this.lastAge / (params.dayLengthSec * 8)) % 1; // a lunar month ≈ 8 days
     this.moon.visible = night > 0.03;

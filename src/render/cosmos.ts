@@ -142,7 +142,7 @@ export class Cosmos {
       col.setHSL(hues[i]!, 0.6, 0.55);
       const mat = new THREE.SpriteMaterial({
         map: tex, color: col.clone(), transparent: true, depthWrite: false,
-        blending: THREE.AdditiveBlending, opacity: 0,
+        blending: THREE.AdditiveBlending, opacity: 0, fog: false,
       });
       const sp = new THREE.Sprite(mat);
       // scatter around the upper dome
@@ -200,14 +200,14 @@ export class Cosmos {
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
     const mat = new THREE.PointsMaterial({
       size: 1.1, vertexColors: true, transparent: true, opacity: 0,
-      depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true,
+      depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true, fog: false,
     });
     const disk = new THREE.Points(geo, mat);
     disk.frustumCulled = false;
 
     const core = new THREE.Sprite(new THREE.SpriteMaterial({
       map: this.softDot(), color: coreHex, transparent: true, opacity: 0,
-      depthWrite: false, blending: THREE.AdditiveBlending,
+      depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
     }));
     core.scale.setScalar(radius * 0.5);
 
@@ -236,7 +236,7 @@ export class Cosmos {
     geo.setAttribute('color', new THREE.BufferAttribute(this.meteorCol, 3));
     this.meteors = new THREE.Points(geo, new THREE.PointsMaterial({
       size: 2.2, vertexColors: true, transparent: true, opacity: 1,
-      depthWrite: false, blending: THREE.AdditiveBlending,
+      depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
     }));
     this.meteors.frustumCulled = false;
     this.group.add(this.meteors);
@@ -300,7 +300,7 @@ export class Cosmos {
     x.fillStyle = 'rgba(180,205,255,0.85)';
     x.fillText(text, 128, 34);
     const tex = new THREE.CanvasTexture(c); tex.needsUpdate = true;
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false, opacity: 0 }));
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false, opacity: 0, fog: false }));
     sp.scale.set(DOME * 0.16, DOME * 0.04, 1);
     return sp;
   }
@@ -332,7 +332,7 @@ export class Cosmos {
       pts3.forEach((v, i) => { starPos[i * 3] = v.x; starPos[i * 3 + 1] = v.y; starPos[i * 3 + 2] = v.z; });
       const sgeo = new THREE.BufferGeometry();
       sgeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-      const smat = new THREE.PointsMaterial({ color: 0xeaf2ff, size: 4.5, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending });
+      const smat = new THREE.PointsMaterial({ color: 0xeaf2ff, size: 4.5, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
       const stars = new THREE.Points(sgeo, smat);
       stars.frustumCulled = false;
 
@@ -344,7 +344,7 @@ export class Cosmos {
       });
       const lgeo = new THREE.BufferGeometry();
       lgeo.setAttribute('position', new THREE.BufferAttribute(linePos, 3));
-      const lines = new THREE.LineSegments(lgeo, new THREE.LineBasicMaterial({ color: 0x9fb8e6, transparent: true, opacity: 0, depthWrite: false }));
+      const lines = new THREE.LineSegments(lgeo, new THREE.LineBasicMaterial({ color: 0x9fb8e6, transparent: true, opacity: 0, depthWrite: false, fog: false }));
       lines.frustumCulled = false;
 
       const label = this.starLabel(p.name);
