@@ -12,6 +12,8 @@ const RAIN_HEIGHT = 60; // how high rain spawns above the ground
 const TMP = new THREE.Vector3();
 const STORM = new THREE.Color(0x2a2e36);
 const FLASH = new THREE.Color(0xe6f0ff);
+const FOLIAGE_SUMMER = new THREE.Color(0x3f8f4a);
+const FOLIAGE_AUTUMN = new THREE.Color(0xc8772e);
 const toVec3 = (hex: number): THREE.Color => new THREE.Color(hex);
 
 /** 4-step grayscale ramp that turns standard lighting into flat cel/toon bands. */
@@ -52,6 +54,59 @@ interface CreatureRig {
   zzz: THREE.Sprite;
   outline: THREE.Mesh;
   lastHeading: number;
+}
+
+/** A small pool of instanced spheres for transient particle bursts (births, deaths, etc.). */
+class BurstField {
+  readonly mesh: THREE.InstancedMesh;
+  private n: number;
+  private px: Float32Array; private py: Float32Array; private pz: Float32Array;
+  private vx: Float32Array; private vy: Float32Array; private vz: Float32Array;
+  private life: Float32Array; private max: Float32Array;
+  private dummy = new THREE.Object3D();
+  private col = new THREE.Color();
+
+  constructor(n = 440) {
+    this.n = n;
+    this.px = new Float32Array(n); this.py = new Float32Array(n); this.pz = new Float32Array(n);
+    this.vx = new Float32Array(n); this.vy = new Float32Array(n); this.vz = new Float32Array(n);
+    this.life = new Float32Array(n); this.max = new Float32Array(n);
+    const geo = new THREE.SphereGeometry(0.16, 6, 6);
+    const mat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.9, depthWrite: false });
+    this.mesh = new THREE.InstancedMesh(geo, mat, n);
+    this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.mesh.frustumCulled = false;
+    this.dummy.scale.set(0, 0, 0); this.dummy.updateMatrix();
+    for (let i = 0; i < n; i++) { this.mesh.setMatrixAt(i, this.dummy.matrix); this.mesh.setColorAt(i, this.col.set(0xffffff)); }
+  }
+
+  emit(x: number, y: number, z: number, hex: number, count: number, rise: number): void {
+    for (let k = 0; k < count; k++) {
+      let i = -1;
+      for (let j = 0; j < this.n; j++) if (this.life[j]! <= 0) { i = j; break; }
+      if (i < 0) return;
+      const a = Math.random() * Math.PI * 2, sp = 0.6 + Math.random() * 1.3;
+      this.px[i] = x; this.py[i] = y; this.pz[i] = z;
+      this.vx[i] = Math.cos(a) * sp; this.vz[i] = Math.sin(a) * sp; this.vy[i] = rise * (0.7 + Math.random() * 0.9);
+      this.life[i] = 0.9; this.max[i] = 0.9;
+      this.mesh.setColorAt(i, this.col.set(hex));
+    }
+    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
+  }
+
+  update(dt: number): void {
+    for (let i = 0; i < this.n; i++) {
+      if (this.life[i]! <= 0) continue;
+      this.life[i]! -= dt;
+      this.px[i]! += this.vx[i]! * dt; this.py[i]! += this.vy[i]! * dt; this.pz[i]! += this.vz[i]! * dt;
+      this.vy[i]! -= 1.5 * dt;
+      const s = Math.max(0, this.life[i]! / this.max[i]!) * 0.5;
+      this.dummy.position.set(this.px[i]!, this.py[i]!, this.pz[i]!);
+      this.dummy.scale.set(s, s, s); this.dummy.updateMatrix();
+      this.mesh.setMatrixAt(i, this.dummy.matrix);
+    }
+    this.mesh.instanceMatrix.needsUpdate = true;
+  }
 }
 
 export class Scene3D {
@@ -121,6 +176,11 @@ export class Scene3D {
   private fireflyCur!: Float32Array;
   private moon!: THREE.Mesh;
   private lastSky!: SkyState;
+  private motes!: THREE.Points;
+  private motesBase!: Float32Array;
+  private motesCur!: Float32Array;
+  private bursts = new BurstField();
+  private lastT = 0;
 
   private selectedId: number | null = null;
   onSelect: (id: number | null) => void = () => {};
@@ -168,6 +228,7 @@ export class Scene3D {
     this.makeWeather();
     this.makeNameTag();
     this.makeNight();
+    this.scene.add(this.bursts.mesh);
 
     const renderPass = new RenderPass(this.scene, this.camera);
     const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.85, 0.5, 0.62);
@@ -305,6 +366,7 @@ export class Scene3D {
 
   sync(world: World): void {
     const t = this.clock.getElapsedTime();
+    const dt = Math.min(0.1, t - this.lastT); this.lastT = t;
     const seen = new Set<number>();
     this.pickables.length = 0;
     for (const c of world.creatures) {
@@ -387,6 +449,18 @@ export class Scene3D {
     this.updateSky(world.age);
     this.syncWeather(world);
     this.updateNight(t);
+
+    // birth / death particle bursts
+    const ev = world.events;
+    const drain = Math.min(ev.length, 40);
+    for (let i = 0; i < drain; i++) {
+      const e = ev[i]!;
+      const y = this.biome.height(e.x, e.z) + 0.6;
+      if (e.t === 0) this.bursts.emit(e.x, y, e.z, 0xffd479, 8, 2.2); // birth: rising gold sparkle
+      else this.bursts.emit(e.x, y, e.z, 0x9aa0aa, 7, 0.6); // death: grey poof
+    }
+    ev.length = 0;
+    this.bursts.update(dt);
   }
 
   private syncFood(world: World): void {
@@ -501,6 +575,10 @@ export class Scene3D {
       rm.size = 0.22 + w * 0.2;
     }
 
+    // seasonal foliage colour drifts green -> autumn -> green
+    const sp = (world.age / Math.max(1, params.seasonLengthSec)) % 1;
+    this.foliageMat.color.copy(FOLIAGE_SUMMER).lerp(FOLIAGE_AUTUMN, (Math.sin(sp * Math.PI * 2) + 1) / 2);
+
     const storm = Math.min(1, w);
     fog.far = WORLD.half * (3.4 - storm * 1.9);
     if (storm > 0.05) {
@@ -602,6 +680,24 @@ export class Scene3D {
       new THREE.MeshBasicMaterial({ color: 0xeef0ff, transparent: true, opacity: 0 }),
     );
     this.scene.add(this.moon);
+
+    // daytime motes (drifting pollen / tiny insects)
+    const m = 140;
+    const mb = new Float32Array(m * 3);
+    for (let i = 0; i < m; i++) {
+      mb[i * 3] = (Math.random() * 2 - 1) * WORLD.half;
+      mb[i * 3 + 1] = 2 + Math.random() * 10;
+      mb[i * 3 + 2] = (Math.random() * 2 - 1) * WORLD.half;
+    }
+    this.motesBase = mb;
+    this.motesCur = mb.slice();
+    const mgeo = new THREE.BufferGeometry();
+    mgeo.setAttribute('position', new THREE.BufferAttribute(this.motesCur, 3));
+    this.motes = new THREE.Points(mgeo, new THREE.PointsMaterial({
+      color: 0xfff6d0, size: 0.45, transparent: true, opacity: 0, depthWrite: false,
+    }));
+    this.motes.frustumCulled = false;
+    this.scene.add(this.motes);
   }
 
   /** Fireflies drift and the moon glows as night deepens. */
@@ -625,6 +721,22 @@ export class Scene3D {
     this.moon.position.set(-d[0] * WORLD.half * 2, 8 + (1 - d[1]) * 38, -d[2] * WORLD.half * 2);
     (this.moon.material as THREE.MeshBasicMaterial).opacity = night;
     this.moon.visible = night > 0.03;
+
+    // daytime motes drift on the breeze
+    const day = this.lastSky.dayFactor;
+    const mm = this.motes.material as THREE.PointsMaterial;
+    mm.opacity = day * 0.4;
+    this.motes.visible = day > 0.1;
+    if (this.motes.visible) {
+      const b = this.motesBase, c = this.motesCur;
+      for (let i = 0; i < b.length; i += 3) {
+        const p = i * 0.5;
+        c[i] = b[i]! + Math.sin(t * 0.3 + p) * 3;
+        c[i + 1] = b[i + 1]! + Math.sin(t * 0.45 + p) * 1.5;
+        c[i + 2] = b[i + 2]! + Math.cos(t * 0.25 + p) * 3;
+      }
+      (this.motes.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+    }
   }
 
   follow(world: World): void {
