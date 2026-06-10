@@ -1,9 +1,9 @@
-import { LIFE, FOOD, BRAIN, SOCIAL, params } from '../config';
+import { LIFE, FOOD, BRAIN, SOCIAL, PRED, WEATHER, params } from '../config';
 import { type Genome, mutate } from './genome';
 import { think } from './brain';
 import type { Food } from './food';
 
-/** Aggregated info about a creature's neighbors, for social steering. */
+/** Aggregated info about a creature's neighbors, for social + predator/prey steering. */
 export interface NeighborInfo {
   count: number;
   cx: number; cz: number;              // centroid of neighbors (cohesion target)
@@ -11,7 +11,12 @@ export interface NeighborInfo {
   alignSin: number; alignCos: number;  // summed neighbor heading (alignment)
   sigX: number; sigZ: number;          // vector toward the nearest signaling neighbor
   hasSignal: boolean;
+  predX: number; predZ: number; hasPredator: boolean;        // nearest predator (prey flees it)
+  preyX: number; preyZ: number; hasPrey: boolean; preyRef: Creature | null; // nearest prey (predator hunts it)
 }
+
+/** Nearest-tree shelter info for weathering storms. */
+export interface TreeInfo { x: number; z: number; hasTree: boolean; sheltered: boolean; }
 
 /** What a creature needs from the world to act, without importing the World class. */
 export interface CreatureContext {
@@ -20,6 +25,7 @@ export interface CreatureContext {
   eatFood(food: Food): void;
   spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number): void;
   neighbors(x: number, z: number, radius: number, selfId: number): NeighborInfo;
+  nearestTree(x: number, z: number): TreeInfo;
 }
 
 let nextCreatureId = 1;
@@ -60,63 +66,102 @@ export class Creature {
     return LIFE.maxAgeBase + this.genome.size * LIFE.maxAgePerSize;
   }
 
-  /** Advance one sim-step. Mutates self; may eat, reproduce, or die. */
+  get isPredator(): boolean {
+    return this.genome.predator > PRED.threshold;
+  }
+
+  /** Advance one sim-step. Mutates self; may hunt, eat, reproduce, or die. */
   update(dt: number, ctx: CreatureContext): void {
     const g = this.genome;
+    const predator = this.isPredator;
+    const weather = params.weather;
+    this.signalTimer = Math.max(0, this.signalTimer - dt);
 
-    // --- sense: build the brain's inputs (food direction is heading-relative) ---
-    const food = ctx.findNearestFood(this.x, this.z, g.sense);
+    const ni = ctx.neighbors(this.x, this.z, SOCIAL.radius, this.id);
+    const tree = ctx.nearestTree(this.x, this.z);
+
+    // --- pick a target: prey (predators) or plant food (prey animals) ---
+    let tx = 0, tz = 0, hasTarget = false;
+    let food: Food | null = null;
+    if (predator) {
+      if (ni.hasPrey) { tx = ni.preyX; tz = ni.preyZ; hasTarget = true; }
+    } else {
+      food = ctx.findNearestFood(this.x, this.z, g.sense);
+      if (food) { tx = food.x; tz = food.z; hasTarget = true; }
+    }
+
+    // --- brain inputs (target direction is heading-relative) ---
     let fSin = 0, fCos = 0, fClose = 0;
-    if (food) {
-      const ang = Math.atan2(food.z - this.z, food.x - this.x) - this.heading;
-      fSin = Math.sin(ang);
-      fCos = Math.cos(ang);
-      const d = Math.hypot(food.x - this.x, food.z - this.z);
-      fClose = 1 - Math.min(1, d / g.sense); // 1 = right on top of it, 0 = at sense edge
+    if (hasTarget) {
+      const ang = Math.atan2(tz - this.z, tx - this.x) - this.heading;
+      fSin = Math.sin(ang); fCos = Math.cos(ang);
+      fClose = 1 - Math.min(1, Math.hypot(tx - this.x, tz - this.z) / g.sense);
     }
     const energy01 = Math.max(0, Math.min(1, this.energy / this.maxEnergy));
     this.senseIn = [fSin, fCos, fClose, energy01, 1];
 
-    // --- think & act: the evolved neural net decides turn + throttle ---
+    // --- think ---
     this.act = think(g.brain, this.senseIn);
     let turn = this.act[0] * BRAIN.maxTurn;
 
-    // --- social: herd with neighbors (community) + answer food signals (communication) ---
-    this.signalTimer = Math.max(0, this.signalTimer - dt);
-    const ni = ctx.neighbors(this.x, this.z, SOCIAL.radius, this.id);
+    // --- social: herd + communicate ---
     if (ni.count > 0) {
       const social = g.social;
       turn += social * SOCIAL.cohesionGain * angDelta(this.heading, Math.atan2(ni.cz - this.z, ni.cx - this.x));
       turn += social * SOCIAL.alignGain * angDelta(this.heading, Math.atan2(ni.alignSin, ni.alignCos));
-      if (ni.sepX !== 0 || ni.sepZ !== 0) {
-        turn += SOCIAL.separationGain * angDelta(this.heading, Math.atan2(ni.sepZ, ni.sepX));
-      }
-      if (ni.hasSignal) {
-        turn += SOCIAL.signalGain * angDelta(this.heading, Math.atan2(ni.sigZ, ni.sigX));
-      }
+      if (ni.sepX !== 0 || ni.sepZ !== 0) turn += SOCIAL.separationGain * angDelta(this.heading, Math.atan2(ni.sepZ, ni.sepX));
+      if (ni.hasSignal && !predator) turn += SOCIAL.signalGain * angDelta(this.heading, Math.atan2(ni.sigZ, ni.sigX));
     }
+
+    // --- predator hunts the nearest prey; prey flees the nearest predator ---
+    if (predator && ni.hasPrey) {
+      turn += PRED.huntGain * angDelta(this.heading, Math.atan2(ni.preyZ - this.z, ni.preyX - this.x));
+    }
+    if (!predator && ni.hasPredator) {
+      turn += PRED.fleeGain * angDelta(this.heading, Math.atan2(this.z - ni.predZ, this.x - ni.predX));
+    }
+
+    // --- as weather worsens, head for the nearest tree (huddle for shelter) ---
+    if (weather > WEATHER.startAt && tree.hasTree && !tree.sheltered) {
+      turn += weather * WEATHER.shelterSeekGain * angDelta(this.heading, Math.atan2(tree.z - this.z, tree.x - this.x));
+    }
+
     turn = Math.max(-SOCIAL.maxTurn, Math.min(SOCIAL.maxTurn, turn));
     this.heading += turn * dt;
 
+    // --- move ---
     const throttle = BRAIN.minThrottle + (1 - BRAIN.minThrottle) * (this.act[1] + 1) / 2;
     const speed = g.speed * throttle;
-
-    // --- move ---
     this.x += Math.cos(this.heading) * speed * dt;
     this.z += Math.sin(this.heading) * speed * dt;
     this.bounceOffEdges(ctx.half);
 
-    // --- metabolism: baseline + movement cost (uses ACTUAL speed, so throttling saves energy) ---
+    // --- metabolism (predators burn more) ---
     const moveCost = LIFE.moveCostK * g.size * speed * speed;
-    this.energy -= (LIFE.baseMetabolism + moveCost) * params.metabolism * dt;
+    this.energy -= (LIFE.baseMetabolism + moveCost) * params.metabolism * (predator ? PRED.metabolismMult : 1) * dt;
 
-    // --- eat ---
-    if (food) {
+    // --- weather: an EXPOSED creature is battered by the storm; shelter protects it ---
+    if (weather > WEATHER.startAt && !tree.sheltered) {
+      this.energy -= WEATHER.damagePerSec * (weather - WEATHER.startAt) * dt;
+    }
+
+    // --- eat: predator kills prey on contact; prey grazes plant food ---
+    if (predator) {
+      const prey = ni.preyRef;
+      if (prey && prey.alive) {
+        const eatR = this.radius + prey.radius + PRED.eatRadiusBonus;
+        if (dist2(this.x, this.z, prey.x, prey.z) <= eatR * eatR) {
+          this.energy = Math.min(this.maxEnergy, this.energy + PRED.gain + prey.energy * 0.4);
+          prey.energy = 0; prey.alive = false;
+          this.signalTimer = SOCIAL.signalTime;
+        }
+      }
+    } else if (food) {
       const eatR = this.radius + LIFE.eatRadiusBase + FOOD.radius;
       if (dist2(this.x, this.z, food.x, food.z) <= eatR * eatR && food.alive) {
         ctx.eatFood(food);
         this.energy = Math.min(this.maxEnergy, this.energy + FOOD.energy);
-        this.signalTimer = SOCIAL.signalTime; // broadcast "found food!" to neighbors
+        this.signalTimer = SOCIAL.signalTime;
       }
     }
 
@@ -125,13 +170,7 @@ export class Creature {
       const childEnergy = this.energy * 0.5;
       this.energy *= 0.5;
       const a = Math.random() * Math.PI * 2;
-      ctx.spawnChild(
-        mutate(g),
-        this.x + Math.cos(a) * (this.radius + 0.6),
-        this.z + Math.sin(a) * (this.radius + 0.6),
-        this.generation + 1,
-        childEnergy,
-      );
+      ctx.spawnChild(mutate(g), this.x + Math.cos(a) * (this.radius + 0.6), this.z + Math.sin(a) * (this.radius + 0.6), this.generation + 1, childEnergy);
     }
 
     // --- age & death ---

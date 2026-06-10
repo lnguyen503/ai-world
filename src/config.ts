@@ -87,5 +87,30 @@ export const params = {
   seasonStrength: 0.6, // 0 = no seasonal food swing, 1 = strong
   dayNight: true, // animate sun + sky
   bloom: true, // glow post-processing
+  weather: 0, // 0 = calm & peaceful .. 1 = storms, hail, lightning that can kill the exposed
+};
+
+// Predators hunt prey; prey flee. A creature is a carnivore when its `predator` gene > threshold.
+export const PRED = {
+  threshold: 0.5,
+  gain: 36, // base energy gained from a kill (plus a share of the prey's energy)
+  metabolismMult: 1.35, // predators burn energy faster
+  eatRadiusBonus: 0.5,
+  huntGain: 1.7, // steering pull toward prey
+  fleeGain: 2.6, // steering push away from a predator (prey)
+};
+
+// Weather severity (params.weather) damages EXPOSED creatures; shelter under a tree protects them.
+export const WEATHER = {
+  startAt: 0.18, // below this, weather is purely cosmetic
+  damagePerSec: 11, // energy/sec drained from an exposed creature at weather = 1
+  shelterSeekGain: 2.2, // how hard creatures steer toward shelter as weather rises
+  lightningKillRadius: 7,
+  lightningMinInterval: 5, // seconds between strikes at weather = 1 (rarer when calmer)
+};
+
+export const TREES = {
+  count: 16,
+  shelterRadius: 6.5, // creatures within this of a tree are sheltered
 };
 

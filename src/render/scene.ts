@@ -3,12 +3,15 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { WORLD, FOOD, SOCIAL, params } from '../config';
+import { WORLD, FOOD, SOCIAL, WEATHER, params } from '../config';
 import type { World } from '../sim/world';
 import type { Biome } from '../biome';
 
 const MAX_PULSES = 256; // max simultaneous "found food!" signal rings drawn
+const RAIN_HEIGHT = 60; // how high rain spawns above the ground
 const TMP = new THREE.Vector3();
+const STORM = new THREE.Color(0x2a2e36);
+const FLASH = new THREE.Color(0xe6f0ff);
 const toVec3 = (hex: number): THREE.Color => new THREE.Color(hex);
 
 /** 4-step grayscale ramp that turns standard lighting into flat cel/toon bands. */
@@ -30,6 +33,7 @@ interface CreatureRig {
   earPointy: THREE.Mesh[];
   antenna: THREE.Mesh[];
   tail: THREE.Mesh;
+  mouth: THREE.Mesh;
 }
 
 export class Scene3D {
@@ -57,10 +61,19 @@ export class Scene3D {
   private antStemGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.32, 6);
   private antBallGeo = new THREE.SphereGeometry(0.08, 8, 8);
   private tailGeo = new THREE.SphereGeometry(0.14, 8, 8);
+  private mouthGeo = new THREE.SphereGeometry(0.09, 8, 8);
   private whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   private darkMat = new THREE.MeshBasicMaterial({ color: 0x232334 });
+  private mouthMat = new THREE.MeshBasicMaterial({ color: 0x3a2030 });
   private outlineMat = new THREE.MeshBasicMaterial({ color: 0x15121f, side: THREE.BackSide });
   private groups = new Map<number, THREE.Group>();
+
+  private trunkGeo = new THREE.CylinderGeometry(0.5, 0.75, 4.2, 8);
+  private foliageGeo = new THREE.IcosahedronGeometry(2.5, 1);
+  private trunkMat = new THREE.MeshToonMaterial({ color: 0x6b4a2b, gradientMap: this.toonGrad });
+  private foliageMat = new THREE.MeshToonMaterial({ color: 0x3f8f4a, gradientMap: this.toonGrad });
+  private treeGroup = new THREE.Group();
+  private treePositions: { x: number; z: number }[] = [];
   private pool: THREE.Group[] = [];
   private pickables: THREE.Mesh[] = [];
 
@@ -71,6 +84,10 @@ export class Scene3D {
   private bondPos!: Float32Array;
   private pulseMesh!: THREE.InstancedMesh;
   private pulseDummy = new THREE.Object3D();
+
+  private rain!: THREE.Points;
+  private rainPos!: Float32Array;
+  private beam!: THREE.Mesh;
 
   private selectedId: number | null = null;
   onSelect: (id: number | null) => void = () => {};
@@ -113,6 +130,8 @@ export class Scene3D {
     this.foodMesh = this.makeFoodMesh();
     this.scene.add(this.foodMesh);
     this.makeSocialViz();
+    this.scene.add(this.treeGroup);
+    this.makeWeather();
 
     const renderPass = new RenderPass(this.scene, this.camera);
     const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.85, 0.5, 0.62);
@@ -222,12 +241,14 @@ export class Scene3D {
     };
     const antL = ant(0.12), antR = ant(-0.12);
     const tail = new THREE.Mesh(this.tailGeo, mat); tail.position.set(-0.5, -0.02, 0);
+    const mouth = new THREE.Mesh(this.mouthGeo, this.mouthMat);
+    mouth.position.set(0.49, -0.08, 0); mouth.scale.set(0.7, 0.5, 1.4);
 
     group.add(body, outline, eyeL, eyeR, pupil(0.2), pupil(-0.2), hi(0.16), hi(-0.16),
-      earRL, earRR, earPL, earPR, ...antL, ...antR, tail);
+      earRL, earRR, earPL, earPR, ...antL, ...antR, tail, mouth);
     const rig: CreatureRig = {
       body, mat, eyes: [eyeL, eyeR], earRound: [earRL, earRR],
-      earPointy: [earPL, earPR], antenna: [...antL, ...antR], tail,
+      earPointy: [earPL, earPR], antenna: [...antL, ...antR], tail, mouth,
     };
     group.userData.rig = rig;
     this.scene.add(group);
@@ -247,31 +268,39 @@ export class Scene3D {
       this.pickables.push(rig.body);
 
       // appearance derived from the heritable "look" gene
+      const pred = c.isPredator;
       const look = c.genome.look | 0;
-      const earType = look % 3; // 0 round ears, 1 pointy ears, 2 antennae
+      const earType = pred ? 1 : look % 3; // predators always get pointy ears
       const hasTail = ((look >> 2) & 1) === 1;
       const eyeScale = 1 + ((look >> 3) & 3) * 0.12;
       const squash = 0.88 + ((look >> 5) & 3) * 0.08;
+      const bodyScale = c.genome.size * (pred ? 1.28 : 1);
 
-      const gy = this.biome.height(c.x, c.z) + c.radius * squash + 0.05;
+      const gy = this.biome.height(c.x, c.z) + bodyScale * 0.5 * squash + 0.05;
       const bob = Math.sin(t * (1.5 + c.genome.speed * 0.4) + c.id) * 0.07 * c.genome.size;
       g.position.set(c.x, gy + bob, c.z);
-      g.scale.set(c.genome.size, c.genome.size * squash, c.genome.size);
+      g.scale.set(bodyScale, bodyScale * squash, bodyScale);
       g.rotation.y = -c.heading;
 
-      // pastel cartoon color; brighter when well-fed (glows a touch under bloom)
-      rig.mat.color.setHSL(c.genome.hue, 0.55, 0.68);
       const vigor = Math.max(0.06, Math.min(1, c.energy / c.maxEnergy));
-      rig.mat.emissive.setHSL(c.genome.hue, 0.7, 0.14 * vigor);
+      if (pred) {
+        rig.mat.color.setHSL(0.015, 0.72, 0.5); // menacing red carnivore
+        rig.mat.emissive.setHSL(0.02, 0.9, 0.18 * vigor);
+      } else {
+        rig.mat.color.setHSL(c.genome.hue, 0.55, 0.68); // pastel prey
+        rig.mat.emissive.setHSL(c.genome.hue, 0.7, 0.14 * vigor);
+      }
 
       rig.earRound[0]!.visible = rig.earRound[1]!.visible = earType === 0;
       rig.earPointy[0]!.visible = rig.earPointy[1]!.visible = earType === 1;
       for (const a of rig.antenna) a.visible = earType === 2;
       rig.tail.visible = hasTail;
+      rig.mouth.scale.set(pred ? 1.1 : 0.7, pred ? 0.85 : 0.5, pred ? 1.9 : 1.4);
 
-      // big cute eyes that occasionally blink
+      // big cute eyes that occasionally blink (predators have narrowed, meaner eyes)
       const blink = Math.sin(t * 3 + c.id * 1.7) > 0.97 ? 0.12 : 1;
-      for (const e of rig.eyes) e.scale.set(eyeScale, eyeScale * blink, eyeScale);
+      const eyeY = pred ? 0.62 : 1;
+      for (const e of rig.eyes) e.scale.set(eyeScale, eyeScale * blink * eyeY, eyeScale);
     }
     for (const [id, g] of this.groups) {
       if (!seen.has(id)) { g.visible = false; this.pool.push(g); this.groups.delete(id); }
@@ -279,6 +308,7 @@ export class Scene3D {
     this.syncFood(world);
     this.syncSocial(world);
     this.updateSky(world.age);
+    this.syncWeather(world);
   }
 
   private syncFood(world: World): void {
@@ -345,6 +375,93 @@ export class Scene3D {
     this.pulseDummy.scale.set(0, 0, 0); this.pulseDummy.updateMatrix();
     for (let i = p; i < MAX_PULSES; i++) this.pulseMesh.setMatrixAt(i, this.pulseDummy.matrix);
     this.pulseMesh.instanceMatrix.needsUpdate = true;
+  }
+
+  private makeWeather(): void {
+    const n = 4500;
+    this.rainPos = new Float32Array(n * 3);
+    const h = WORLD.half;
+    for (let i = 0; i < n; i++) {
+      this.rainPos[i * 3] = (Math.random() * 2 - 1) * h;
+      this.rainPos[i * 3 + 1] = Math.random() * RAIN_HEIGHT;
+      this.rainPos[i * 3 + 2] = (Math.random() * 2 - 1) * h;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(this.rainPos, 3));
+    this.rain = new THREE.Points(geo, new THREE.PointsMaterial({
+      color: 0xaecbe6, size: 0.25, transparent: true, opacity: 0, depthWrite: false,
+    }));
+    this.rain.visible = false;
+    this.rain.frustumCulled = false;
+    this.scene.add(this.rain);
+
+    this.beam = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5, 0.5, 44, 8),
+      new THREE.MeshBasicMaterial({ color: 0xeaf2ff, transparent: true, opacity: 0, depthWrite: false }),
+    );
+    this.beam.visible = false;
+    this.scene.add(this.beam);
+  }
+
+  /** Rain, storm darkening, and lightning flashes — all driven by params.weather + world.lightningFlash. */
+  private syncWeather(world: World): void {
+    const w = params.weather;
+    const fog = this.scene.fog as THREE.Fog;
+
+    const showRain = w > WEATHER.startAt;
+    this.rain.visible = showRain;
+    if (showRain) {
+      const fall = 0.7 + w * 1.8;
+      const pos = this.rainPos;
+      for (let i = 1; i < pos.length; i += 3) {
+        pos[i] -= fall;
+        if (pos[i] < 0) pos[i] += RAIN_HEIGHT;
+      }
+      (this.rain.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+      const rm = this.rain.material as THREE.PointsMaterial;
+      rm.opacity = 0.25 + w * 0.5;
+      rm.size = 0.22 + w * 0.2;
+    }
+
+    const storm = Math.min(1, w);
+    fog.far = WORLD.half * (3.4 - storm * 1.9);
+    if (storm > 0.05) {
+      fog.color.lerp(STORM, storm * 0.7);
+      (this.skyMat.uniforms.uTop!.value as THREE.Color).lerp(STORM, storm * 0.7);
+      (this.skyMat.uniforms.uBottom!.value as THREE.Color).lerp(STORM, storm * 0.55);
+      this.sun.intensity *= 1 - storm * 0.6;
+    }
+
+    if (world.lightningFlash > 0) {
+      const f = Math.min(1, world.lightningFlash / 0.35);
+      this.hemi.intensity += f * 2.6;
+      fog.color.lerp(FLASH, f * 0.6);
+      this.beam.visible = true;
+      this.beam.position.set(world.lightningX, this.biome.height(world.lightningX, world.lightningZ) + 22, world.lightningZ);
+      (this.beam.material as THREE.MeshBasicMaterial).opacity = f;
+    } else {
+      this.beam.visible = false;
+    }
+  }
+
+  /** Provide the world's shelter-tree positions; builds the tree meshes on the terrain. */
+  setTrees(trees: { x: number; z: number }[]): void {
+    this.treePositions = trees;
+    this.buildTrees();
+  }
+
+  buildTrees(): void {
+    this.treeGroup.clear();
+    for (const t of this.treePositions) {
+      const y = this.biome.height(t.x, t.z);
+      const trunk = new THREE.Mesh(this.trunkGeo, this.trunkMat);
+      trunk.position.set(t.x, y + 2.1, t.z);
+      trunk.castShadow = true;
+      const foliage = new THREE.Mesh(this.foliageGeo, this.foliageMat);
+      foliage.position.set(t.x, y + 5.3, t.z);
+      foliage.castShadow = true;
+      this.treeGroup.add(trunk, foliage);
+    }
   }
 
   private updateSky(simTime: number): void {

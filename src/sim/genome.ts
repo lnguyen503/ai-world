@@ -12,6 +12,8 @@ export interface Genome {
   look: number;
   /** 0 = loner, 1 = highly social. Drives how strongly the creature herds with neighbors. */
   social: number;
+  /** > 0.5 = carnivore (hunts other creatures); otherwise a plant-eating prey animal. */
+  predator: number;
 }
 
 type Range = readonly [number, number];
@@ -38,6 +40,8 @@ export function randomGenome(): Genome {
     brain: randomBrain(),
     look: Math.floor(Math.random() * 0x7fffffff),
     social: Math.random(),
+    // ~12% of the starting population are predators; the rest are prey.
+    predator: Math.random() < 0.12 ? 0.6 + Math.random() * 0.4 : Math.random() * 0.45,
   };
 }
 
@@ -58,5 +62,6 @@ export function mutate(g: Genome): Genome {
     // appearance is mostly inherited (lineages look alike) and rarely rerolls into a new "species" look.
     look: Math.random() < params.mutationRate * 0.25 ? Math.floor(Math.random() * 0x7fffffff) : g.look,
     social: jitter(g.social, [0, 1] as const),
+    predator: jitter(g.predator, [0, 1] as const),
   };
 }

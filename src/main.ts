@@ -17,6 +17,7 @@ const controls = new Controls();
 const biomeEl = document.getElementById('s-biome');
 const showBiome = (): void => { if (biomeEl) biomeEl.textContent = biome.name; };
 showBiome();
+scene.setTrees(world.trees);
 
 hud.onSpeedChange = (s) => { params.timeSpeed = s; };
 hud.onDeselect = () => scene.setSelected(null);
@@ -24,11 +25,13 @@ hud.onDeselect = () => scene.setSelected(null);
 controls.onNewBiome = () => {
   biome.reseed();
   scene.buildTerrain();
+  scene.buildTrees();
   showBiome();
 };
 controls.onReset = () => {
   world = new World(biome);
   scene.setSelected(null);
+  scene.setTrees(world.trees);
 };
 
 let last = performance.now();
@@ -42,7 +45,7 @@ function frame(now: number): void {
     const steps = Math.min(SIM.maxSubStepsPerFrame, Math.max(1, Math.ceil(simDt / SIM.maxStep)));
     const stepDt = simDt / steps;
     for (let i = 0; i < steps; i++) world.step(stepDt);
-    if (world.creatures.length === 0) { world = new World(biome); scene.setSelected(null); }
+    if (world.creatures.length === 0) { world = new World(biome); scene.setSelected(null); scene.setTrees(world.trees); }
   }
 
   world.computeLinks();

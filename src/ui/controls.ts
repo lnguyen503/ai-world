@@ -18,6 +18,8 @@ export class Controls {
     this.slider('c-metab', 'v-metab', () => params.metabolism, (v) => (params.metabolism = v), (v) => `×${v.toFixed(2)}`);
     this.slider('c-day', 'v-day', () => params.dayLengthSec, (v) => (params.dayLengthSec = v), (v) => `${v.toFixed(0)}s`);
     this.slider('c-season', 'v-season', () => params.seasonStrength, (v) => (params.seasonStrength = v), (v) => v.toFixed(2));
+    this.slider('c-weather', 'v-weather', () => params.weather, (v) => (params.weather = v),
+      (v) => (v < 0.18 ? 'calm' : v < 0.5 ? 'rain' : v < 0.8 ? 'storm' : 'severe'));
 
     this.toggle('c-daynight', () => params.dayNight, (v) => (params.dayNight = v));
     this.toggle('c-bloom', () => params.bloom, (v) => (params.bloom = v));

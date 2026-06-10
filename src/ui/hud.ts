@@ -25,6 +25,7 @@ export class Hud {
   private senseEl = $('s-sense');
   private avgAgeEl = $('s-avgage');
   private socialEl = $('s-social');
+  private predEl = $('s-pred');
 
   private selPanel = $('hud-selected');
   private selTitle = $('sel-title');
@@ -65,6 +66,7 @@ export class Hud {
     this.senseEl.textContent = s.avgSense.toFixed(1);
     this.avgAgeEl.textContent = `${s.avgAge.toFixed(0)}s`;
     this.socialEl.textContent = `${(s.avgSocial * 100).toFixed(0)}%`;
+    this.predEl.textContent = `${s.predators} / ${s.population}`;
 
     if (this.frame++ % 12 === 0) {
       this.history.push(s.population);
@@ -107,7 +109,7 @@ export class Hud {
     const throttlePct = ((c.act[1] + 1) / 2) * 100;
     this.selBody.innerHTML = `
       ${row('Generation', String(c.generation))}
-      ${row('Diet', 'herbivore')}
+      ${row('Type', c.isPredator ? '🥩 predator' : '🌿 prey')}
       ${bar('Energy', energyPct, '#4ade80')}
       ${bar('Age', agePct, '#f59e0b')}
       ${bar('Size', norm(g.size, GENE_RANGES.size) * 100, hueColor)}

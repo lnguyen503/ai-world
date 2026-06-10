@@ -1,8 +1,8 @@
-import { WORLD, SOCIAL, params } from '../config';
+import { WORLD, SOCIAL, TREES, WEATHER, params } from '../config';
 import type { Biome } from '../biome';
 import { type Genome, randomGenome } from './genome';
 import { type Food, makeFood } from './food';
-import { Creature, type CreatureContext, type NeighborInfo, newCreature } from './creature';
+import { Creature, type CreatureContext, type NeighborInfo, type TreeInfo, newCreature } from './creature';
 
 export interface WorldStats {
   population: number;
@@ -16,6 +16,7 @@ export interface WorldStats {
   avgSense: number;
   avgAge: number;
   avgSocial: number;
+  predators: number;
 }
 
 const MAX_CREATURES = 700;
@@ -94,6 +95,13 @@ export class World implements CreatureContext {
   generation = 0;
   /** Flat [ax,az,bx,bz, ...] pairs of nearby creatures, for drawing community bond lines. */
   socialLinks: number[] = [];
+  /** Static shelter trees (x,z); render places them on the terrain. */
+  trees: { x: number; z: number }[] = [];
+  /** Lightning strike state for the renderer: flash >0 means a bolt is firing at (x,z). */
+  lightningFlash = 0;
+  lightningX = 0;
+  lightningZ = 0;
+  private lightningTimer = 0;
 
   private biome: Biome;
   private grid = new FoodGrid(WORLD.half);
@@ -108,6 +116,10 @@ export class World implements CreatureContext {
       this.creatures.push(newCreature(randomGenome(), (Math.random() * 2 - 1) * h, (Math.random() * 2 - 1) * h));
     }
     for (let i = 0; i < WORLD.initialFood; i++) this.food.push(this.growFood());
+    const th = WORLD.half - 8;
+    for (let i = 0; i < TREES.count; i++) {
+      this.trees.push({ x: (Math.random() * 2 - 1) * th, z: (Math.random() * 2 - 1) * th });
+    }
   }
 
   /** Pick a food location biased toward fertile (drifting) patches. */
@@ -141,6 +153,9 @@ export class World implements CreatureContext {
   neighbors(x: number, z: number, radius: number, selfId: number): NeighborInfo {
     let count = 0, cxs = 0, czs = 0, sepX = 0, sepZ = 0, aSin = 0, aCos = 0;
     let sigX = 0, sigZ = 0, hasSignal = false, bestSig = Infinity;
+    let predX = 0, predZ = 0, hasPredator = false, bestPred = Infinity;
+    let preyX = 0, preyZ = 0, hasPrey = false, bestPrey = Infinity;
+    let preyRef: Creature | null = null;
     const r2 = radius * radius;
     const sep2 = SOCIAL.separation * SOCIAL.separation;
     this.creatureGrid.forEachNear(x, z, radius, (o) => {
@@ -156,9 +171,27 @@ export class World implements CreatureContext {
         sepX += -dx / d; sepZ += -dz / d; // steer away from a too-close neighbor
       }
       if (o.signalTimer > 0 && d2 < bestSig) { bestSig = d2; sigX = dx; sigZ = dz; hasSignal = true; }
+      if (o.isPredator) {
+        if (d2 < bestPred) { bestPred = d2; predX = o.x; predZ = o.z; hasPredator = true; }
+      } else if (d2 < bestPrey) {
+        bestPrey = d2; preyX = o.x; preyZ = o.z; preyRef = o; hasPrey = true;
+      }
     });
     if (count > 0) { cxs /= count; czs /= count; }
-    return { count, cx: cxs, cz: czs, sepX, sepZ, alignSin: aSin, alignCos: aCos, sigX, sigZ, hasSignal };
+    return {
+      count, cx: cxs, cz: czs, sepX, sepZ, alignSin: aSin, alignCos: aCos, sigX, sigZ, hasSignal,
+      predX, predZ, hasPredator, preyX, preyZ, hasPrey, preyRef,
+    };
+  }
+
+  nearestTree(x: number, z: number): TreeInfo {
+    let bx = 0, bz = 0, best = Infinity, has = false;
+    for (const t of this.trees) {
+      const d2 = (t.x - x) ** 2 + (t.z - z) ** 2;
+      if (d2 < best) { best = d2; bx = t.x; bz = t.z; has = true; }
+    }
+    const r2 = TREES.shelterRadius * TREES.shelterRadius;
+    return { x: bx, z: bz, hasTree: has, sheltered: has && best <= r2 };
   }
 
   /** Rebuild the bond-line list (call once per frame, after stepping). */
@@ -192,6 +225,24 @@ export class World implements CreatureContext {
 
     for (const c of this.creatures) if (c.alive) c.update(dt, this);
 
+    // weather: lightning strikes the exposed at high severity (sheltered creatures are safe)
+    this.lightningFlash = Math.max(0, this.lightningFlash - dt);
+    if (params.weather > 0.5) {
+      this.lightningTimer -= dt;
+      if (this.lightningTimer <= 0) {
+        const hh = WORLD.half - 6;
+        this.lightningX = (Math.random() * 2 - 1) * hh;
+        this.lightningZ = (Math.random() * 2 - 1) * hh;
+        this.lightningFlash = 0.35;
+        const kr2 = WEATHER.lightningKillRadius * WEATHER.lightningKillRadius;
+        for (const c of this.creatures) {
+          if (!c.alive || this.nearestTree(c.x, c.z).sheltered) continue;
+          if ((c.x - this.lightningX) ** 2 + (c.z - this.lightningZ) ** 2 <= kr2) { c.energy = 0; c.alive = false; }
+        }
+        this.lightningTimer = (WEATHER.lightningMinInterval / params.weather) * (0.6 + Math.random() * 0.9);
+      }
+    }
+
     const survivors: Creature[] = [];
     for (const c of this.creatures) {
       if (c.alive) survivors.push(c); else this.deaths++;
@@ -209,9 +260,10 @@ export class World implements CreatureContext {
   }
 
   stats(): WorldStats {
-    let s = 0, sp = 0, se = 0, ag = 0, so = 0;
+    let s = 0, sp = 0, se = 0, ag = 0, so = 0, preds = 0;
     for (const c of this.creatures) {
       s += c.genome.size; sp += c.genome.speed; se += c.genome.sense; ag += c.age; so += c.genome.social;
+      if (c.isPredator) preds++;
     }
     const n = this.creatures.length || 1;
     return {
@@ -222,6 +274,7 @@ export class World implements CreatureContext {
       deaths: this.deaths,
       age: this.age,
       avgSize: s / n, avgSpeed: sp / n, avgSense: se / n, avgAge: ag / n, avgSocial: so / n,
+      predators: preds,
     };
   }
 }
