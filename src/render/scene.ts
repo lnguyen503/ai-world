@@ -208,6 +208,7 @@ export class Scene3D {
   private motesBase!: Float32Array;
   private motesCur!: Float32Array;
   private butterflies: { sp: THREE.Sprite; bx: number; bz: number; phase: number; speed: number }[] = [];
+  private clouds: { sprite: THREE.Sprite; shadow: THREE.Mesh; x: number; z: number; speed: number }[] = [];
   private bursts = new BurstField();
   private lastT = 0;
 
@@ -266,6 +267,7 @@ export class Scene3D {
     this.makeNameTag();
     this.makeNight();
     this.makeButterflies();
+    this.makeClouds();
     this.scene.add(this.bursts.mesh);
 
     const renderPass = new RenderPass(this.scene, this.camera);
@@ -512,6 +514,7 @@ export class Scene3D {
     this.updateSky(world.age);
     this.syncWeather(world);
     this.updateRainbow(dt);
+    this.updateClouds(dt, this.lastSky ? this.lastSky.dayFactor : 1, params.weather);
     this.updateNight(t);
 
     // birth / death particle bursts
@@ -932,6 +935,72 @@ export class Scene3D {
       const flap = 0.6 + Math.abs(Math.sin(t * 12 + b.phase)) * 0.7; // wing-flap squash
       b.sp.scale.set(1.2 * flap, 1.2, 1);
       (b.sp.material as THREE.SpriteMaterial).opacity = day * 0.95;
+    }
+  }
+
+  /** A soft white puff texture for cloud billboards. */
+  private cloudTexture(): THREE.CanvasTexture {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const x = c.getContext('2d')!;
+    for (let i = 0; i < 16; i++) {
+      const cx = 64 + (Math.random() - 0.5) * 72, cy = 60 + (Math.random() - 0.5) * 44, r = 18 + Math.random() * 30;
+      const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+      g.addColorStop(0, 'rgba(255,255,255,0.20)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
+    }
+    const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t;
+  }
+
+  /** A soft dark disc texture for the cloud shadow on the ground. */
+  private softShadowTexture(): THREE.CanvasTexture {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const x = c.getContext('2d')!;
+    const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,255,255,0.9)');
+    g.addColorStop(0.6, 'rgba(255,255,255,0.5)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t;
+  }
+
+  /** Big soft clouds that drift overhead and cast travelling shadows on the meadow (daytime). */
+  private makeClouds(): void {
+    const tex = this.cloudTexture();
+    const shadowTex = this.softShadowTexture();
+    const W = WORLD.half * 1.4;
+    for (let i = 0; i < 9; i++) {
+      const scale = 22 + Math.random() * 28;
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: 0xf4f8ff, transparent: true, depthWrite: false, opacity: 0 }));
+      sprite.scale.set(scale, scale * 0.58, 1);
+      const shadow = new THREE.Mesh(
+        new THREE.CircleGeometry(scale * 0.42, 24),
+        new THREE.MeshBasicMaterial({ map: shadowTex, color: 0x000000, transparent: true, depthWrite: false, opacity: 0 }),
+      );
+      shadow.rotation.x = -Math.PI / 2;
+      this.scene.add(sprite, shadow);
+      this.clouds.push({ sprite, shadow, x: (Math.random() * 2 - 1) * W, z: (Math.random() * 2 - 1) * W, speed: 1.4 + Math.random() * 2.2 });
+    }
+  }
+
+  /** Drift the clouds on the wind; fade them out at night; trail their shadows across the ground. */
+  private updateClouds(dt: number, day: number, weather: number): void {
+    const W = WORLD.half * 1.4;
+    const alt = WORLD.half * 1.1;
+    for (const c of this.clouds) {
+      c.x += c.speed * dt;
+      if (c.x > W) c.x -= 2 * W;
+      c.sprite.position.set(c.x, alt, c.z);
+      (c.sprite.material as THREE.SpriteMaterial).opacity = day * (0.26 + 0.5 * weather) * 0.85;
+      c.sprite.visible = day > 0.08;
+      const overArena = Math.abs(c.x) < WORLD.half && Math.abs(c.z) < WORLD.half;
+      c.shadow.visible = overArena && day > 0.25;
+      if (c.shadow.visible) {
+        c.shadow.position.set(c.x, this.biome.height(c.x, c.z) + 0.2, c.z);
+        (c.shadow.material as THREE.MeshBasicMaterial).opacity = day * 0.16 * (1 - weather * 0.5);
+      }
     }
   }
 

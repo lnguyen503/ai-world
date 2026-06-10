@@ -1,5 +1,5 @@
-v0.44.0: calmer food (less screen clutter)
+v0.45.0: drifting clouds + soft shadows
 
-- cut food density (~150 vs 260 default, lower cap + regrow) so pellets read as scattered flora, not a carpet
-- pellets are smaller, softer green, and barely emissive so bloom no longer turns them into glowing orbs that dominate the biome
-- slightly higher energy per pellet to keep the ecosystem balanced; raise the Food lever if you want more
+- big soft clouds drift across the sky on the wind, fading away at night so they never hide the stars
+- each trails a soft travelling shadow over the meadow by day
+- cloud cover thickens with the weather (faint on calm days, heavy in storms); shadows fade as it gets overcast
