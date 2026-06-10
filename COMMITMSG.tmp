@@ -1,4 +1,4 @@
-v0.28.0: named constellations
+v0.29.0: moon phases
 
-- four star patterns (The Critter, The Wing, The Drop, The Hunter) drawn as bright marker stars joined by faint lines, each with a subtle label
-- placed around the dome via a tangent-plane projection; only emerge in proper darkness and stay subtle
+- the moon now waxes and wanes: a shader terminator sweeps across the disk as the phase advances (a lunar month ~ 8 in-world days)
+- faint earthshine on the dark limb; phase tracks world age so it respects time speed

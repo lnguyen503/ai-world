@@ -191,6 +191,8 @@ export class Scene3D {
   private fireflyBase!: Float32Array;
   private fireflyCur!: Float32Array;
   private moon!: THREE.Mesh;
+  private moonMat!: THREE.ShaderMaterial;
+  private lastAge = 0;
   private lastSky!: SkyState;
   private motes!: THREE.Points;
   private motesBase!: Float32Array;
@@ -674,6 +676,7 @@ export class Scene3D {
   }
 
   private updateSky(simTime: number): void {
+    this.lastAge = simTime;
     const s = this.biome.sky(simTime);
     (this.skyMat.uniforms.uTop!.value as THREE.Color).copy(toVec3(s.top));
     (this.skyMat.uniforms.uBottom!.value as THREE.Color).copy(toVec3(s.bottom));
@@ -706,10 +709,26 @@ export class Scene3D {
     this.fireflies.frustumCulled = false;
     this.scene.add(this.fireflies);
 
-    this.moon = new THREE.Mesh(
-      new THREE.SphereGeometry(7, 24, 24),
-      new THREE.MeshBasicMaterial({ color: 0xeef0ff, transparent: true, opacity: 0 }),
-    );
+    // a moon that waxes and wanes — a shader terminator sweeps across the disk with the phase
+    this.moonMat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false,
+      uniforms: { uPhase: { value: 0 }, uOpacity: { value: 0 } },
+      vertexShader: `varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `
+        uniform float uPhase; uniform float uOpacity; varying vec3 vN;
+        void main(){
+          // light direction sweeps around the moon as the phase advances (view space)
+          float a = uPhase * 6.28318;
+          vec3 L = vec3(sin(a), 0.0, -cos(a));
+          float lit = smoothstep(-0.12, 0.12, dot(normalize(vN), L));
+          vec3 day = vec3(0.93, 0.94, 1.0);
+          vec3 night = vec3(0.06, 0.07, 0.12); // faint earthshine on the dark limb
+          vec3 col = mix(night, day, lit);
+          float a2 = uOpacity * (0.18 + 0.82 * lit);
+          gl_FragColor = vec4(col, a2);
+        }`,
+    });
+    this.moon = new THREE.Mesh(new THREE.SphereGeometry(7, 32, 32), this.moonMat);
     this.scene.add(this.moon);
 
     // daytime motes (drifting pollen / tiny insects)
@@ -751,7 +770,8 @@ export class Scene3D {
     }
     const d = this.lastSky.sunDir;
     this.moon.position.set(-d[0] * WORLD.half * 2, 8 + (1 - d[1]) * 38, -d[2] * WORLD.half * 2);
-    (this.moon.material as THREE.MeshBasicMaterial).opacity = night;
+    this.moonMat.uniforms.uOpacity!.value = night;
+    this.moonMat.uniforms.uPhase!.value = (this.lastAge / (params.dayLengthSec * 8)) % 1; // a lunar month ≈ 8 days
     this.moon.visible = night > 0.03;
 
     // daytime motes drift on the breeze
