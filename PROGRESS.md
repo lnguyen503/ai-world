@@ -150,6 +150,17 @@ instant a kill lands, bypassing its slow ambient cadence.
 A clean cinematic frame: hide every UI panel with the 📷 button or the **H** key
 (a dimmed toggle stays so you can bring the UI back).
 
+### v0.38.0 – v0.39.0 — Night-sky fixes (from feedback)
+**v0.38** fixed the sky feeling "stuck to a flat plane" when rotating: the dome
+sat at the world origin while the camera orbited almost up against it, causing
+heavy parallax. Now the sky dome, every deep-space object and the moon **follow
+the camera**, so the viewer is always at the centre of the celestial sphere —
+zero parallax, a genuinely infinite planetary sky — and the deep-sky materials
+opt out of ground fog so they stay crisp. **v0.39** made the aurora an
+**occasional** treat: a fresh strength is rolled each nightfall (~45% of nights
+none, ~35% faint, ~20% a real show), and the overall intensity was toned down,
+so it's no longer the same wash of aurora every single night.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
