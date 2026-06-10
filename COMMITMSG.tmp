@@ -1,0 +1,5 @@
+v0.18.0: deeper twinkling starfield
+
+- new src/render/cosmos.ts owns the night sky (keeps scene.ts manageable)
+- 3600 stars (was 1400) with varied size, colour temperature (white/blue/gold), and a per-star twinkle via a small shader
+- additive blending + soft round points; fades in with nightfall

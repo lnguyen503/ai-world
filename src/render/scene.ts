@@ -6,6 +6,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { WORLD, FOOD, SOCIAL, WEATHER, FLIGHT, LIFE, params } from '../config';
 import type { World } from '../sim/world';
 import type { Biome, SkyState } from '../biome';
+import { Cosmos } from './cosmos';
 
 const MAX_PULSES = 256; // max simultaneous "found food!" signal rings drawn
 const RAIN_HEIGHT = 60; // how high rain spawns above the ground
@@ -121,7 +122,7 @@ export class Scene3D {
   private sun: THREE.DirectionalLight;
   private hemi: THREE.HemisphereLight;
   private skyMat: THREE.ShaderMaterial;
-  private stars: THREE.Points;
+  private cosmos = new Cosmos();
   private terrain!: THREE.Mesh;
 
   private toonGrad = toonGradient();
@@ -216,8 +217,7 @@ export class Scene3D {
     this.skyMat = this.makeSkyMaterial();
     const sky = new THREE.Mesh(new THREE.SphereGeometry(WORLD.half * 3.2, 32, 16), this.skyMat);
     this.scene.add(sky);
-    this.stars = this.makeStars();
-    this.scene.add(this.stars);
+    this.scene.add(this.cosmos.group);
 
     this.buildTerrain();
 
@@ -258,23 +258,6 @@ export class Scene3D {
       vertexShader: `varying float vH; void main(){ vH = normalize(position).y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
       fragmentShader: `uniform vec3 uTop; uniform vec3 uBottom; varying float vH; void main(){ float t = smoothstep(-0.1, 0.55, vH); gl_FragColor = vec4(mix(uBottom, uTop, t), 1.0); }`,
     });
-  }
-
-  private makeStars(): THREE.Points {
-    const n = 1400;
-    const pos = new Float32Array(n * 3);
-    const r = WORLD.half * 2.9;
-    for (let i = 0; i < n; i++) {
-      const u = Math.random() * 2 - 1, a = Math.random() * Math.PI * 2;
-      const s = Math.sqrt(1 - u * u);
-      pos[i * 3] = Math.cos(a) * s * r;
-      pos[i * 3 + 1] = Math.abs(u) * r; // upper hemisphere
-      pos[i * 3 + 2] = Math.sin(a) * s * r;
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const mat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.8, transparent: true, opacity: 0, depthWrite: false });
-    return new THREE.Points(geo, mat);
   }
 
   /** Build (or rebuild, after a biome reseed) the displaced, vertex-colored terrain. */
@@ -652,7 +635,7 @@ export class Scene3D {
     this.sun.color.copy(toVec3(s.sunColor));
     this.sun.intensity = s.sunIntensity;
     this.hemi.intensity = s.ambIntensity;
-    (this.stars.material as THREE.PointsMaterial).opacity = s.starAlpha * 0.9;
+    this.cosmos.setNight(s.starAlpha);
     this.lastSky = s;
   }
 
@@ -704,6 +687,7 @@ export class Scene3D {
   private updateNight(t: number): void {
     if (!this.lastSky) return;
     const night = 1 - this.lastSky.dayFactor;
+    this.cosmos.update(t);
     const ff = this.fireflies.material as THREE.PointsMaterial;
     ff.opacity = night * 0.9;
     this.fireflies.visible = night > 0.03;
