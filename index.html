@@ -92,10 +92,23 @@
       #llm-url.show, #llm-model.show { display: block; }
       #narration-body p { margin: 0 0 10px; font-family: Georgia, 'Times New Roman', serif; font-style: italic;
         font-size: 13px; line-height: 1.55; color: #eef3f8; transition: opacity 0.8s ease; }
+
+      #vignette { position: fixed; inset: 0; z-index: 5; pointer-events: none;
+        background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.45) 100%); }
+      #intro { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 12px; text-align: center;
+        background: radial-gradient(ellipse at center, rgba(10,14,20,0.5), rgba(10,14,20,0.92));
+        animation: introFade 5.5s ease forwards; }
+      #intro h1 { margin: 0; font-size: 48px; font-weight: 700; letter-spacing: 3px; color: #bfe3a0;
+        text-shadow: 0 2px 28px rgba(0,0,0,0.6); }
+      #intro p { margin: 0; font-size: 15px; color: #dbe4ee; font-style: italic; font-family: Georgia, serif; }
+      @keyframes introFade { 0% { opacity: 0; } 12% { opacity: 1; } 65% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
     </style>
   </head>
   <body>
     <div id="app"></div>
+    <div id="vignette"></div>
+    <div id="intro"><h1>🌱 AI WORLD</h1><p>a tiny living planet — sit back and watch it evolve</p></div>
     <div class="panel" id="hud-top">
       <h1>🌱 AI WORLD</h1>
       <div class="stat"><span>Biome</span><span id="s-biome">—</span></div>
