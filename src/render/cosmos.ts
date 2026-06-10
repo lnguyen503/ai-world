@@ -12,11 +12,13 @@ export class Cosmos {
   readonly group = new THREE.Group();
   private stars: THREE.Points;
   private starMat: THREE.ShaderMaterial;
+  private nebulae: THREE.Sprite[] = [];
 
   constructor() {
     this.stars = this.makeStars();
     this.starMat = this.stars.material as THREE.ShaderMaterial;
     this.group.add(this.stars);
+    this.makeNebulae();
     this.group.renderOrder = -1; // behind everything
   }
 
@@ -88,14 +90,76 @@ export class Cosmos {
     return p;
   }
 
+  /** A wispy cloud texture (overlapping soft radial blobs) for nebula billboards. */
+  private nebulaTexture(seed: number): THREE.CanvasTexture {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const x = c.getContext('2d')!;
+    // pseudo-random from seed (no Math.random dependence on call order)
+    let s = seed * 9301 + 49297;
+    const rnd = (): number => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+    x.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 22; i++) {
+      const cx = 128 + (rnd() - 0.5) * 150;
+      const cy = 128 + (rnd() - 0.5) * 150;
+      const rad = 30 + rnd() * 80;
+      const g = x.createRadialGradient(cx, cy, 0, cx, cy, rad);
+      const a = 0.05 + rnd() * 0.12;
+      g.addColorStop(0, `rgba(255,255,255,${a})`);
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      x.fillStyle = g;
+      x.beginPath(); x.arc(cx, cy, rad, 0, Math.PI * 2); x.fill();
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.needsUpdate = true;
+    return t;
+  }
+
+  /** A few large, faint, slowly-drifting colour clouds parked high in the night sky. */
+  private makeNebulae(): void {
+    const hues = [0.62, 0.78, 0.52, 0.92, 0.05]; // blue, violet, teal, magenta, rose
+    const col = new THREE.Color();
+    for (let i = 0; i < 5; i++) {
+      const tex = this.nebulaTexture(i * 137 + 3);
+      col.setHSL(hues[i]!, 0.6, 0.55);
+      const mat = new THREE.SpriteMaterial({
+        map: tex, color: col.clone(), transparent: true, depthWrite: false,
+        blending: THREE.AdditiveBlending, opacity: 0,
+      });
+      const sp = new THREE.Sprite(mat);
+      // scatter around the upper dome
+      const a = (i / 5) * Math.PI * 2 + 0.6;
+      const el = 0.3 + (i % 3) * 0.2;
+      const ring = Math.sqrt(1 - el * el);
+      sp.position.set(Math.cos(a) * ring * DOME * 0.92, el * DOME * 0.92, Math.sin(a) * ring * DOME * 0.92);
+      const sc = DOME * (0.5 + (i % 3) * 0.18);
+      sp.scale.set(sc, sc, 1);
+      sp.userData.baseOpacity = 0.16 + (i % 2) * 0.08;
+      sp.userData.phase = i * 1.3;
+      this.nebulae.push(sp);
+      this.group.add(sp);
+    }
+  }
+
   /** 0 = full daylight (sky hidden) .. 1 = deep night (sky at full brightness). */
   setNight(night: number): void {
     this.starMat.uniforms.uNight!.value = night;
     this.group.visible = night > 0.02;
+    for (const n of this.nebulae) {
+      (n.material as THREE.SpriteMaterial).opacity = (n.userData.baseOpacity as number) * night;
+    }
   }
 
   update(t: number): void {
     if (!this.group.visible) return;
     this.starMat.uniforms.uTime!.value = t;
+    for (const n of this.nebulae) {
+      const ph = n.userData.phase as number;
+      const base = n.userData.baseOpacity as number;
+      // gentle breathing so the clouds feel alive
+      const mat = n.material as THREE.SpriteMaterial;
+      const breathe = 0.8 + 0.2 * Math.sin(t * 0.07 + ph);
+      mat.opacity = base * breathe * this.starMat.uniforms.uNight!.value;
+    }
   }
 }
