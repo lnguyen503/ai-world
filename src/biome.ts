@@ -41,11 +41,12 @@ interface Preset {
   name: string;
   groundLow: number; groundHigh: number; rock: number;
   skyTop: number; skyBottom: number; fog: number; sun: number;
+  snowy?: boolean; // cold biome → precipitation falls as snow
 }
 const PRESETS: Preset[] = [
   { name: 'Verdant Meadow', groundLow: 0x2e4d22, groundHigh: 0x7fae4b, rock: 0x8a8270, skyTop: 0x2a5d9c, skyBottom: 0xbfe0ff, fog: 0xbfe0ff, sun: 0xfff2d0 },
   { name: 'Amber Savanna', groundLow: 0x5a4322, groundHigh: 0xc7a23e, rock: 0x9c8a6a, skyTop: 0x3a6ea5, skyBottom: 0xffe6b0, fog: 0xf2d39a, sun: 0xffe0a0 },
-  { name: 'Frost Tundra', groundLow: 0x3a4a5a, groundHigh: 0xdfeaf2, rock: 0x9fb0bf, skyTop: 0x244a78, skyBottom: 0xcfe6ff, fog: 0xcfe0ee, sun: 0xeaf4ff },
+  { name: 'Frost Tundra', groundLow: 0x3a4a5a, groundHigh: 0xdfeaf2, rock: 0x9fb0bf, skyTop: 0x244a78, skyBottom: 0xcfe6ff, fog: 0xcfe0ee, sun: 0xeaf4ff, snowy: true },
   { name: 'Crimson Mesa', groundLow: 0x4a1f17, groundHigh: 0xc1572f, rock: 0x7a4030, skyTop: 0x5a2a4a, skyBottom: 0xffb27a, fog: 0xe89a6a, sun: 0xffcf9a },
   { name: 'Alien Cyan', groundLow: 0x113a3a, groundHigh: 0x2fae9c, rock: 0x4a6a78, skyTop: 0x1a2f5a, skyBottom: 0x7fffe0, fog: 0x4fd0c0, sun: 0xd0fff4 },
   { name: 'Violet Heath', groundLow: 0x2a2440, groundHigh: 0x8a64c0, rock: 0x6a5a7a, skyTop: 0x2a1f4a, skyBottom: 0xc9b0ff, fog: 0xb09add, sun: 0xf0e0ff },
@@ -67,6 +68,7 @@ export class Biome {
   preset!: Preset;
   name = '';
   seed = 0;
+  snowy = false; // true in cold biomes → snow instead of rain
   private terrainSeed = 1;
   private fertSeed = 2;
   private terrainFreq = 0.02;
@@ -82,6 +84,7 @@ export class Biome {
     const rng = mulberry32(s);
     this.preset = PRESETS[Math.floor(rng() * PRESETS.length)]!;
     this.name = this.preset.name;
+    this.snowy = !!this.preset.snowy;
     this.terrainSeed = Math.floor(rng() * 1e6);
     this.fertSeed = Math.floor(rng() * 1e6);
     this.terrainFreq = 0.012 + rng() * 0.02;

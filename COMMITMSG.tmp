@@ -1,4 +1,4 @@
-v0.46.0: flocks of birds at dawn & dusk
+v0.47.0: snow in cold biomes
 
-- two V-formation flocks drift across the sky, wings flapping, looping around the world
-- they fade in only around dawn and dusk (peak at low sun) and vanish by midday and deep night
+- Frost Tundra (and any preset flagged snowy) now gets SNOW instead of rain: slow drifting white flakes with a gentle sideways flutter, bigger and softer than raindrops
+- other biomes keep rain; weather severity still drives intensity

@@ -682,19 +682,24 @@ export class Scene3D {
     const fog = this.scene.fog as THREE.Fog;
     this.cosmos.setCalm(1 - Math.min(1, w)); // storms wash out the aurora
 
-    const showRain = w > WEATHER.startAt;
-    this.rain.visible = showRain;
-    if (showRain) {
-      const fall = 0.7 + w * 1.8;
+    const snow = this.biome.snowy; // cold biomes get snow instead of rain
+    const showPrecip = w > WEATHER.startAt;
+    this.rain.visible = showPrecip;
+    if (showPrecip) {
+      const fall = snow ? 0.16 + w * 0.45 : 0.7 + w * 1.8; // snow drifts down slowly
       const pos = this.rainPos;
       for (let i = 1; i < pos.length; i += 3) {
         pos[i] -= fall;
+        if (snow) pos[i - 1] += Math.sin(pos[i] * 0.12) * 0.05; // gentle sideways flutter
         if (pos[i] < 0) pos[i] += RAIN_HEIGHT;
+        if (snow && pos[i - 1] > WORLD.half) pos[i - 1] -= WORLD.half * 2;
+        else if (snow && pos[i - 1] < -WORLD.half) pos[i - 1] += WORLD.half * 2;
       }
       (this.rain.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
       const rm = this.rain.material as THREE.PointsMaterial;
-      rm.opacity = 0.25 + w * 0.5;
-      rm.size = 0.22 + w * 0.2;
+      rm.color.set(snow ? 0xffffff : 0xaecbe6);
+      rm.opacity = snow ? 0.5 + w * 0.4 : 0.25 + w * 0.5;
+      rm.size = snow ? 0.5 + w * 0.3 : 0.22 + w * 0.2;
     }
 
     // seasonal foliage colour drifts green -> autumn -> green
