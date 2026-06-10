@@ -1,5 +1,5 @@
-v0.26.0: prey panic reactions
+v0.27.0: aurora on calm nights
 
-- a predator within panic range spooks prey into a fright sprint (frightSpeedMult) so the hunt has a real chase
-- startled prey do quick panicked hops and flash a bobbing yellow '!' above their head
-- reads as nature from both sides: stalk/circle/dart from the hunter, bolt-and-startle from the hunted (still cute)
+- a waving green->magenta aurora curtain shimmers along the horizon on clear, calm nights
+- custom GLSL curtains drift + undulate; gated by night depth AND calm weather (storms wash it out)
+- caps the deep-space night-sky overhaul (stars + nebulae + galaxies + meteors + aurora)

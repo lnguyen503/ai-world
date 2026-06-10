@@ -589,6 +589,7 @@ export class Scene3D {
   private syncWeather(world: World): void {
     const w = params.weather;
     const fog = this.scene.fog as THREE.Fog;
+    this.cosmos.setCalm(1 - Math.min(1, w)); // storms wash out the aurora
 
     const showRain = w > WEATHER.startAt;
     this.rain.visible = showRain;
