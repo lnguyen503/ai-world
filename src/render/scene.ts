@@ -187,6 +187,8 @@ export class Scene3D {
   private pondGroup = new THREE.Group();
   private pondData: { x: number; z: number; r: number }[] = [];
   private waterMat!: THREE.ShaderMaterial;
+  private lilyMat = new THREE.MeshToonMaterial({ color: 0x3f7a3a, gradientMap: this.toonGrad });
+  private lilies: { mesh: THREE.Mesh; baseY: number; phase: number }[] = [];
   private pool: THREE.Group[] = [];
   private pickables: THREE.Mesh[] = [];
 
@@ -540,6 +542,10 @@ export class Scene3D {
       if (!seen.has(id)) { g.visible = false; this.pool.push(g); this.groups.delete(id); }
     }
     this.waterMat.uniforms.uTime!.value = t;
+    for (const L of this.lilies) { // lily pads bob and tilt gently on the water
+      L.mesh.position.y = L.baseY + Math.sin(t * 0.8 + L.phase) * 0.04;
+      L.mesh.rotation.z = Math.sin(t * 0.5 + L.phase) * 0.06;
+    }
     this.syncFood(world);
     this.syncSocial(world);
     this.updateSky(world.age);
@@ -813,12 +819,26 @@ export class Scene3D {
 
   private buildPonds(): void {
     this.pondGroup.clear();
+    this.lilies = [];
     for (const p of this.pondData) {
-      const geo = new THREE.CircleGeometry(p.r, 40);
-      const mesh = new THREE.Mesh(geo, this.waterMat);
+      const waterY = this.biome.height(p.x, p.z) + 0.06;
+      const mesh = new THREE.Mesh(new THREE.CircleGeometry(p.r, 40), this.waterMat);
       mesh.rotation.x = -Math.PI / 2;
-      mesh.position.set(p.x, this.biome.height(p.x, p.z) + 0.06, p.z);
+      mesh.position.set(p.x, waterY, p.z);
       this.pondGroup.add(mesh);
+
+      // a few floating lily pads, scattered within the pond
+      const pads = 2 + Math.floor(Math.random() * 3);
+      for (let k = 0; k < pads; k++) {
+        const pr = p.r * 0.7 * Math.sqrt(Math.random());
+        const pa = Math.random() * Math.PI * 2;
+        const pad = new THREE.Mesh(new THREE.CircleGeometry(0.55 + Math.random() * 0.65, 14), this.lilyMat);
+        pad.rotation.x = -Math.PI / 2;
+        const y = waterY + 0.05;
+        pad.position.set(p.x + Math.cos(pa) * pr, y, p.z + Math.sin(pa) * pr);
+        this.pondGroup.add(pad);
+        this.lilies.push({ mesh: pad, baseY: y, phase: Math.random() * Math.PI * 2 });
+      }
     }
   }
 

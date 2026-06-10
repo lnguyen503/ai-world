@@ -1,5 +1,4 @@
-v0.56.0: gentle feature tips
+v0.57.0: lily pads on the ponds
 
-- a subtle assistant: a small pill fades in at the top now and then with one fun thing to try (stargaze, photo mode, follow a critter, speed up time, weather, species race, drinking, AI narration...)
-- non-invasive: doesn't block clicks, auto-fades after ~9s, long gaps between tips, and hides entirely in photo mode
-- new src/ui/tips.ts, cycles randomly without repeating
+- each pond now has a few floating lily pads that bob and tilt gently on the water
+- rebuilt with the ponds on new biome / reset / load
