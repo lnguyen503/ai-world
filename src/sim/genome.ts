@@ -1,4 +1,4 @@
-import { GENE_RANGES, MUTATION } from '../config';
+import { GENE_RANGES, params } from '../config';
 
 /** The heritable traits of a creature. Color (hue) is a visible lineage marker. */
 export interface Genome {
@@ -35,15 +35,15 @@ export function randomGenome(): Genome {
 /** Produce a mutated copy of a genome. Each gene mutates with MUTATION.rate probability. */
 export function mutate(g: Genome): Genome {
   const jitter = (value: number, range: Range): number => {
-    if (Math.random() > MUTATION.rate) return value;
+    if (Math.random() > params.mutationRate) return value;
     const span = range[1] - range[0];
-    return clamp(value + gaussian() * MUTATION.step * span, range);
+    return clamp(value + gaussian() * params.mutationStep * span, range);
   };
   return {
     size: jitter(g.size, GENE_RANGES.size),
     speed: jitter(g.speed, GENE_RANGES.speed),
     sense: jitter(g.sense, GENE_RANGES.sense),
     // hue wraps around the color wheel and drifts slowly.
-    hue: ((g.hue + (Math.random() > MUTATION.rate ? 0 : gaussian() * 0.06)) % 1 + 1) % 1,
+    hue: ((g.hue + (Math.random() > params.mutationRate ? 0 : gaussian() * 0.06)) % 1 + 1) % 1,
   };
 }

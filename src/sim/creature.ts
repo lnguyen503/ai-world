@@ -1,4 +1,4 @@
-import { LIFE, FOOD } from '../config';
+import { LIFE, FOOD, params } from '../config';
 import { type Genome, mutate } from './genome';
 import type { Food } from './food';
 
@@ -66,7 +66,7 @@ export class Creature {
 
     // --- metabolism: baseline + movement cost ---
     const moveCost = LIFE.moveCostK * g.size * g.speed * g.speed;
-    this.energy -= (LIFE.baseMetabolism + moveCost) * dt;
+    this.energy -= (LIFE.baseMetabolism + moveCost) * params.metabolism * dt;
 
     // --- eat ---
     if (food) {

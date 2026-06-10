@@ -1,37 +1,48 @@
-import { SIM } from './config';
+import { SIM, params } from './config';
+import { Biome } from './biome';
 import { World } from './sim/world';
 import { Scene3D } from './render/scene';
 import { Hud } from './ui/hud';
+import { Controls } from './ui/controls';
 
 const container = document.getElementById('app');
 if (!container) throw new Error('missing #app');
 
-let world = new World();
-const scene = new Scene3D(container);
+const biome = new Biome();
+let world = new World(biome);
+const scene = new Scene3D(container, biome);
 const hud = new Hud();
+const controls = new Controls();
 
-let simSpeed = 1;
-hud.onSpeedChange = (s) => { simSpeed = s; };
+const biomeEl = document.getElementById('s-biome');
+const showBiome = (): void => { if (biomeEl) biomeEl.textContent = biome.name; };
+showBiome();
+
+hud.onSpeedChange = (s) => { params.timeSpeed = s; };
 hud.onDeselect = () => scene.setSelected(null);
+
+controls.onNewBiome = () => {
+  biome.reseed();
+  scene.buildTerrain();
+  showBiome();
+};
+controls.onReset = () => {
+  world = new World(biome);
+  scene.setSelected(null);
+};
 
 let last = performance.now();
 
 function frame(now: number): void {
-  // real seconds since last frame, clamped so a backgrounded tab doesn't jump
   const realDt = Math.min(0.1, (now - last) / 1000);
   last = now;
 
-  const simDt = realDt * simSpeed;
+  const simDt = realDt * params.timeSpeed;
   if (simDt > 0) {
     const steps = Math.min(SIM.maxSubStepsPerFrame, Math.max(1, Math.ceil(simDt / SIM.maxStep)));
     const stepDt = simDt / steps;
     for (let i = 0; i < steps; i++) world.step(stepDt);
-
-    // repopulate if the lineage goes fully extinct, so the zoo stays alive
-    if (world.creatures.length === 0) {
-      world = new World();
-      scene.setSelected(null);
-    }
+    if (world.creatures.length === 0) { world = new World(biome); scene.setSelected(null); }
   }
 
   scene.sync(world);

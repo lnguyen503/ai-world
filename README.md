@@ -49,9 +49,9 @@ src/
 
 ## Roadmap (it grows over iterations)
 
-- v0.2 — neural-net brains (creatures *learn* to forage instead of hard-coded steering)
-- v0.3 — predators & prey (carnivores, fleeing, food chains)
-- v0.4 — biomes, day/night, seasons
+- v0.2 ✓ — procedural **biomes** (a different world every time), **terrain**, **day/night**, **seasons**, drifting fertile zones, **bloom glow**, and a live **levers** panel
+- v0.3 — neural-net brains (creatures *learn* to forage instead of hard-coded steering)
+- v0.4 — predators & prey (carnivores, fleeing, food chains)
 - v0.5 — richer bodies/avatars, a "family tree" you can browse, save/replay a world
 
 Built with TypeScript + Three.js + Vite.

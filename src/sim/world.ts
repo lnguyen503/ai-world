@@ -1,6 +1,7 @@
-import { WORLD } from '../config';
+import { WORLD, params } from '../config';
+import type { Biome } from '../biome';
 import { type Genome, randomGenome } from './genome';
-import { type Food, spawnFood } from './food';
+import { type Food, makeFood } from './food';
 import { Creature, type CreatureContext, newCreature } from './creature';
 
 export interface WorldStats {
@@ -15,43 +16,27 @@ export interface WorldStats {
   avgSense: number;
 }
 
-const MAX_CREATURES = 700; // density ceiling to keep things stable and watchable
+const MAX_CREATURES = 700;
 
-/** Simple uniform spatial grid over the arena for fast nearest-food queries. */
 class FoodGrid {
   private cell = 8;
   private map = new Map<number, Food[]>();
-  private cols: number;
   private half: number;
-
-  constructor(half: number) {
-    this.half = half;
-    this.cols = Math.ceil((half * 2) / this.cell) + 1;
-  }
-
-  private key(cx: number, cz: number): number {
-    return cx * 100000 + cz;
-  }
-
+  constructor(half: number) { this.half = half; }
+  private key(cx: number, cz: number): number { return cx * 100000 + cz; }
+  private toCell(v: number): number { return Math.floor((v + this.half) / this.cell); }
   rebuild(food: Food[]): void {
     this.map.clear();
     for (const f of food) {
       if (!f.alive) continue;
       const k = this.key(this.toCell(f.x), this.toCell(f.z));
       const bucket = this.map.get(k);
-      if (bucket) bucket.push(f);
-      else this.map.set(k, [f]);
+      if (bucket) bucket.push(f); else this.map.set(k, [f]);
     }
   }
-
-  private toCell(v: number): number {
-    return Math.floor((v + this.half) / this.cell);
-  }
-
   nearest(x: number, z: number, radius: number): Food | null {
     const r = Math.ceil(radius / this.cell);
-    const cx = this.toCell(x);
-    const cz = this.toCell(z);
+    const cx = this.toCell(x), cz = this.toCell(z);
     let best: Food | null = null;
     let bestD = radius * radius;
     for (let dx = -r; dx <= r; dx++) {
@@ -67,8 +52,6 @@ class FoodGrid {
     }
     return best;
   }
-  // cols kept for potential future bounds checks
-  get _cols(): number { return this.cols; }
 }
 
 export class World implements CreatureContext {
@@ -80,69 +63,73 @@ export class World implements CreatureContext {
   deaths = 0;
   generation = 0;
 
+  private biome: Biome;
   private grid = new FoodGrid(WORLD.half);
   private pendingChildren: Creature[] = [];
   private foodDebt = 0;
 
-  constructor() {
+  constructor(biome: Biome) {
+    this.biome = biome;
     for (let i = 0; i < WORLD.initialCreatures; i++) {
       const h = WORLD.half - 4;
-      this.creatures.push(
-        newCreature(randomGenome(), (Math.random() * 2 - 1) * h, (Math.random() * 2 - 1) * h),
-      );
+      this.creatures.push(newCreature(randomGenome(), (Math.random() * 2 - 1) * h, (Math.random() * 2 - 1) * h));
     }
-    for (let i = 0; i < WORLD.initialFood; i++) this.food.push(spawnFood());
+    for (let i = 0; i < WORLD.initialFood; i++) this.food.push(this.growFood());
   }
 
-  // --- CreatureContext ---
+  /** Pick a food location biased toward fertile (drifting) patches. */
+  private growFood(): Food {
+    const h = WORLD.half - 2;
+    let x = 0, z = 0;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      x = (Math.random() * 2 - 1) * h;
+      z = (Math.random() * 2 - 1) * h;
+      const fert = this.biome.fertility(x, z, this.age);
+      if (Math.random() < fert * fert) break;
+    }
+    return makeFood(x, z);
+  }
+
   findNearestFood(x: number, z: number, radius: number): Food | null {
     return this.grid.nearest(x, z, radius);
   }
 
-  eatFood(food: Food): void {
-    food.alive = false;
-  }
+  eatFood(food: Food): void { food.alive = false; }
 
   spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number): void {
     if (this.creatures.length + this.pendingChildren.length >= MAX_CREATURES) return;
     const h = this.half - 1;
-    const cx = Math.max(-h, Math.min(h, x));
-    const cz = Math.max(-h, Math.min(h, z));
-    this.pendingChildren.push(newCreature(genome, cx, cz, generation, energy));
+    this.pendingChildren.push(
+      newCreature(genome, Math.max(-h, Math.min(h, x)), Math.max(-h, Math.min(h, z)), generation, energy),
+    );
     if (generation > this.generation) this.generation = generation;
   }
 
-  /** Advance the simulation by dt sim-seconds. */
   step(dt: number): void {
-    // regrow food toward the cap
-    this.foodDebt += WORLD.foodRegrowPerSec * dt;
-    while (this.foodDebt >= 1 && this.food.length < WORLD.foodMax) {
-      this.food.push(spawnFood());
+    // food regrows toward an abundance- and season-scaled cap
+    const targetCap = Math.min(WORLD.foodMax, Math.round(WORLD.initialFood * params.foodAbundance));
+    this.foodDebt += WORLD.foodRegrowPerSec * params.foodAbundance * this.biome.seasonFood(this.age) * dt;
+    while (this.foodDebt >= 1 && this.food.length < targetCap) {
+      this.food.push(this.growFood());
       this.foodDebt -= 1;
     }
 
     this.grid.rebuild(this.food);
     this.pendingChildren.length = 0;
 
-    for (const c of this.creatures) {
-      if (c.alive) c.update(dt, this);
-    }
+    for (const c of this.creatures) if (c.alive) c.update(dt, this);
 
-    // reap dead creatures
     const survivors: Creature[] = [];
     for (const c of this.creatures) {
-      if (c.alive) survivors.push(c);
-      else this.deaths++;
+      if (c.alive) survivors.push(c); else this.deaths++;
     }
     this.creatures = survivors;
 
-    // add this step's newborns
     if (this.pendingChildren.length) {
       this.births += this.pendingChildren.length;
       for (const child of this.pendingChildren) this.creatures.push(child);
     }
 
-    // remove eaten food
     if (this.food.some((f) => !f.alive)) this.food = this.food.filter((f) => f.alive);
 
     this.age += dt;
@@ -150,9 +137,7 @@ export class World implements CreatureContext {
 
   stats(): WorldStats {
     let s = 0, sp = 0, se = 0;
-    for (const c of this.creatures) {
-      s += c.genome.size; sp += c.genome.speed; se += c.genome.sense;
-    }
+    for (const c of this.creatures) { s += c.genome.size; sp += c.genome.speed; se += c.genome.sense; }
     const n = this.creatures.length || 1;
     return {
       population: this.creatures.length,
@@ -161,9 +146,7 @@ export class World implements CreatureContext {
       births: this.births,
       deaths: this.deaths,
       age: this.age,
-      avgSize: s / n,
-      avgSpeed: sp / n,
-      avgSense: se / n,
+      avgSize: s / n, avgSpeed: sp / n, avgSense: se / n,
     };
   }
 }

@@ -50,3 +50,21 @@ export const SIM = {
   /** Hard cap on sub-steps per frame so a slow frame can't freeze the tab. */
   maxSubStepsPerFrame: 40,
 };
+
+/**
+ * Live, user-adjustable knobs (the "levers"). The controls panel writes here and
+ * the simulation/render read from here every frame, so changes take effect instantly.
+ */
+export const params = {
+  timeSpeed: 1, // 0 = paused
+  mutationRate: MUTATION.rate, // chance a gene mutates on reproduction
+  mutationStep: MUTATION.step, // size of a mutation
+  foodAbundance: 1, // multiplies food regrow rate + target cap (×0.2 .. ×3)
+  metabolism: 1, // multiplies energy drain (harsher world > 1)
+  dayLengthSec: 90, // sim-seconds per full day/night cycle
+  seasonLengthSec: 80, // sim-seconds per season swing
+  seasonStrength: 0.6, // 0 = no seasonal food swing, 1 = strong
+  dayNight: true, // animate sun + sky
+  bloom: true, // glow post-processing
+};
+
