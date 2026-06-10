@@ -88,6 +88,8 @@ src/
 - v0.37 ✓ — **photo mode**: hide all the UI for a clean cinematic frame (button or the **H** key).
 - v0.38 ✓ — **a real planetary sky**: the sky dome, deep-space objects and moon follow the viewer (infinitely far, no parallax when you orbit) and ignore ground fog — no more "flat plane" feel.
 - v0.39 ✓ — the **aurora is now occasional**: a fresh strength is rolled each night (most nights none or faint, sometimes a real show), and toned down overall.
+- v0.40 ✓ — removed the **ominous prowl drone** (it was an annoying noise).
+- v0.41 ✓ — **fixed follow-camera jank**: the follow panel no longer rebuilds its DOM every frame, so following a creature is smooth.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.

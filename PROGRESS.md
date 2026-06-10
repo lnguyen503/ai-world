@@ -161,6 +161,15 @@ opt out of ground fog so they stay crisp. **v0.39** made the aurora an
 none, ~35% faint, ~20% a real show), and the overall intensity was toned down,
 so it's no longer the same wash of aurora every single night.
 
+### v0.40.0 – v0.41.0 — More fixes (from feedback)
+**v0.40** removed the low "ominous" drone that faded in when a predator was on
+the prowl — it was reported as an annoying noise. **v0.41** fixed the jank when
+following a creature: the follow panel had been rebuilding its entire `innerHTML`
+(~15 rows) every frame, forcing a full DOM re-parse + layout 60×/sec on the main
+thread (no GPU can help with that). Now the panel is built once per selected
+creature and only its live values update in place via cached element refs —
+verified smooth, with every field still populating.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
