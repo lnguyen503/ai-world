@@ -102,6 +102,16 @@ export const PRED = {
   eatRadiusBonus: 0.5,
   huntGain: 1.7, // steering pull toward prey
   fleeGain: 2.6, // steering push away from a predator (prey)
+  // wolf-pack hunting: when other predators share the quarry, fan out and circle it
+  // beyond circleRadius, then commit to a dart once close (see lunge tuning below).
+  circleRadius: 9, // orbit the prey while farther than this
+  orbitGain: 1.6, // tangential steering that drives the encircling
+  // stalk → dart rhythm: predators creep, then burst toward prey when in range.
+  lungeRange: 7, // a predator commits to a lunge when prey is within this
+  lungeCooldown: 2.2, // seconds between lunges
+  lungeDuration: 0.55, // seconds a lunge burst lasts
+  lungeSpeedMult: 2.6, // speed multiplier during the dart
+  stalkSpeedMult: 0.72, // creeps a little slower than full pace while lining up
 };
 
 // Weather severity (params.weather) damages EXPOSED creatures; shelter under a tree protects them.

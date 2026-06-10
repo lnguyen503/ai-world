@@ -1,6 +1,5 @@
-v0.22.0: auto-weather button (random rolling fronts)
+v0.23.0: wolf-pack encircling
 
-- new 'auto' button by the Weather lever: weather drifts on its own
-- slow random-walk driver — calm spells punctuated by occasional storms, easing in/out (~6s half-life), weighted toward calm
-- the slider tracks the live value; dragging it manually takes back control
-- params.autoWeather added to config
+- when predators share a quarry they now fan out and CIRCLE it (tangential steering, sides split by id) instead of all charging from one direction
+- they keep tightening the ring until close, then commit
+- lone hunters still charge directly; pack/lunge tuning added to config

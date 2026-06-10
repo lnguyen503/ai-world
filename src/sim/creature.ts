@@ -141,8 +141,20 @@ export class Creature {
 
     // --- predators hunt prey & pack with other predators; prey flee & raise the alarm ---
     if (predator) {
-      if (ni.hasPrey) turn += PRED.huntGain * angDelta(this.heading, Math.atan2(ni.preyZ - this.z, ni.preyX - this.x));
-      if (ni.hasPredator) turn += SOCIAL.cohesionGain * angDelta(this.heading, Math.atan2(ni.predZ - this.z, ni.predX - this.x)); // form a pack
+      if (ni.hasPrey) {
+        const toPrey = Math.atan2(ni.preyZ - this.z, ni.preyX - this.x);
+        const dPrey = Math.hypot(ni.preyX - this.x, ni.preyZ - this.z);
+        if (ni.hasPredator && dPrey > PRED.circleRadius) {
+          // wolf pack: fan out and circle the quarry rather than all charging from one side
+          const side = (this.id & 1) ? 1 : -1;
+          turn += PRED.orbitGain * angDelta(this.heading, toPrey + side * Math.PI * 0.5);
+          turn += PRED.huntGain * 0.35 * angDelta(this.heading, toPrey); // keep tightening the ring
+        } else {
+          turn += PRED.huntGain * angDelta(this.heading, toPrey); // in range — commit to the kill
+        }
+      } else if (ni.hasPredator) {
+        turn += SOCIAL.cohesionGain * angDelta(this.heading, Math.atan2(ni.predZ - this.z, ni.predX - this.x)); // regroup
+      }
     } else if (ni.hasPredator) {
       turn += PRED.fleeGain * angDelta(this.heading, Math.atan2(this.z - ni.predZ, this.x - ni.predX));
       this.alarmTimer = SOCIAL.alarmTime; this.threatX = ni.predX; this.threatZ = ni.predZ; // sound the alarm
