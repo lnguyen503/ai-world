@@ -5,6 +5,7 @@ import { Scene3D } from './render/scene';
 import { Hud } from './ui/hud';
 import { Controls } from './ui/controls';
 import { Narrator } from './ui/narrator';
+import { Speaker } from './ui/tts';
 
 const container = document.getElementById('app');
 if (!container) throw new Error('missing #app');
@@ -15,6 +16,8 @@ const scene = new Scene3D(container, biome);
 const hud = new Hud();
 const controls = new Controls();
 const narrator = new Narrator();
+const speaker = new Speaker();
+narrator.onLine = (text) => speaker.speak(text);
 
 const biomeEl = document.getElementById('s-biome');
 const showBiome = (): void => { if (biomeEl) biomeEl.textContent = biome.name; };

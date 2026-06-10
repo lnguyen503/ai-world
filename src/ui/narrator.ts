@@ -8,6 +8,8 @@ const pick = (arr: string[]): string => arr[Math.floor(Math.random() * arr.lengt
  * the deepening of generations) and narrates what is unfolding, in measured, reverent prose.
  */
 export class Narrator {
+  /** Called with each new narration line (e.g. to speak it via TTS). */
+  onLine: ((text: string) => void) | null = null;
   private body: HTMLElement;
   private lines: HTMLElement[] = [];
   private nextAt = 5;
@@ -107,6 +109,7 @@ export class Narrator {
   }
 
   private emit(text: string): void {
+    this.onLine?.(text);
     const p = document.createElement('p');
     p.textContent = text;
     this.body.appendChild(p);

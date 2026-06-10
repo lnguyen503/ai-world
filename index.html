@@ -72,7 +72,16 @@
       .ctrl.btns button.primary { background: #2563eb; border-color: #3b82f6; }
 
       #narration { top: 156px; right: 14px; width: 274px; max-height: 44vh; overflow: hidden; }
-      #narration .nhead { font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: #8b98a8; margin-bottom: 8px; }
+      #narration .nhead { display: flex; justify-content: space-between; align-items: center; gap: 8px;
+        font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: #8b98a8; margin-bottom: 8px; }
+      #tts-btn { font: inherit; font-size: 10.5px; font-weight: 600; letter-spacing: 0; text-transform: none;
+        color: #e6edf3; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 6px; padding: 3px 8px; cursor: pointer; white-space: nowrap; }
+      #tts-btn:hover { background: rgba(255,255,255,0.14); }
+      #tts-btn.on { background: #2563eb; border-color: #3b82f6; }
+      #tts-voice { display: none; width: 100%; margin-bottom: 8px; font-size: 11px; padding: 3px;
+        color: #cdd6e0; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; }
+      #tts-voice.show { display: block; }
       #narration-body p { margin: 0 0 10px; font-family: Georgia, 'Times New Roman', serif; font-style: italic;
         font-size: 13px; line-height: 1.55; color: #eef3f8; transition: opacity 0.8s ease; }
     </style>
@@ -102,7 +111,9 @@
     </div>
 
     <div class="panel" id="narration">
-      <div class="nhead">🎙 a life documentary</div>
+      <div class="nhead"><span>🎙 a life documentary</span>
+        <button id="tts-btn">🔇 voice off</button></div>
+      <select id="tts-voice" title="Narrator voice"></select>
       <div id="narration-body"></div>
     </div>
 
