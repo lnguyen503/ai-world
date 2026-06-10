@@ -11,7 +11,9 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).
 - [ ] **Water reflections** in the ponds (mirror the sky / nearby creatures).
 - [ ] **Per-species lines on the population graph** (not just current counts).
-- [ ] **Lily pads / fish** in the ponds; ripples when a creature drinks.
+- [ ] **Fish** darting under the pond surface.
+- [ ] **Sun shafts / god rays** through the trees at dawn and dusk.
+- [ ] **A bigger "evolution event" banner** for the rarest surprises (first-ever flyer, a new apex predator).
 - [ ] **Drinking at the pond**: thirsty creatures path to the shoreline and pause to drink (gathering, not just avoiding).
 - [ ] **Reflections in the water**: mirror the sky / nearby creatures in the pond surface.
 - [ ] **Herd defense**: big prey turn and stand their ground instead of always fleeing.

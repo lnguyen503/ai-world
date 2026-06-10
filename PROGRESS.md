@@ -233,6 +233,22 @@ the ponds). **v0.58**: a drinking critter now sends soft **ripples** spreading
 across the water from the shoreline in front of it (an instanced expanding-ring
 pool).
 
+### v0.59.0 — Evolution you can see
+Rare **macro-mutations** now produce visibly striking newborns — a giant or a
+dwarf, a bold new colour, a brand-new species, sudden flight, fangs, a sprinter
+or sharpened senses. Each surprise pops with a bright magical sparkle, keeps
+shimmering for a few seconds, and the narrator calls it out ("nature tries
+something new, and a giant appears among them"). You just watch the interesting
+changes happen; the documentary voice explains them.
+
+### v0.60.0 – v0.63.0 — A living, beautiful biome
+**v0.60**: low **morning mist** banks gather at dawn and burn off as the sun
+climbs. **v0.61**: iridescent **dragonflies** hover and dart over the ponds by
+day. **v0.62**: little **mushrooms** at the tree bases softly **bioluminesce**
+(teal/violet/green/pink) after dark. **v0.63**: a ring of hazy, fog-faded
+**distant hills** surrounds the meadow, tinted to each biome's palette, giving
+the world a real horizon and parallax as you orbit.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
