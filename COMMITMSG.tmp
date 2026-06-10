@@ -1,4 +1,5 @@
-v0.19.0: deep-space nebulae
+v0.20.0: spiral galaxies in the night sky
 
-- five large, faint, slowly-breathing colour clouds (blue/violet/teal/magenta/rose) parked high in the night sky
-- procedural wispy canvas textures, additive blending, fade in with nightfall
+- a big golden 3-arm log-spiral galaxy of 5200 points with a glowing core, tilted so you see the spiral at an angle, rotating slowly in its own plane
+- a small bluish companion galaxy off to the side
+- pink HII-region knots in the arms; additive blending; fade in with night

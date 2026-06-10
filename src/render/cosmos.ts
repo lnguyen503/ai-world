@@ -13,12 +13,15 @@ export class Cosmos {
   private stars: THREE.Points;
   private starMat: THREE.ShaderMaterial;
   private nebulae: THREE.Sprite[] = [];
+  private galaxies: THREE.Group[] = [];
 
   constructor() {
     this.stars = this.makeStars();
     this.starMat = this.stars.material as THREE.ShaderMaterial;
     this.group.add(this.stars);
     this.makeNebulae();
+    this.makeGalaxy(DOME * 0.95, 0.9, 1.0, 0xfff0d8);   // a big golden spiral overhead
+    this.makeGalaxy(DOME * 0.9, 2.7, 0.42, 0xcfe0ff);   // a small bluish companion, off to the side
     this.group.renderOrder = -1; // behind everything
   }
 
@@ -141,6 +144,70 @@ export class Cosmos {
     }
   }
 
+  private softDot(): THREE.CanvasTexture {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const x = c.getContext('2d')!;
+    const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.4, 'rgba(255,255,255,0.5)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t;
+  }
+
+  /** A log-spiral galaxy of points with a glowing core, tilted and parked far up in the dome. */
+  private makeGalaxy(dist: number, around: number, scaleMul: number, coreHex: number): void {
+    const arms = 3, n = 5200;
+    const pos = new Float32Array(n * 3);
+    const col = new Float32Array(n * 3);
+    const c = new THREE.Color();
+    const radius = DOME * 0.42 * scaleMul;
+    let s = (around * 1000 + dist) % 233280;
+    const rnd = (): number => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+    for (let i = 0; i < n; i++) {
+      const r = Math.pow(rnd(), 0.6);                 // denser toward the core
+      const arm = Math.floor(rnd() * arms);
+      const spin = r * 5.5 + (arm / arms) * Math.PI * 2;
+      const spread = (1 - r) * 0.55 + 0.04;
+      const ang = spin + (rnd() - 0.5) * spread;
+      const rr = r * radius;
+      pos[i * 3] = Math.cos(ang) * rr + (rnd() - 0.5) * spread * radius * 0.3;
+      pos[i * 3 + 1] = (rnd() - 0.5) * radius * 0.05 * (1 - r); // thin disk, bulging core
+      pos[i * 3 + 2] = Math.sin(ang) * rr + (rnd() - 0.5) * spread * radius * 0.3;
+      // colour: warm core → blue arms, with occasional pink HII knots
+      if (rnd() < 0.06 && r > 0.3) c.setHSL(0.95, 0.7, 0.7);
+      else c.setHSL(0.58 + (1 - r) * 0.05, 0.55, 0.5 + (1 - r) * 0.4);
+      col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const mat = new THREE.PointsMaterial({
+      size: 1.1, vertexColors: true, transparent: true, opacity: 0,
+      depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true,
+    });
+    const disk = new THREE.Points(geo, mat);
+    disk.frustumCulled = false;
+
+    const core = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: this.softDot(), color: coreHex, transparent: true, opacity: 0,
+      depthWrite: false, blending: THREE.AdditiveBlending,
+    }));
+    core.scale.setScalar(radius * 0.5);
+
+    const g = new THREE.Group();
+    g.add(disk, core);
+    // place on the dome and tilt the disk so we see the spiral at an angle
+    const el = 0.55 + (scaleMul < 0.6 ? 0.18 : 0);
+    const ring = Math.sqrt(Math.max(0, 1 - el * el));
+    g.position.set(Math.cos(around) * ring * dist, el * dist, Math.sin(around) * ring * dist);
+    g.rotation.set(Math.PI * 0.32, around, Math.PI * 0.1);
+    g.userData = { disk: mat, core: core.material as THREE.SpriteMaterial, baseOpacity: scaleMul < 0.6 ? 0.7 : 0.9, spin: scaleMul < 0.6 ? 0.012 : 0.006 };
+    this.galaxies.push(g);
+    this.group.add(g);
+  }
+
   /** 0 = full daylight (sky hidden) .. 1 = deep night (sky at full brightness). */
   setNight(night: number): void {
     this.starMat.uniforms.uNight!.value = night;
@@ -148,11 +215,17 @@ export class Cosmos {
     for (const n of this.nebulae) {
       (n.material as THREE.SpriteMaterial).opacity = (n.userData.baseOpacity as number) * night;
     }
+    for (const g of this.galaxies) {
+      const base = g.userData.baseOpacity as number;
+      (g.userData.disk as THREE.PointsMaterial).opacity = base * night;
+      (g.userData.core as THREE.SpriteMaterial).opacity = base * 0.6 * night;
+    }
   }
 
   update(t: number): void {
     if (!this.group.visible) return;
     this.starMat.uniforms.uTime!.value = t;
+    for (const g of this.galaxies) g.rotateY((g.userData.spin as number) * 0.016);
     for (const n of this.nebulae) {
       const ph = n.userData.phase as number;
       const base = n.userData.baseOpacity as number;
