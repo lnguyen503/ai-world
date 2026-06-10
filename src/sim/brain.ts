@@ -39,6 +39,12 @@ export function mutateBrain(b: Brain): Brain {
   return { w1: jitter(b.w1), b1: jitter(b.b1), w2: jitter(b.w2), b2: jitter(b.b2) };
 }
 
+/** Sexual reproduction: each weight is inherited from one parent or the other at random. */
+export function crossoverBrain(a: Brain, b: Brain): Brain {
+  const mix = (x: number[], y: number[]): number[] => x.map((w, i) => (Math.random() < 0.5 ? w : y[i]!));
+  return { w1: mix(a.w1, b.w1), b1: mix(a.b1, b.b1), w2: mix(a.w2, b.w2), b2: mix(a.b2, b.b2) };
+}
+
 /** Run the network. Returns [turn, throttle], each in -1..1. */
 export function think(brain: Brain, input: number[]): [number, number] {
   const h = new Array<number>(NHID);

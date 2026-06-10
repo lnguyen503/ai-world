@@ -1,5 +1,5 @@
 import { LIFE, FOOD, BRAIN, SOCIAL, PRED, WEATHER, FLIGHT, params } from '../config';
-import { type Genome, mutate } from './genome';
+import { type Genome, mutate, crossover } from './genome';
 import { think } from './brain';
 import type { Food } from './food';
 
@@ -11,8 +11,10 @@ export interface NeighborInfo {
   alignSin: number; alignCos: number;  // summed neighbor heading (alignment)
   sigX: number; sigZ: number;          // vector toward the nearest signaling neighbor
   hasSignal: boolean;
-  predX: number; predZ: number; hasPredator: boolean;        // nearest predator (prey flees it)
+  predX: number; predZ: number; hasPredator: boolean;        // nearest predator (prey flees it / predators pack toward it)
   preyX: number; preyZ: number; hasPrey: boolean; preyRef: Creature | null; // nearest prey (predator hunts it)
+  mateRef: Creature | null;            // nearest same-type, well-fed neighbor (a mate)
+  hasAlarm: boolean; alarmX: number; alarmZ: number;         // an alarmed neighbor's threat (heard alarm call)
 }
 
 /** Nearest-tree shelter info for weathering storms. */
@@ -24,7 +26,7 @@ export interface CreatureContext {
   findNearestFood(x: number, z: number, radius: number): Food | null;
   eatFood(food: Food): void;
   spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number): void;
-  neighbors(x: number, z: number, radius: number, selfId: number): NeighborInfo;
+  neighbors(x: number, z: number, radius: number, selfId: number, selfPredator: boolean): NeighborInfo;
   nearestTree(x: number, z: number): TreeInfo;
 }
 
@@ -32,6 +34,7 @@ let nextCreatureId = 1;
 
 export class Creature {
   readonly id: number;
+  readonly name: string;
   genome: Genome;
   x: number;
   z: number;
@@ -43,9 +46,12 @@ export class Creature {
   senseIn: number[] = [0, 0, 0, 0, 1]; // last brain inputs (for the follow panel)
   act: [number, number] = [0, 0]; // last brain outputs [turn, throttle]
   signalTimer = 0; // >0 means broadcasting "found food!" to neighbors
+  alarmTimer = 0; // >0 means raising the alarm (a predator is near)
+  threatX = 0; threatZ = 0; // last sensed predator position (shared via the alarm)
 
   constructor(genome: Genome, x: number, z: number, generation: number, energy: number) {
     this.id = nextCreatureId++;
+    this.name = makeName();
     this.genome = genome;
     this.x = x;
     this.z = z;
@@ -81,8 +87,9 @@ export class Creature {
     const flying = this.canFly;
     const weather = params.weather;
     this.signalTimer = Math.max(0, this.signalTimer - dt);
+    this.alarmTimer = Math.max(0, this.alarmTimer - dt);
 
-    const ni = ctx.neighbors(this.x, this.z, SOCIAL.radius, this.id);
+    const ni = ctx.neighbors(this.x, this.z, SOCIAL.radius, this.id, predator);
     const tree = ctx.nearestTree(this.x, this.z);
     const sheltered = tree.sheltered && !flying; // flyers are aloft — no shelter from the storm
 
@@ -119,12 +126,15 @@ export class Creature {
       if (ni.hasSignal && !predator) turn += SOCIAL.signalGain * angDelta(this.heading, Math.atan2(ni.sigZ, ni.sigX));
     }
 
-    // --- predator hunts the nearest prey; prey flees the nearest predator ---
-    if (predator && ni.hasPrey) {
-      turn += PRED.huntGain * angDelta(this.heading, Math.atan2(ni.preyZ - this.z, ni.preyX - this.x));
-    }
-    if (!predator && ni.hasPredator) {
+    // --- predators hunt prey & pack with other predators; prey flee & raise the alarm ---
+    if (predator) {
+      if (ni.hasPrey) turn += PRED.huntGain * angDelta(this.heading, Math.atan2(ni.preyZ - this.z, ni.preyX - this.x));
+      if (ni.hasPredator) turn += SOCIAL.cohesionGain * angDelta(this.heading, Math.atan2(ni.predZ - this.z, ni.predX - this.x)); // form a pack
+    } else if (ni.hasPredator) {
       turn += PRED.fleeGain * angDelta(this.heading, Math.atan2(this.z - ni.predZ, this.x - ni.predX));
+      this.alarmTimer = SOCIAL.alarmTime; this.threatX = ni.predX; this.threatZ = ni.predZ; // sound the alarm
+    } else if (ni.hasAlarm) {
+      turn += PRED.fleeGain * 0.8 * angDelta(this.heading, Math.atan2(this.z - ni.alarmZ, this.x - ni.alarmX)); // heed a neighbor's alarm
     }
 
     // --- as weather worsens, the grounded head for the nearest tree (flyers can't shelter) ---
@@ -178,7 +188,12 @@ export class Creature {
       const childEnergy = this.energy * 0.5;
       this.energy *= 0.5;
       const a = Math.random() * Math.PI * 2;
-      ctx.spawnChild(mutate(g), this.x + Math.cos(a) * (this.radius + 0.6), this.z + Math.sin(a) * (this.radius + 0.6), this.generation + 1, childEnergy);
+      // mate with a nearby, well-fed same-type neighbor (genome mixing); otherwise reproduce solo
+      const mate = ni.mateRef;
+      const childGenome = mate && mate.energy > 0.4 * mate.maxEnergy
+        ? mutate(crossover(g, mate.genome))
+        : mutate(g);
+      ctx.spawnChild(childGenome, this.x + Math.cos(a) * (this.radius + 0.6), this.z + Math.sin(a) * (this.radius + 0.6), this.generation + 1, childEnergy);
     }
 
     // --- age & death ---
@@ -210,6 +225,18 @@ function angDelta(a: number, b: number): number {
   let d = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI;
   if (d < -Math.PI) d += Math.PI * 2;
   return d;
+}
+
+const NAME_A = ['Mo', 'Ka', 'Zi', 'Lu', 'Ta', 'Ne', 'Ro', 'Bi', 'Su', 'Ve', 'Pa', 'Xi', 'Fen', 'Dra', 'Ny', 'Wo', 'Ki', 'Ja', 'Ophe', 'Tum'];
+const NAME_B = ['ki', 'na', 'lo', 'sha', 'mi', 'ra', 'to', 'vi', 'don', 'beli', 'sa', 'que', 'rin', 'la', 'ko', 'pu', 'zee', 'fa'];
+const NAME_C = ['', '', '', 'a', 'o', 'us', 'ette', 'wyn', 'ix'];
+
+/** A small randomly-assembled name, e.g. "Mokira", "Drashe", "Nyf-ix". */
+function makeName(): string {
+  const a = NAME_A[Math.floor(Math.random() * NAME_A.length)]!;
+  const b = NAME_B[Math.floor(Math.random() * NAME_B.length)]!;
+  const c = NAME_C[Math.floor(Math.random() * NAME_C.length)]!;
+  return a + b + c;
 }
 
 export function newCreature(genome: Genome, x: number, z: number, generation = 0, energy = LIFE.startEnergy): Creature {

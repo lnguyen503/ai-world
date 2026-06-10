@@ -67,6 +67,7 @@ export const SOCIAL = {
   alignGain: 0.7, // match neighbors' heading
   signalTime: 1.6, // seconds a creature broadcasts after eating
   signalGain: 1.1, // attraction toward a signaling neighbor
+  alarmTime: 1.4, // seconds a creature keeps raising the alarm after seeing a predator
   bondRadius: 7.5, // draw a bond line between creatures closer than this
   maxLinks: 1600, // cap on drawn bond lines (perf)
   maxTurn: 5, // clamp on total social+brain steering (rad/sec)
@@ -88,6 +89,7 @@ export const params = {
   dayNight: true, // animate sun + sky
   bloom: true, // glow post-processing
   weather: 0, // 0 = calm & peaceful .. 1 = storms, hail, lightning that can kill the exposed
+  colorByLineage: false, // color creatures by family/clan instead of their own hue
 };
 
 // Predators hunt prey; prey flee. A creature is a carnivore when its `predator` gene > threshold.

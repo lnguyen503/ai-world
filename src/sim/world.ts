@@ -23,6 +23,14 @@ export interface WorldStats {
 
 const MAX_CREATURES = 700;
 
+interface SnapCreature { g: Genome; x: number; z: number; h: number; e: number; a: number; gen: number; }
+export interface WorldSnapshot {
+  v: number; biomeSeed: number; age: number; births: number; deaths: number; generation: number;
+  trees: { x: number; z: number }[];
+  creatures: SnapCreature[];
+  food: { x: number; z: number }[];
+}
+
 class FoodGrid {
   private cell = 8;
   private map = new Map<number, Food[]>();
@@ -152,12 +160,14 @@ export class World implements CreatureContext {
     if (generation > this.generation) this.generation = generation;
   }
 
-  neighbors(x: number, z: number, radius: number, selfId: number): NeighborInfo {
+  neighbors(x: number, z: number, radius: number, selfId: number, selfPredator: boolean): NeighborInfo {
     let count = 0, cxs = 0, czs = 0, sepX = 0, sepZ = 0, aSin = 0, aCos = 0;
     let sigX = 0, sigZ = 0, hasSignal = false, bestSig = Infinity;
     let predX = 0, predZ = 0, hasPredator = false, bestPred = Infinity;
     let preyX = 0, preyZ = 0, hasPrey = false, bestPrey = Infinity;
     let preyRef: Creature | null = null;
+    let mateRef: Creature | null = null, bestMate = Infinity;
+    let hasAlarm = false, alarmX = 0, alarmZ = 0, bestAlarm = Infinity;
     const r2 = radius * radius;
     const sep2 = SOCIAL.separation * SOCIAL.separation;
     this.creatureGrid.forEachNear(x, z, radius, (o) => {
@@ -178,11 +188,13 @@ export class World implements CreatureContext {
       } else if (d2 < bestPrey) {
         bestPrey = d2; preyX = o.x; preyZ = o.z; preyRef = o; hasPrey = true;
       }
+      if (o.isPredator === selfPredator && d2 < bestMate) { bestMate = d2; mateRef = o; } // a potential mate
+      if (o.alarmTimer > 0 && d2 < bestAlarm) { bestAlarm = d2; alarmX = o.threatX; alarmZ = o.threatZ; hasAlarm = true; }
     });
     if (count > 0) { cxs /= count; czs /= count; }
     return {
       count, cx: cxs, cz: czs, sepX, sepZ, alignSin: aSin, alignCos: aCos, sigX, sigZ, hasSignal,
-      predX, predZ, hasPredator, preyX, preyZ, hasPrey, preyRef,
+      predX, predZ, hasPredator, preyX, preyZ, hasPrey, preyRef, mateRef, hasAlarm, alarmX, alarmZ,
     };
   }
 
@@ -260,6 +272,29 @@ export class World implements CreatureContext {
     if (this.food.some((f) => !f.alive)) this.food = this.food.filter((f) => f.alive);
 
     this.age += dt;
+  }
+
+  /** Snapshot the whole world to a JSON string (genomes incl. brains, positions, trees, biome seed). */
+  serialize(): string {
+    const snap: WorldSnapshot = {
+      v: 1, biomeSeed: this.biome.seed, age: this.age, births: this.births, deaths: this.deaths,
+      generation: this.generation, trees: this.trees,
+      creatures: this.creatures.map((c) => ({ g: c.genome, x: c.x, z: c.z, h: c.heading, e: c.energy, a: c.age, gen: c.generation })),
+      food: this.food.map((f) => ({ x: f.x, z: f.z })),
+    };
+    return JSON.stringify(snap);
+  }
+
+  /** Restore a world from a snapshot (biome must already be reseeded to snap.biomeSeed by the caller). */
+  loadSnapshot(snap: WorldSnapshot): void {
+    this.age = snap.age; this.births = snap.births; this.deaths = snap.deaths; this.generation = snap.generation;
+    this.trees = snap.trees;
+    this.creatures = snap.creatures.map((c) => {
+      const cr = newCreature(c.g, c.x, c.z, c.gen, c.e);
+      cr.heading = c.h; cr.age = c.a;
+      return cr;
+    });
+    this.food = snap.food.map((f) => makeFood(f.x, f.z));
   }
 
   stats(): WorldStats {

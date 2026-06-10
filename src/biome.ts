@@ -66,6 +66,7 @@ export interface SkyState {
 export class Biome {
   preset!: Preset;
   name = '';
+  seed = 0;
   private terrainSeed = 1;
   private fertSeed = 2;
   private terrainFreq = 0.02;
@@ -77,6 +78,7 @@ export class Biome {
 
   reseed(seed?: number): void {
     const s = seed ?? Math.floor(Math.random() * 1e9);
+    this.seed = s;
     const rng = mulberry32(s);
     this.preset = PRESETS[Math.floor(rng() * PRESETS.length)]!;
     this.name = this.preset.name;

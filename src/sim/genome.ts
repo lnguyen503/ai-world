@@ -1,5 +1,7 @@
 import { GENE_RANGES, params } from '../config';
-import { type Brain, randomBrain, mutateBrain } from './brain';
+import { type Brain, randomBrain, mutateBrain, crossoverBrain } from './brain';
+
+let nextClan = 1;
 
 /** The heritable traits of a creature. Color (hue) is a visible lineage marker; brain is its neural net. */
 export interface Genome {
@@ -16,6 +18,8 @@ export interface Genome {
   predator: number;
   /** > 0.5 = can fly: escapes ground predators + roams freely, but burns more energy and can't shelter. */
   wings: number;
+  /** Founding-lineage id. Inherited unchanged, so a clan = one extended family. Used for lineage coloring. */
+  clan: number;
 }
 
 type Range = readonly [number, number];
@@ -46,6 +50,18 @@ export function randomGenome(): Genome {
     predator: Math.random() < 0.12 ? 0.6 + Math.random() * 0.4 : Math.random() * 0.45,
     // ~10% can already fly; flight spreads (or dies out) depending on the world's conditions.
     wings: Math.random() < 0.1 ? 0.55 + Math.random() * 0.45 : Math.random() * 0.45,
+    clan: nextClan++,
+  };
+}
+
+/** Sexual reproduction: blend two genomes gene-by-gene (then the caller mutates the result). */
+export function crossover(a: Genome, b: Genome): Genome {
+  const p = <T,>(x: T, y: T): T => (Math.random() < 0.5 ? x : y);
+  return {
+    size: p(a.size, b.size), speed: p(a.speed, b.speed), sense: p(a.sense, b.sense),
+    hue: p(a.hue, b.hue), social: p(a.social, b.social), predator: p(a.predator, b.predator),
+    wings: p(a.wings, b.wings), look: p(a.look, b.look), clan: p(a.clan, b.clan),
+    brain: crossoverBrain(a.brain, b.brain),
   };
 }
 
@@ -68,5 +84,6 @@ export function mutate(g: Genome): Genome {
     social: jitter(g.social, [0, 1] as const),
     predator: jitter(g.predator, [0, 1] as const),
     wings: jitter(g.wings, [0, 1] as const),
+    clan: g.clan, // lineage is inherited unchanged
   };
 }

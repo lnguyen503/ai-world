@@ -1,11 +1,12 @@
 import { SIM, params } from './config';
 import { Biome } from './biome';
-import { World } from './sim/world';
+import { World, type WorldSnapshot } from './sim/world';
 import { Scene3D } from './render/scene';
 import { Hud } from './ui/hud';
 import { Controls } from './ui/controls';
 import { Narrator } from './ui/narrator';
 import { Speaker } from './ui/tts';
+import { SoundManager } from './ui/sound';
 
 const container = document.getElementById('app');
 if (!container) throw new Error('missing #app');
@@ -17,6 +18,7 @@ const hud = new Hud();
 const controls = new Controls();
 const narrator = new Narrator();
 const speaker = new Speaker();
+const sound = new SoundManager();
 narrator.onLine = (text) => speaker.speak(text);
 
 const biomeEl = document.getElementById('s-biome');
@@ -37,6 +39,28 @@ controls.onReset = () => {
   world = new World(biome);
   scene.setSelected(null);
   scene.setTrees(world.trees);
+};
+controls.onSave = () => {
+  const text = world.serialize();
+  const blob = new Blob([text], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ai-world-gen${world.stats().generation}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+controls.onLoadFile = (text) => {
+  try {
+    const data = JSON.parse(text) as WorldSnapshot;
+    biome.reseed(data.biomeSeed);
+    world.loadSnapshot(data);
+    scene.buildTerrain();
+    scene.setTrees(world.trees);
+    scene.setSelected(null);
+    showBiome();
+  } catch {
+    // ignore an invalid or corrupt save file
+  }
 };
 
 let last = performance.now();
@@ -62,6 +86,7 @@ function frame(now: number): void {
   const sel = scene.getSelected();
   hud.showSelected(sel != null ? (world.creatures.find((c) => c.id === sel) ?? null) : null);
   narrator.update(stats, biome.name, params.weather, world.lightningFlash > 0);
+  sound.update(params.weather);
 
   scene.render();
   requestAnimationFrame(frame);

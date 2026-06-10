@@ -105,12 +105,13 @@ export class Hud {
     const agePct = Math.max(0, Math.min(1, c.age / c.maxAge)) * 100;
     const hueColor = `hsl(${(g.hue * 360).toFixed(0)}, 65%, 60%)`;
     this.selTitle.innerHTML =
-      `Following <span style="color:${hueColor}">creature #${c.id}</span>`;
+      `Following <span style="color:${hueColor}">${c.name}</span>`;
     const seesFood = c.senseIn[2]! > 0.01;
     const turnPct = ((c.act[0] + 1) / 2) * 100; // 50% = straight
     const throttlePct = ((c.act[1] + 1) / 2) * 100;
     this.selBody.innerHTML = `
       ${row('Generation', String(c.generation))}
+      ${row('Lineage', `clan #${c.genome.clan}`)}
       ${row('Type', c.isPredator ? '🥩 predator' : '🌿 prey')}
       ${bar('Energy', energyPct, '#4ade80')}
       ${bar('Age', agePct, '#f59e0b')}

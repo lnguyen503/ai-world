@@ -297,12 +297,14 @@ export class Scene3D {
       g.rotation.y = -c.heading;
 
       const vigor = Math.max(0.06, Math.min(1, c.energy / c.maxEnergy));
-      if (pred) {
+      const lineageHue = (c.genome.clan * 0.61803) % 1; // golden-ratio hash → spread-out family colors
+      if (pred && !params.colorByLineage) {
         rig.mat.color.setHSL(0.015, 0.72, 0.5); // menacing red carnivore
         rig.mat.emissive.setHSL(0.02, 0.9, 0.18 * vigor);
       } else {
-        rig.mat.color.setHSL(c.genome.hue, 0.55, 0.68); // pastel prey
-        rig.mat.emissive.setHSL(c.genome.hue, 0.7, 0.14 * vigor);
+        const hue = params.colorByLineage ? lineageHue : c.genome.hue;
+        rig.mat.color.setHSL(hue, 0.55, 0.68);
+        rig.mat.emissive.setHSL(hue, 0.7, 0.14 * vigor);
       }
 
       rig.earRound[0]!.visible = rig.earRound[1]!.visible = earType === 0;
