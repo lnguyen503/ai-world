@@ -209,6 +209,7 @@ export class Scene3D {
   private motesCur!: Float32Array;
   private butterflies: { sp: THREE.Sprite; bx: number; bz: number; phase: number; speed: number }[] = [];
   private clouds: { sprite: THREE.Sprite; shadow: THREE.Mesh; x: number; z: number; speed: number }[] = [];
+  private flocks: { group: THREE.Group; birds: THREE.Sprite[]; speed: number }[] = [];
   private bursts = new BurstField();
   private lastT = 0;
 
@@ -268,6 +269,7 @@ export class Scene3D {
     this.makeNight();
     this.makeButterflies();
     this.makeClouds();
+    this.makeBirds();
     this.scene.add(this.bursts.mesh);
 
     const renderPass = new RenderPass(this.scene, this.camera);
@@ -515,6 +517,7 @@ export class Scene3D {
     this.syncWeather(world);
     this.updateRainbow(dt);
     this.updateClouds(dt, this.lastSky ? this.lastSky.dayFactor : 1, params.weather);
+    this.updateBirds(t, dt, this.lastSky ? this.lastSky.dayFactor : 1);
     this.updateNight(t);
 
     // birth / death particle bursts
@@ -1000,6 +1003,57 @@ export class Scene3D {
       if (c.shadow.visible) {
         c.shadow.position.set(c.x, this.biome.height(c.x, c.z) + 0.2, c.z);
         (c.shadow.material as THREE.MeshBasicMaterial).opacity = day * 0.16 * (1 - weather * 0.5);
+      }
+    }
+  }
+
+  /** A small dark gull silhouette (two humps) for distant birds. */
+  private birdTexture(): THREE.CanvasTexture {
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 32;
+    const x = c.getContext('2d')!;
+    x.strokeStyle = '#000'; x.lineWidth = 5; x.lineCap = 'round';
+    x.beginPath();
+    x.moveTo(6, 22); x.quadraticCurveTo(20, 6, 32, 18); x.quadraticCurveTo(44, 6, 58, 22);
+    x.stroke();
+    const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t;
+  }
+
+  /** Two flocks of birds in loose V-formation, drifting across the sky (seen at dawn/dusk). */
+  private makeBirds(): void {
+    const tex = this.birdTexture();
+    for (let f = 0; f < 2; f++) {
+      const group = new THREE.Group();
+      const birds: THREE.Sprite[] = [];
+      const n = 9 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < n; i++) {
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: 0x232a33, transparent: true, depthWrite: false, opacity: 0, fog: false }));
+        sp.scale.set(2.4, 1.2, 1);
+        const rank = Math.ceil(i / 2);
+        const side = i === 0 ? 0 : (i % 2 === 0 ? 1 : -1);
+        sp.position.set(-rank * 2.0, (Math.random() - 0.5) * 0.6, side * rank * 1.7); // V trailing behind the leader
+        group.add(sp); birds.push(sp);
+      }
+      group.position.set((Math.random() * 2 - 1) * WORLD.half, WORLD.half * (0.85 + f * 0.12), (Math.random() * 2 - 1) * WORLD.half);
+      this.scene.add(group);
+      this.flocks.push({ group, birds, speed: 5 + Math.random() * 3 });
+    }
+  }
+
+  /** Drift the flocks across the sky and flap their wings; visible only around dawn and dusk. */
+  private updateBirds(t: number, dt: number, day: number): void {
+    const band = Math.max(0, 1 - Math.abs(day - 0.38) / 0.26); // peaks at dawn/dusk, zero by midday/deep night
+    const W = WORLD.half * 1.5;
+    for (let f = 0; f < this.flocks.length; f++) {
+      const fl = this.flocks[f]!;
+      fl.group.position.x += fl.speed * dt;
+      if (fl.group.position.x > W) fl.group.position.x -= 2 * W;
+      const op = band * 0.85;
+      fl.group.visible = op > 0.02;
+      for (let i = 0; i < fl.birds.length; i++) {
+        const b = fl.birds[i]!;
+        b.scale.y = 1.2 * (0.45 + 0.55 * Math.abs(Math.sin(t * 8 + i * 0.7 + f))); // wing flap
+        (b.material as THREE.SpriteMaterial).opacity = op;
       }
     }
   }
