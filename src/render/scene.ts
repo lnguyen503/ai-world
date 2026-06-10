@@ -51,6 +51,7 @@ interface CreatureRig {
   wings: THREE.Mesh[];
   zzz: THREE.Sprite;
   outline: THREE.Mesh;
+  lastHeading: number;
 }
 
 export class Scene3D {
@@ -139,6 +140,7 @@ export class Scene3D {
     this.controls.maxPolarAngle = Math.PI * 0.495;
     this.controls.minDistance = 3;
     this.controls.maxDistance = WORLD.half * 2.6;
+    this.controls.autoRotateSpeed = 0.35; // slow, relaxing drift when not following anyone
 
     this.hemi = new THREE.HemisphereLight(0xbcd7ff, 0x20301a, 0.6);
     this.scene.add(this.hemi);
@@ -287,6 +289,7 @@ export class Scene3D {
     const rig: CreatureRig = {
       body, mat, eyes: [eyeL, eyeR], earRound: [earRL, earRR],
       earPointy: [earPL, earPR], antenna: [...antL, ...antR], tail, mouth, wings: [wingL, wingR], zzz, outline,
+      lastHeading: 0,
     };
     group.userData.rig = rig;
     this.scene.add(group);
@@ -316,13 +319,24 @@ export class Scene3D {
       const flying = c.canFly;
       const asleep = c.asleep;
 
-      let gy = this.biome.height(c.x, c.z) + bodyScale * 0.5 * squash + 0.05;
-      if (flying) gy += FLIGHT.altitude;
-      const bob = Math.sin(t * (asleep ? 1.0 : 1.5 + c.genome.speed * 0.4) + c.id) * (flying ? 0.18 : asleep ? 0.03 : 0.07) * c.genome.size;
-      g.position.set(c.x, gy + bob, c.z);
+      const baseY = this.biome.height(c.x, c.z) + bodyScale * 0.5 * squash + 0.05;
+      let gy = baseY;
+      let pitch = 0;
+      let roll = asleep ? 0.42 : 0; // tip over to sleep
+      if (flying) {
+        const swoop = Math.sin(t * 1.1 + c.id * 0.7); // slow, big elevation changes
+        gy = baseY + FLIGHT.altitude + swoop * 1.9 + Math.sin(t * 3.0 + c.id) * 0.25;
+        pitch = -Math.cos(t * 1.1 + c.id * 0.7) * 0.38; // nose up climbing, down diving
+        let dh = c.heading - rig.lastHeading; // bank into turns
+        dh = ((dh + Math.PI) % (Math.PI * 2)) - Math.PI; if (dh < -Math.PI) dh += Math.PI * 2;
+        roll = Math.max(-0.6, Math.min(0.6, dh * 9));
+      } else {
+        gy = baseY + Math.sin(t * (asleep ? 1.0 : 1.5 + c.genome.speed * 0.4) + c.id) * (asleep ? 0.03 : 0.08) * c.genome.size;
+      }
+      rig.lastHeading = c.heading;
+      g.position.set(c.x, gy, c.z);
       g.scale.set(bodyScale, bodyScale * squash, bodyScale);
-      g.rotation.y = -c.heading;
-      g.rotation.z = asleep ? 0.42 : 0; // tip over to sleep
+      g.rotation.set(pitch, -c.heading, roll);
       rig.zzz.visible = asleep;
       if (asleep) rig.zzz.position.y = 1.2 + Math.sin(t * 2 + c.id) * 0.12;
 
@@ -347,7 +361,7 @@ export class Scene3D {
       // wings: visible + flapping only for flyers
       rig.wings[0]!.visible = rig.wings[1]!.visible = flying;
       if (flying) {
-        const flap = Math.sin(t * 14 + c.id) * 0.55;
+        const flap = 0.35 + Math.sin(t * 16 + c.id) * 0.75; // bigger, faster wingbeats
         rig.wings[0]!.rotation.z = flap;
         rig.wings[1]!.rotation.z = -flap;
       }
@@ -555,6 +569,7 @@ export class Scene3D {
   }
 
   follow(world: World): void {
+    this.controls.autoRotate = this.selectedId == null; // gentle cinematic orbit when free
     const sel = this.selectedId != null ? world.creatures.find((x) => x.id === this.selectedId) : undefined;
 
     // floating name tag above the selected creature

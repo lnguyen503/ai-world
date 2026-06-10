@@ -60,6 +60,8 @@ src/
 - v0.10 ✓ — critters **sleep at night** (closed eyes, tipped-over pose, floating **zzz**) while predators **prowl**; an **ominous drone** fades in when a hunter is stalking; **randomized soft music** + varied nature; and a **non-repeating narrator** that mirrors the world's mood (nightfall, storms, hunts, dawn).
 - v0.11 ✓ — **floating name tags** above the critter you click; predators are now **always red-rimmed** (clear even in lineage mode); and an optional **local-LLM narration** hook (Ollama-style — reads the biome + world state and writes the line, with template fallback).
 
+- v0.12 ✓ — flyers now **swoop, dip, pitch, and bank** like real flight (with bigger wingbeats); and a relaxing **cinematic auto-orbit** camera drifts around the world whenever you're not following a creature.
+
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.
 
