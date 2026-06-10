@@ -41,6 +41,20 @@ function zzzTexture(): THREE.CanvasTexture {
   return t;
 }
 
+/** A soft round speck (for pollen motes + glowing fireflies, instead of hard square points). */
+function softDotTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = c.height = 32;
+  const x = c.getContext('2d')!;
+  const g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.5, 'rgba(255,255,255,0.5)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 32, 32);
+  const t = new THREE.CanvasTexture(c); t.needsUpdate = true;
+  return t;
+}
+
 /** A bright "!" sprite, billboarded above startled prey. */
 function bangTexture(): THREE.CanvasTexture {
   const c = document.createElement('canvas');
@@ -155,6 +169,7 @@ export class Scene3D {
   private wingMat = new THREE.MeshToonMaterial({ color: 0xeaf2ff, gradientMap: this.toonGrad, transparent: true, opacity: 0.82 });
   private zzzMat = new THREE.SpriteMaterial({ map: zzzTexture(), transparent: true, depthWrite: false });
   private bangMat = new THREE.SpriteMaterial({ map: bangTexture(), transparent: true, depthWrite: false, depthTest: false });
+  private softDotTex = softDotTexture();
   private whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   private darkMat = new THREE.MeshBasicMaterial({ color: 0x232334 });
   private mouthMat = new THREE.MeshBasicMaterial({ color: 0x3a2030 });
@@ -866,7 +881,7 @@ export class Scene3D {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(this.fireflyCur, 3));
     this.fireflies = new THREE.Points(geo, new THREE.PointsMaterial({
-      color: 0xfff2a0, size: 0.7, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
+      color: 0xfff2a0, size: 1.0, map: this.softDotTex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
     }));
     this.fireflies.frustumCulled = false;
     this.scene.add(this.fireflies);
@@ -893,8 +908,8 @@ export class Scene3D {
     this.moon = new THREE.Mesh(new THREE.SphereGeometry(7, 32, 32), this.moonMat);
     this.scene.add(this.moon);
 
-    // daytime motes (drifting pollen / tiny insects)
-    const m = 140;
+    // daytime motes (drifting pollen / tiny insects) — sparse + soft so they don't speckle the meadow
+    const m = 80;
     const mb = new Float32Array(m * 3);
     for (let i = 0; i < m; i++) {
       mb[i * 3] = (Math.random() * 2 - 1) * WORLD.half;
@@ -906,7 +921,7 @@ export class Scene3D {
     const mgeo = new THREE.BufferGeometry();
     mgeo.setAttribute('position', new THREE.BufferAttribute(this.motesCur, 3));
     this.motes = new THREE.Points(mgeo, new THREE.PointsMaterial({
-      color: 0xfff6d0, size: 0.45, transparent: true, opacity: 0, depthWrite: false,
+      color: 0xfff6d0, size: 0.7, map: this.softDotTex, transparent: true, opacity: 0, depthWrite: false,
     }));
     this.motes.frustumCulled = false;
     this.scene.add(this.motes);
@@ -1108,7 +1123,7 @@ export class Scene3D {
     // daytime motes drift on the breeze
     const day = this.lastSky.dayFactor;
     const mm = this.motes.material as THREE.PointsMaterial;
-    mm.opacity = day * 0.4;
+    mm.opacity = day * 0.22;
     this.motes.visible = day > 0.1;
     if (this.motes.visible) {
       const b = this.motesBase, c = this.motesCur;

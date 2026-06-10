@@ -1,3 +1,5 @@
-v0.48.0: trees sway in the wind
+v0.49.0: softer, fewer floating motes (cleaner meadow)
 
-- tree canopies now sway and tilt on the breeze — gentle when calm, whipping harder as the weather rises
+- daytime motes were hard white square points that speckled the screen — now soft round glowing specks, fewer (80 vs 140) and dimmer, reading as gentle drifting pollen
+- fireflies also get the soft round glow instead of square points
+- finishes decluttering the scene after the food fix
