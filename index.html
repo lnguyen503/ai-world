@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI World — a living, evolving 3D zoo</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0e14; }
+      body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #e6edf3; }
+      #app { position: fixed; inset: 0; }
+      canvas { display: block; }
+
+      .panel {
+        position: fixed; z-index: 10;
+        background: rgba(13, 18, 28, 0.82);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        backdrop-filter: blur(8px);
+        padding: 12px 14px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+      }
+      #hud-top { top: 14px; left: 14px; min-width: 240px; }
+      #hud-top h1 { margin: 0 0 8px; font-size: 14px; letter-spacing: 0.4px; font-weight: 600; color: #9ad0ff; }
+      .stat { display: flex; justify-content: space-between; gap: 18px; font-size: 12.5px; line-height: 1.7; }
+      .stat span:first-child { color: #8b98a8; }
+      .stat span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+      #hud-time { bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; }
+      #hud-time button {
+        font: inherit; font-size: 12.5px; font-weight: 600;
+        color: #e6edf3; background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+        padding: 6px 10px; cursor: pointer; transition: background 0.12s, border-color 0.12s;
+      }
+      #hud-time button:hover { background: rgba(255,255,255,0.13); }
+      #hud-time button.active { background: #2563eb; border-color: #3b82f6; }
+      #hud-time .label { font-size: 11px; color: #8b98a8; margin-right: 4px; }
+
+      #hud-graph { top: 14px; right: 14px; width: 240px; }
+      #hud-graph h2 { margin: 0 0 6px; font-size: 12px; color: #8b98a8; font-weight: 600; }
+      #graph { width: 100%; height: 90px; display: block; border-radius: 6px; background: rgba(0,0,0,0.25); }
+
+      #hud-selected { bottom: 14px; right: 14px; width: 250px; display: none; }
+      #hud-selected.show { display: block; }
+      #hud-selected h2 { margin: 0 0 8px; font-size: 13px; color: #ffd479; font-weight: 600; }
+      #hud-selected .close { float: right; cursor: pointer; color: #8b98a8; font-weight: 700; }
+
+      #hint { bottom: 56px; left: 50%; transform: translateX(-50%); font-size: 12px; color: #8b98a8;
+              background: rgba(13,18,28,0.6); padding: 5px 12px; border-radius: 999px; }
+      .bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.1); margin-top: 3px; overflow: hidden; }
+      .bar > i { display: block; height: 100%; background: #4ade80; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div class="panel" id="hud-top">
+      <h1>🌱 AI WORLD</h1>
+      <div class="stat"><span>Population</span><span id="s-pop">—</span></div>
+      <div class="stat"><span>Generation</span><span id="s-gen">—</span></div>
+      <div class="stat"><span>Births / Deaths</span><span id="s-bd">—</span></div>
+      <div class="stat"><span>Food</span><span id="s-food">—</span></div>
+      <div class="stat"><span>World age</span><span id="s-age">—</span></div>
+      <div class="stat"><span>Avg size</span><span id="s-size">—</span></div>
+      <div class="stat"><span>Avg speed</span><span id="s-speed">—</span></div>
+      <div class="stat"><span>Avg sense</span><span id="s-sense">—</span></div>
+    </div>
+
+    <div class="panel" id="hud-graph">
+      <h2>Population over time</h2>
+      <canvas id="graph"></canvas>
+    </div>
+
+    <div class="panel" id="hud-selected">
+      <span class="close" id="sel-close">✕</span>
+      <h2 id="sel-title">Following</h2>
+      <div id="sel-body"></div>
+    </div>
+
+    <div id="hint" class="">Drag to look · scroll to zoom · click a creature to follow it</div>
+
+    <div class="panel" id="hud-time">
+      <span class="label">TIME</span>
+      <button data-speed="0">⏸</button>
+      <button data-speed="0.25">0.25×</button>
+      <button data-speed="1" class="active">1×</button>
+      <button data-speed="2">2×</button>
+      <button data-speed="5">5×</button>
+      <button data-speed="20">20×</button>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

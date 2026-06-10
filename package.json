@@ -1,0 +1,20 @@
+{
+  "name": "ai-world",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A 3D artificial-life world where AI creatures forage, reproduce, mutate, and evolve on their own. Watch them like a zoo, with time controls. Grows over iterations.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.169.0",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.0"
+  }
+}
