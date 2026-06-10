@@ -1,5 +1,6 @@
-v0.23.0: wolf-pack encircling
+v0.24.0: stalk -> dart hunting rhythm
 
-- when predators share a quarry they now fan out and CIRCLE it (tangential steering, sides split by id) instead of all charging from one direction
-- they keep tightening the ring until close, then commit
-- lone hunters still charge directly; pack/lunge tuning added to config
+- predators now CREEP while lining up (stalkSpeedMult) then explode into a fast committed DART (lungeSpeedMult) once prey is in range
+- lunge has a duration + cooldown, so it reads as a real pounce, not a constant sprint
+- darting straight in overrides the circling; faster movement costs more energy
+- creature gains lungeTimer/lungeCd/justKilled state for the upcoming pounce animation

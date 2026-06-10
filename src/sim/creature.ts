@@ -50,6 +50,9 @@ export class Creature {
   alarmTimer = 0; // >0 means raising the alarm (a predator is near)
   threatX = 0; threatZ = 0; // last sensed predator position (shared via the alarm)
   asleep = false; // resting through the night
+  lungeTimer = 0; // >0 means mid-dart (a committed burst at prey) — drives the pounce animation
+  lungeCd = 0; // cooldown before the next dart
+  justKilled = 0; // >0 briefly after a successful kill — drives the cartoon impact
 
   constructor(genome: Genome, x: number, z: number, generation: number, energy: number) {
     this.id = nextCreatureId++;
@@ -90,6 +93,9 @@ export class Creature {
     const weather = params.weather;
     this.signalTimer = Math.max(0, this.signalTimer - dt);
     this.alarmTimer = Math.max(0, this.alarmTimer - dt);
+    this.lungeTimer = Math.max(0, this.lungeTimer - dt);
+    this.lungeCd = Math.max(0, this.lungeCd - dt);
+    this.justKilled = Math.max(0, this.justKilled - dt);
 
     const ni = ctx.neighbors(this.x, this.z, SOCIAL.radius, this.id, predator);
     const tree = ctx.nearestTree(this.x, this.z);
@@ -144,13 +150,19 @@ export class Creature {
       if (ni.hasPrey) {
         const toPrey = Math.atan2(ni.preyZ - this.z, ni.preyX - this.x);
         const dPrey = Math.hypot(ni.preyX - this.x, ni.preyZ - this.z);
-        if (ni.hasPredator && dPrey > PRED.circleRadius) {
+        // in range and rested → commit to a dart (a fast committed burst)
+        if (dPrey <= PRED.lungeRange && this.lungeTimer <= 0 && this.lungeCd <= 0) {
+          this.lungeTimer = PRED.lungeDuration; this.lungeCd = PRED.lungeCooldown;
+        }
+        if (this.lungeTimer > 0) {
+          turn += PRED.huntGain * 1.4 * angDelta(this.heading, toPrey); // locked on, darting straight in
+        } else if (ni.hasPredator && dPrey > PRED.circleRadius) {
           // wolf pack: fan out and circle the quarry rather than all charging from one side
           const side = (this.id & 1) ? 1 : -1;
           turn += PRED.orbitGain * angDelta(this.heading, toPrey + side * Math.PI * 0.5);
           turn += PRED.huntGain * 0.35 * angDelta(this.heading, toPrey); // keep tightening the ring
         } else {
-          turn += PRED.huntGain * angDelta(this.heading, toPrey); // in range — commit to the kill
+          turn += PRED.huntGain * angDelta(this.heading, toPrey); // stalking in for the kill
         }
       } else if (ni.hasPredator) {
         turn += SOCIAL.cohesionGain * angDelta(this.heading, Math.atan2(ni.predZ - this.z, ni.predX - this.x)); // regroup
@@ -170,9 +182,12 @@ export class Creature {
     turn = Math.max(-SOCIAL.maxTurn, Math.min(SOCIAL.maxTurn, turn));
     this.heading += turn * dt;
 
-    // --- move ---
+    // --- move (predators creep while lining up, then explode forward mid-dart) ---
     const throttle = BRAIN.minThrottle + (1 - BRAIN.minThrottle) * (this.act[1] + 1) / 2;
-    const speed = g.speed * throttle * (flying ? FLIGHT.speedMult : 1);
+    let predMult = 1;
+    if (predator && this.lungeTimer > 0) predMult = PRED.lungeSpeedMult;
+    else if (predator && ni.hasPrey) predMult = PRED.stalkSpeedMult;
+    const speed = g.speed * throttle * (flying ? FLIGHT.speedMult : 1) * predMult;
     this.x += Math.cos(this.heading) * speed * dt;
     this.z += Math.sin(this.heading) * speed * dt;
     this.bounceOffEdges(ctx.half);
@@ -197,6 +212,7 @@ export class Creature {
           this.energy = Math.min(this.maxEnergy, this.energy + PRED.gain + prey.energy * 0.4);
           prey.energy = 0; prey.alive = false;
           this.signalTimer = SOCIAL.signalTime;
+          this.justKilled = 0.4; this.lungeTimer = 0; // pounce lands → cartoon impact
         }
       }
     } else if (food) {
