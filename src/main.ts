@@ -64,6 +64,8 @@ controls.onLoadFile = (text) => {
 };
 
 let last = performance.now();
+let weatherTarget = 0;
+let weatherRetarget = 0; // sim-seconds until the next weather front rolls in
 
 function frame(now: number): void {
   const realDt = Math.min(0.1, (now - last) / 1000);
@@ -71,6 +73,17 @@ function frame(now: number): void {
 
   const simDt = realDt * params.timeSpeed;
   if (simDt > 0) {
+    // 🎲 auto-weather: slow random fronts ease through (weighted toward calm spells)
+    if (params.autoWeather) {
+      weatherRetarget -= simDt;
+      if (weatherRetarget <= 0) {
+        weatherTarget = Math.random() < 0.55 ? Math.random() * 0.2 : Math.random();
+        weatherRetarget = 12 + Math.random() * 30;
+      }
+      const ease = 1 - Math.pow(0.5, simDt / 6); // ~6 sim-second half-life toward the target
+      params.weather += (weatherTarget - params.weather) * ease;
+      controls.setWeather(params.weather);
+    }
     const steps = Math.min(SIM.maxSubStepsPerFrame, Math.max(1, Math.ceil(simDt / SIM.maxStep)));
     const stepDt = simDt / steps;
     for (let i = 0; i < steps; i++) world.step(stepDt);

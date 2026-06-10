@@ -90,6 +90,7 @@ export const params = {
   dayNight: true, // animate sun + sky
   bloom: true, // glow post-processing
   weather: 0, // 0 = calm & peaceful .. 1 = storms, hail, lightning that can kill the exposed
+  autoWeather: false, // when true, the weather drifts on its own (random fronts roll through)
   colorByLineage: false, // color creatures by family/clan instead of their own hue
 };
 

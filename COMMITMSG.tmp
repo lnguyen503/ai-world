@@ -1,5 +1,6 @@
-v0.21.0: shooting stars
+v0.22.0: auto-weather button (random rolling fronts)
 
-- a pool of meteors that streak across the deep-night sky every few seconds
-- each is a short point-trail (bright head -> dim tail) moving in 3D, so it reads from any camera angle
-- only appear once night is deep enough
+- new 'auto' button by the Weather lever: weather drifts on its own
+- slow random-walk driver — calm spells punctuated by occasional storms, easing in/out (~6s half-life), weighted toward calm
+- the slider tracks the live value; dragging it manually takes back control
+- params.autoWeather added to config

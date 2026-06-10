@@ -6,6 +6,10 @@ const el = <T extends HTMLElement>(id: string): T => {
   return e as T;
 };
 
+/** Plain-English word for a weather severity (shared by the slider label + the auto driver). */
+export const weatherWord = (v: number): string =>
+  v < 0.18 ? 'calm' : v < 0.5 ? 'rain' : v < 0.8 ? 'storm' : 'severe';
+
 /** Wires the LEVERS panel to the live `params` object + biome/world callbacks. */
 export class Controls {
   onNewBiome: () => void = () => {};
@@ -20,8 +24,18 @@ export class Controls {
     this.slider('c-metab', 'v-metab', () => params.metabolism, (v) => (params.metabolism = v), (v) => `×${v.toFixed(2)}`);
     this.slider('c-day', 'v-day', () => params.dayLengthSec, (v) => (params.dayLengthSec = v), (v) => `${v.toFixed(0)}s`);
     this.slider('c-season', 'v-season', () => params.seasonStrength, (v) => (params.seasonStrength = v), (v) => v.toFixed(2));
-    this.slider('c-weather', 'v-weather', () => params.weather, (v) => (params.weather = v),
-      (v) => (v < 0.18 ? 'calm' : v < 0.5 ? 'rain' : v < 0.8 ? 'storm' : 'severe'));
+    this.slider('c-weather', 'v-weather', () => params.weather, (v) => (params.weather = v), weatherWord);
+
+    // 🎲 auto-weather button: when on, the weather drifts on its own. Dragging the slider takes back control.
+    const autoBtn = el<HTMLButtonElement>('c-weather-auto');
+    autoBtn.classList.toggle('on', params.autoWeather);
+    autoBtn.addEventListener('click', () => {
+      params.autoWeather = !params.autoWeather;
+      autoBtn.classList.toggle('on', params.autoWeather);
+    });
+    el<HTMLInputElement>('c-weather').addEventListener('input', () => {
+      if (params.autoWeather) { params.autoWeather = false; autoBtn.classList.remove('on'); }
+    });
 
     this.toggle('c-daynight', () => params.dayNight, (v) => (params.dayNight = v));
     this.toggle('c-bloom', () => params.bloom, (v) => (params.bloom = v));
@@ -39,6 +53,12 @@ export class Controls {
       r.onload = () => { if (typeof r.result === 'string') this.onLoadFile(r.result); file.value = ''; };
       r.readAsText(f);
     });
+  }
+
+  /** Reflect a programmatically-driven weather value back onto the slider + label (auto mode). */
+  setWeather(v: number): void {
+    el<HTMLInputElement>('c-weather').value = String(v);
+    el<HTMLSpanElement>('v-weather').textContent = weatherWord(v);
   }
 
   private slider(
