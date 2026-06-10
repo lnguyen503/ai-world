@@ -132,6 +132,15 @@ export const TREES = {
   shelterRadius: 6.5, // creatures within this of a tree are sheltered
 };
 
+// Ponds: scenic pools that settle into terrain basins. Creatures walk AROUND them (steer away from
+// the water) rather than through, so you see them gather and path along the shoreline.
+export const PONDS = {
+  count: 4,
+  minR: 5,
+  maxR: 10,
+  avoidGain: 3.2, // how hard a creature steers away from open water
+};
+
 // Flight: an evolvable `wings` gene (> threshold = can fly). Flyers escape GROUND predators and
 // roam freely, but burn more energy and CANNOT shelter from weather — so storms favor the grounded.
 export const FLIGHT = {

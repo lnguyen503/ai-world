@@ -1,4 +1,5 @@
-v0.29.0: moon phases
+v0.30.0: ponds & water
 
-- the moon now waxes and wanes: a shader terminator sweeps across the disk as the phase advances (a lunar month ~ 8 in-world days)
-- faint earthshine on the dark limb; phase tracks world age so it respects time speed
+- ponds settle into the lowest terrain basins; shimmering translucent water discs (rippling shader, sky-tinted, dims at night)
+- creatures walk AROUND open water (steer away from the edge); flyers pass over it
+- re-settled on new biome / reset / load (ponds derive from terrain, not the save file)

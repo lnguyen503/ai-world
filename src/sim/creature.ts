@@ -1,4 +1,4 @@
-import { LIFE, FOOD, BRAIN, SOCIAL, PRED, WEATHER, FLIGHT, params } from '../config';
+import { LIFE, FOOD, BRAIN, SOCIAL, PRED, WEATHER, FLIGHT, PONDS, params } from '../config';
 import { type Genome, mutate, crossover } from './genome';
 import { think } from './brain';
 import type { Food } from './food';
@@ -20,6 +20,9 @@ export interface NeighborInfo {
 /** Nearest-tree shelter info for weathering storms. */
 export interface TreeInfo { x: number; z: number; hasTree: boolean; sheltered: boolean; }
 
+/** Nearest-pond info, so creatures can walk around open water. */
+export interface PondInfo { x: number; z: number; r: number; hasPond: boolean; dist: number; }
+
 /** What a creature needs from the world to act, without importing the World class. */
 export interface CreatureContext {
   half: number;
@@ -28,6 +31,7 @@ export interface CreatureContext {
   spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number): void;
   neighbors(x: number, z: number, radius: number, selfId: number, selfPredator: boolean): NeighborInfo;
   nearestTree(x: number, z: number): TreeInfo;
+  nearestPond(x: number, z: number): PondInfo;
   burst(type: number, x: number, z: number): void; // queue a particle burst (2 = kill impact)
   dayFactor: number; // 0 = deep night, 1 = midday
 }
@@ -184,6 +188,17 @@ export class Creature {
     // --- as weather worsens, the grounded head for the nearest tree (flyers can't shelter) ---
     if (weather > WEATHER.startAt && tree.hasTree && !flying && !sheltered) {
       turn += weather * WEATHER.shelterSeekGain * angDelta(this.heading, Math.atan2(tree.z - this.z, tree.x - this.x));
+    }
+
+    // --- walk around open water: steer away when near a pond's edge (flyers pass over it) ---
+    if (!flying) {
+      const pond = ctx.nearestPond(this.x, this.z);
+      const edge = pond.r + this.radius + 1.2;
+      if (pond.hasPond && pond.dist < edge) {
+        const away = Math.atan2(this.z - pond.z, this.x - pond.x);
+        const urgency = 1 - pond.dist / edge; // stronger the closer to / inside the water
+        turn += PONDS.avoidGain * urgency * angDelta(this.heading, away);
+      }
     }
 
     turn = Math.max(-SOCIAL.maxTurn, Math.min(SOCIAL.maxTurn, turn));

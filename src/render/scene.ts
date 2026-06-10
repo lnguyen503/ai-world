@@ -167,6 +167,9 @@ export class Scene3D {
   private foliageMat = new THREE.MeshToonMaterial({ color: 0x3f8f4a, gradientMap: this.toonGrad });
   private treeGroup = new THREE.Group();
   private treePositions: { x: number; z: number }[] = [];
+  private pondGroup = new THREE.Group();
+  private pondData: { x: number; z: number; r: number }[] = [];
+  private waterMat!: THREE.ShaderMaterial;
   private pool: THREE.Group[] = [];
   private pickables: THREE.Mesh[] = [];
 
@@ -242,6 +245,8 @@ export class Scene3D {
     this.scene.add(this.foodMesh);
     this.makeSocialViz();
     this.scene.add(this.treeGroup);
+    this.makeWater();
+    this.scene.add(this.pondGroup);
     this.makeWeather();
     this.makeNameTag();
     this.makeNight();
@@ -473,6 +478,7 @@ export class Scene3D {
     for (const [id, g] of this.groups) {
       if (!seen.has(id)) { g.visible = false; this.pool.push(g); this.groups.delete(id); }
     }
+    this.waterMat.uniforms.uTime!.value = t;
     this.syncFood(world);
     this.syncSocial(world);
     this.updateSky(world.age);
@@ -655,6 +661,48 @@ export class Scene3D {
     this.nameTex.needsUpdate = true;
   }
 
+  private makeWater(): void {
+    this.waterMat = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      uniforms: {
+        uTime: { value: 0 }, uOpacity: { value: 0.85 },
+        uDeep: { value: new THREE.Color(0x183b6e) }, uShallow: { value: new THREE.Color(0x4aa6d6) },
+        uSky: { value: new THREE.Color(0xbfe0ff) },
+      },
+      vertexShader: `varying vec2 vUv; varying vec2 vW;
+        void main(){ vUv = uv; vec4 wp = modelMatrix * vec4(position, 1.0); vW = wp.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `
+        uniform float uTime; uniform float uOpacity; uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uSky;
+        varying vec2 vUv; varying vec2 vW;
+        void main(){
+          float d = distance(vUv, vec2(0.5)) * 2.0; // 0 centre .. 1 rim
+          float r = sin(vW.x * 0.6 + uTime * 1.3) * 0.5 + sin(vW.y * 0.7 - uTime * 1.05) * 0.5;
+          float spark = smoothstep(0.72, 1.0, r) * (1.0 - d);
+          vec3 col = mix(uDeep, uShallow, d);
+          col = mix(col, uSky, 0.22) + spark * 0.45;
+          float a = uOpacity * (1.0 - smoothstep(0.82, 1.0, d));
+          gl_FragColor = vec4(col, a);
+        }`,
+    });
+  }
+
+  /** Provide the world's pond positions; lays flat shimmering water discs into the basins. */
+  setPonds(ponds: { x: number; z: number; r: number }[]): void {
+    this.pondData = ponds;
+    this.buildPonds();
+  }
+
+  private buildPonds(): void {
+    this.pondGroup.clear();
+    for (const p of this.pondData) {
+      const geo = new THREE.CircleGeometry(p.r, 40);
+      const mesh = new THREE.Mesh(geo, this.waterMat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(p.x, this.biome.height(p.x, p.z) + 0.06, p.z);
+      this.pondGroup.add(mesh);
+    }
+  }
+
   /** Provide the world's shelter-tree positions; builds the tree meshes on the terrain. */
   setTrees(trees: { x: number; z: number }[]): void {
     this.treePositions = trees;
@@ -687,6 +735,9 @@ export class Scene3D {
     this.sun.intensity = s.sunIntensity;
     this.hemi.intensity = s.ambIntensity;
     this.cosmos.setNight(s.starAlpha);
+    // water reflects the sky colour + dims at night
+    (this.waterMat.uniforms.uSky!.value as THREE.Color).copy(toVec3(s.bottom));
+    this.waterMat.uniforms.uOpacity!.value = 0.5 + 0.4 * s.dayFactor;
     this.lastSky = s;
   }
 

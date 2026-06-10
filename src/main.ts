@@ -25,6 +25,7 @@ const biomeEl = document.getElementById('s-biome');
 const showBiome = (): void => { if (biomeEl) biomeEl.textContent = biome.name; };
 showBiome();
 scene.setTrees(world.trees);
+scene.setPonds(world.ponds);
 
 hud.onSpeedChange = (s) => { params.timeSpeed = s; };
 hud.onDeselect = () => scene.setSelected(null);
@@ -33,12 +34,15 @@ controls.onNewBiome = () => {
   biome.reseed();
   scene.buildTerrain();
   scene.buildTrees();
+  world.placePonds(); // re-settle ponds into the new terrain's basins
+  scene.setPonds(world.ponds);
   showBiome();
 };
 controls.onReset = () => {
   world = new World(biome);
   scene.setSelected(null);
   scene.setTrees(world.trees);
+  scene.setPonds(world.ponds);
 };
 controls.onSave = () => {
   const text = world.serialize();
@@ -54,8 +58,10 @@ controls.onLoadFile = (text) => {
     const data = JSON.parse(text) as WorldSnapshot;
     biome.reseed(data.biomeSeed);
     world.loadSnapshot(data);
+    world.placePonds(); // ponds aren't saved — re-settle them into the loaded biome
     scene.buildTerrain();
     scene.setTrees(world.trees);
+    scene.setPonds(world.ponds);
     scene.setSelected(null);
     showBiome();
   } catch {
@@ -87,7 +93,7 @@ function frame(now: number): void {
     const steps = Math.min(SIM.maxSubStepsPerFrame, Math.max(1, Math.ceil(simDt / SIM.maxStep)));
     const stepDt = simDt / steps;
     for (let i = 0; i < steps; i++) world.step(stepDt);
-    if (world.creatures.length === 0) { world = new World(biome); scene.setSelected(null); scene.setTrees(world.trees); }
+    if (world.creatures.length === 0) { world = new World(biome); scene.setSelected(null); scene.setTrees(world.trees); scene.setPonds(world.ponds); }
   }
 
   world.computeLinks();

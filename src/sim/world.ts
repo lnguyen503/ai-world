@@ -1,8 +1,8 @@
-import { WORLD, SOCIAL, TREES, WEATHER, params } from '../config';
+import { WORLD, SOCIAL, TREES, PONDS, WEATHER, params } from '../config';
 import type { Biome } from '../biome';
 import { type Genome, randomGenome } from './genome';
 import { type Food, makeFood } from './food';
-import { Creature, type CreatureContext, type NeighborInfo, type TreeInfo, newCreature } from './creature';
+import { Creature, type CreatureContext, type NeighborInfo, type TreeInfo, type PondInfo, newCreature } from './creature';
 
 export interface WorldStats {
   population: number;
@@ -107,6 +107,8 @@ export class World implements CreatureContext {
   socialLinks: number[] = [];
   /** Static shelter trees (x,z); render places them on the terrain. */
   trees: { x: number; z: number }[] = [];
+  /** Scenic ponds (x,z,r) settled into terrain basins; creatures steer around the water. */
+  ponds: { x: number; z: number; r: number }[] = [];
   /** Lightning strike state for the renderer: flash >0 means a bolt is firing at (x,z). */
   lightningFlash = 0;
   lightningX = 0;
@@ -133,6 +135,33 @@ export class World implements CreatureContext {
     for (let i = 0; i < TREES.count; i++) {
       this.trees.push({ x: (Math.random() * 2 - 1) * th, z: (Math.random() * 2 - 1) * th });
     }
+    this.placePonds();
+  }
+
+  /** Drop ponds into the lowest spots we can find, so they read as water pooling in basins. */
+  placePonds(): void {
+    this.ponds = [];
+    const ph = WORLD.half - 12;
+    for (let i = 0; i < PONDS.count; i++) {
+      let bx = 0, bz = 0, lowest = Infinity;
+      for (let attempt = 0; attempt < 14; attempt++) {
+        const x = (Math.random() * 2 - 1) * ph, z = (Math.random() * 2 - 1) * ph;
+        const h = this.biome.height(x, z);
+        if (h < lowest && this.ponds.every((p) => (p.x - x) ** 2 + (p.z - z) ** 2 > (p.r + PONDS.maxR) ** 2)) {
+          lowest = h; bx = x; bz = z;
+        }
+      }
+      if (lowest < Infinity) this.ponds.push({ x: bx, z: bz, r: PONDS.minR + Math.random() * (PONDS.maxR - PONDS.minR) });
+    }
+  }
+
+  nearestPond(x: number, z: number): PondInfo {
+    let bx = 0, bz = 0, br = 0, best = Infinity, has = false;
+    for (const p of this.ponds) {
+      const d2 = (p.x - x) ** 2 + (p.z - z) ** 2;
+      if (d2 < best) { best = d2; bx = p.x; bz = p.z; br = p.r; has = true; }
+    }
+    return { x: bx, z: bz, r: br, hasPond: has, dist: Math.sqrt(best) };
   }
 
   /** Pick a food location biased toward fertile (drifting) patches. */
