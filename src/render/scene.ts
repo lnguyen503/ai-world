@@ -3,10 +3,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { WORLD, FOOD, params } from '../config';
+import { WORLD, FOOD, SOCIAL, params } from '../config';
 import type { World } from '../sim/world';
 import type { Biome } from '../biome';
 
+const MAX_PULSES = 256; // max simultaneous "found food!" signal rings drawn
 const TMP = new THREE.Vector3();
 const toVec3 = (hex: number): THREE.Color => new THREE.Color(hex);
 
@@ -66,6 +67,11 @@ export class Scene3D {
   private foodMesh: THREE.InstancedMesh;
   private dummy = new THREE.Object3D();
 
+  private bondLines!: THREE.LineSegments;
+  private bondPos!: Float32Array;
+  private pulseMesh!: THREE.InstancedMesh;
+  private pulseDummy = new THREE.Object3D();
+
   private selectedId: number | null = null;
   onSelect: (id: number | null) => void = () => {};
 
@@ -106,6 +112,7 @@ export class Scene3D {
 
     this.foodMesh = this.makeFoodMesh();
     this.scene.add(this.foodMesh);
+    this.makeSocialViz();
 
     const renderPass = new RenderPass(this.scene, this.camera);
     const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.85, 0.5, 0.62);
@@ -270,6 +277,7 @@ export class Scene3D {
       if (!seen.has(id)) { g.visible = false; this.pool.push(g); this.groups.delete(id); }
     }
     this.syncFood(world);
+    this.syncSocial(world);
     this.updateSky(world.age);
   }
 
@@ -285,6 +293,58 @@ export class Scene3D {
     this.dummy.scale.setScalar(0); this.dummy.updateMatrix();
     for (let i = n; i < WORLD.foodMax; i++) this.foodMesh.setMatrixAt(i, this.dummy.matrix);
     this.foodMesh.instanceMatrix.needsUpdate = true;
+  }
+
+  private makeSocialViz(): void {
+    this.bondPos = new Float32Array(SOCIAL.maxLinks * 2 * 3);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(this.bondPos, 3));
+    geo.setDrawRange(0, 0);
+    this.bondLines = new THREE.LineSegments(
+      geo,
+      new THREE.LineBasicMaterial({ color: 0x9fe7ff, transparent: true, opacity: 0.22 }),
+    );
+    this.bondLines.frustumCulled = false;
+    this.scene.add(this.bondLines);
+
+    const ring = new THREE.RingGeometry(0.5, 0.64, 22);
+    ring.rotateX(-Math.PI / 2);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xfff0a0, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false,
+    });
+    this.pulseMesh = new THREE.InstancedMesh(ring, mat, MAX_PULSES);
+    this.pulseMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.pulseMesh.frustumCulled = false;
+    this.scene.add(this.pulseMesh);
+  }
+
+  /** Draw community bond lines + expanding "found food!" signal rings. */
+  private syncSocial(world: World): void {
+    const links = world.socialLinks;
+    const nLinks = Math.min(SOCIAL.maxLinks, Math.floor(links.length / 4));
+    for (let i = 0; i < nLinks; i++) {
+      const ax = links[i * 4]!, az = links[i * 4 + 1]!, bx = links[i * 4 + 2]!, bz = links[i * 4 + 3]!;
+      const o = i * 6;
+      this.bondPos[o] = ax; this.bondPos[o + 1] = this.biome.height(ax, az) + 0.35; this.bondPos[o + 2] = az;
+      this.bondPos[o + 3] = bx; this.bondPos[o + 4] = this.biome.height(bx, bz) + 0.35; this.bondPos[o + 5] = bz;
+    }
+    this.bondLines.geometry.setDrawRange(0, nLinks * 2);
+    (this.bondLines.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+
+    let p = 0;
+    for (const c of world.creatures) {
+      if (p >= MAX_PULSES) break;
+      if (c.signalTimer <= 0) continue;
+      const grow = 1 - c.signalTimer / SOCIAL.signalTime; // 0 just-ate -> 1 fading
+      const s = (0.6 + grow * 3.2) * c.genome.size;
+      this.pulseDummy.position.set(c.x, this.biome.height(c.x, c.z) + 0.2, c.z);
+      this.pulseDummy.scale.set(s, s, s);
+      this.pulseDummy.updateMatrix();
+      this.pulseMesh.setMatrixAt(p++, this.pulseDummy.matrix);
+    }
+    this.pulseDummy.scale.set(0, 0, 0); this.pulseDummy.updateMatrix();
+    for (let i = p; i < MAX_PULSES; i++) this.pulseMesh.setMatrixAt(i, this.pulseDummy.matrix);
+    this.pulseMesh.instanceMatrix.needsUpdate = true;
   }
 
   private updateSky(simTime: number): void {

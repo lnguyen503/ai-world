@@ -52,7 +52,8 @@ src/
 - v0.2 ✓ — procedural **biomes** (a different world every time), **terrain**, **day/night**, **seasons**, drifting fertile zones, **bloom glow**, and a live **levers** panel
 - v0.3 ✓ — **neural-net brains**: each creature thinks with a small inherited+mutated neural network, so foraging skill **evolves on its own** instead of being hard-coded. Follow a creature to watch its brain fire.
 - v0.4 ✓ — **cute cartoon creatures**: cel/toon shading, black outlines, big anime eyes (that blink), pastel colors, and randomized **heritable** features — round ears / pointy ears / antennae, optional tails, and squishy body shapes — so every lineage looks different.
-- v0.5 — predators & prey (carnivores, fleeing, food chains)
-- v0.6 — a "family tree" you can browse, save/replay a world
+- v0.5 ✓ — **social life**: creatures form **communities** (they herd with neighbors, weighted by an evolvable *sociability* gene) and **communicate** — a creature that finds food broadcasts a signal that draws nearby creatures in (emergent group foraging). Faint **bond lines** show who's grouped; an expanding **pulse ring** shows a "found food!" call.
+- v0.6 — predators & prey (carnivores, fleeing, food chains)
+- v0.7 — a "family tree" you can browse, save/replay a world
 
 Built with TypeScript + Three.js + Vite.

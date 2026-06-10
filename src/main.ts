@@ -45,6 +45,7 @@ function frame(now: number): void {
     if (world.creatures.length === 0) { world = new World(biome); scene.setSelected(null); }
   }
 
+  world.computeLinks();
   scene.sync(world);
   scene.follow(world);
 

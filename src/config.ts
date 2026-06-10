@@ -56,6 +56,22 @@ export const BRAIN = {
   minThrottle: 0.3, // creatures always move at least this fraction of their speed
 };
 
+// Social behavior: communities (boids-style cohesion/separation/alignment, weighted by the
+// evolvable `social` gene) and communication (a creature that eats broadcasts a signal that
+// nearby creatures are drawn toward — emergent group foraging).
+export const SOCIAL = {
+  radius: 13, // how far a creature senses its neighbors
+  separation: 2.4, // creatures closer than this push apart
+  cohesionGain: 1.2, // pull toward the group's center
+  separationGain: 2.6, // push out of a crowd
+  alignGain: 0.7, // match neighbors' heading
+  signalTime: 1.6, // seconds a creature broadcasts after eating
+  signalGain: 1.1, // attraction toward a signaling neighbor
+  bondRadius: 7.5, // draw a bond line between creatures closer than this
+  maxLinks: 1600, // cap on drawn bond lines (perf)
+  maxTurn: 5, // clamp on total social+brain steering (rad/sec)
+};
+
 /**
  * Live, user-adjustable knobs (the "levers"). The controls panel writes here and
  * the simulation/render read from here every frame, so changes take effect instantly.

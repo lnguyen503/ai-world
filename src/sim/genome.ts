@@ -10,6 +10,8 @@ export interface Genome {
   brain: Brain;
   /** Cosmetic appearance seed (ears/tail/eye-size/body-shape derived from its bits). Inherited; rarely rerolls. */
   look: number;
+  /** 0 = loner, 1 = highly social. Drives how strongly the creature herds with neighbors. */
+  social: number;
 }
 
 type Range = readonly [number, number];
@@ -35,6 +37,7 @@ export function randomGenome(): Genome {
     hue: Math.random(),
     brain: randomBrain(),
     look: Math.floor(Math.random() * 0x7fffffff),
+    social: Math.random(),
   };
 }
 
@@ -54,5 +57,6 @@ export function mutate(g: Genome): Genome {
     brain: mutateBrain(g.brain),
     // appearance is mostly inherited (lineages look alike) and rarely rerolls into a new "species" look.
     look: Math.random() < params.mutationRate * 0.25 ? Math.floor(Math.random() * 0x7fffffff) : g.look,
+    social: jitter(g.social, [0, 1] as const),
   };
 }

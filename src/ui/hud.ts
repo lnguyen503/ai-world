@@ -24,6 +24,7 @@ export class Hud {
   private speedEl = $('s-speed');
   private senseEl = $('s-sense');
   private avgAgeEl = $('s-avgage');
+  private socialEl = $('s-social');
 
   private selPanel = $('hud-selected');
   private selTitle = $('sel-title');
@@ -63,6 +64,7 @@ export class Hud {
     this.speedEl.textContent = s.avgSpeed.toFixed(2);
     this.senseEl.textContent = s.avgSense.toFixed(1);
     this.avgAgeEl.textContent = `${s.avgAge.toFixed(0)}s`;
+    this.socialEl.textContent = `${(s.avgSocial * 100).toFixed(0)}%`;
 
     if (this.frame++ % 12 === 0) {
       this.history.push(s.population);
@@ -111,7 +113,9 @@ export class Hud {
       ${bar('Size', norm(g.size, GENE_RANGES.size) * 100, hueColor)}
       ${bar('Speed', norm(g.speed, GENE_RANGES.speed) * 100, hueColor)}
       ${bar('Sense', norm(g.sense, GENE_RANGES.sense) * 100, hueColor)}
-      <div class="stat" style="margin-top:8px"><span>🧠 Brain</span><span>${seesFood ? 'sees food' : 'searching'}</span></div>
+      ${bar('Sociability', g.social * 100, '#34d399')}
+      <div class="stat" style="margin-top:8px"><span>📣 Social</span><span>${c.signalTimer > 0 ? 'calling: found food!' : 'quiet'}</span></div>
+      <div class="stat"><span>🧠 Brain</span><span>${seesFood ? 'sees food' : 'searching'}</span></div>
       ${bar('↻ Turn', turnPct, '#60a5fa')}
       ${bar('» Throttle', throttlePct, '#a78bfa')}
     `;

@@ -1,7 +1,17 @@
-import { LIFE, FOOD, BRAIN, params } from '../config';
+import { LIFE, FOOD, BRAIN, SOCIAL, params } from '../config';
 import { type Genome, mutate } from './genome';
 import { think } from './brain';
 import type { Food } from './food';
+
+/** Aggregated info about a creature's neighbors, for social steering. */
+export interface NeighborInfo {
+  count: number;
+  cx: number; cz: number;              // centroid of neighbors (cohesion target)
+  sepX: number; sepZ: number;          // summed away-from-too-close vector (separation)
+  alignSin: number; alignCos: number;  // summed neighbor heading (alignment)
+  sigX: number; sigZ: number;          // vector toward the nearest signaling neighbor
+  hasSignal: boolean;
+}
 
 /** What a creature needs from the world to act, without importing the World class. */
 export interface CreatureContext {
@@ -9,6 +19,7 @@ export interface CreatureContext {
   findNearestFood(x: number, z: number, radius: number): Food | null;
   eatFood(food: Food): void;
   spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number): void;
+  neighbors(x: number, z: number, radius: number, selfId: number): NeighborInfo;
 }
 
 let nextCreatureId = 1;
@@ -25,6 +36,7 @@ export class Creature {
   alive = true;
   senseIn: number[] = [0, 0, 0, 0, 1]; // last brain inputs (for the follow panel)
   act: [number, number] = [0, 0]; // last brain outputs [turn, throttle]
+  signalTimer = 0; // >0 means broadcasting "found food!" to neighbors
 
   constructor(genome: Genome, x: number, z: number, generation: number, energy: number) {
     this.id = nextCreatureId++;
@@ -67,7 +79,25 @@ export class Creature {
 
     // --- think & act: the evolved neural net decides turn + throttle ---
     this.act = think(g.brain, this.senseIn);
-    this.heading += this.act[0] * BRAIN.maxTurn * dt;
+    let turn = this.act[0] * BRAIN.maxTurn;
+
+    // --- social: herd with neighbors (community) + answer food signals (communication) ---
+    this.signalTimer = Math.max(0, this.signalTimer - dt);
+    const ni = ctx.neighbors(this.x, this.z, SOCIAL.radius, this.id);
+    if (ni.count > 0) {
+      const social = g.social;
+      turn += social * SOCIAL.cohesionGain * angDelta(this.heading, Math.atan2(ni.cz - this.z, ni.cx - this.x));
+      turn += social * SOCIAL.alignGain * angDelta(this.heading, Math.atan2(ni.alignSin, ni.alignCos));
+      if (ni.sepX !== 0 || ni.sepZ !== 0) {
+        turn += SOCIAL.separationGain * angDelta(this.heading, Math.atan2(ni.sepZ, ni.sepX));
+      }
+      if (ni.hasSignal) {
+        turn += SOCIAL.signalGain * angDelta(this.heading, Math.atan2(ni.sigZ, ni.sigX));
+      }
+    }
+    turn = Math.max(-SOCIAL.maxTurn, Math.min(SOCIAL.maxTurn, turn));
+    this.heading += turn * dt;
+
     const throttle = BRAIN.minThrottle + (1 - BRAIN.minThrottle) * (this.act[1] + 1) / 2;
     const speed = g.speed * throttle;
 
@@ -86,6 +116,7 @@ export class Creature {
       if (dist2(this.x, this.z, food.x, food.z) <= eatR * eatR && food.alive) {
         ctx.eatFood(food);
         this.energy = Math.min(this.maxEnergy, this.energy + FOOD.energy);
+        this.signalTimer = SOCIAL.signalTime; // broadcast "found food!" to neighbors
       }
     }
 
@@ -125,6 +156,13 @@ function dist2(ax: number, az: number, bx: number, bz: number): number {
   const dx = ax - bx;
   const dz = az - bz;
   return dx * dx + dz * dz;
+}
+
+/** Signed shortest angle (radians, -pi..pi) to rotate from heading `a` toward `b`. */
+function angDelta(a: number, b: number): number {
+  let d = ((b - a + Math.PI) % (Math.PI * 2)) - Math.PI;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return d;
 }
 
 export function newCreature(genome: Genome, x: number, z: number, generation = 0, energy = LIFE.startEnergy): Creature {
