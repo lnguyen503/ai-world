@@ -188,6 +188,25 @@ and wobble. Species is inherited like a clan, mixes via crossover, and very
 rarely speciates on mutation. The follow panel shows which species you're
 watching.
 
+### v0.44.0 — Calmer food (from feedback)
+The glowing green food orbs were carpeting the screen and pulling attention off
+the biome. Cut the density (~150 vs 260, lower cap + regrow) and made each pellet
+small, soft-green and barely emissive so bloom no longer turns the field into
+glowing balls; per-pellet energy nudged up to keep the ecosystem balanced.
+
+### v0.45.0 – v0.48.0 — Atmosphere
+**v0.45**: big soft **clouds** drift overhead and trail travelling shadows on the
+meadow; cover thickens with the weather and fades at night so it never hides the
+stars. **v0.46**: two V-formation **bird flocks** cross the sky, visible around
+dawn and dusk. **v0.47**: cold biomes (Frost Tundra) get **snow** instead of rain
+— slow drifting flakes with a sideways flutter. **v0.48**: tree canopies **sway**
+on the breeze, gently when calm and harder as storms build.
+
+### v0.49.0 — Cleaner meadow
+The daytime **motes** had been hard white square points that speckled the view;
+they're now soft round glowing specks (drifting pollen), fewer and dimmer, and
+the fireflies got the same soft glow. Finishes the decluttering pass.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

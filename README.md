@@ -92,6 +92,12 @@ src/
 - v0.41 ✓ — **fixed follow-camera jank**: the follow panel no longer rebuilds its DOM every frame, so following a creature is smooth.
 - v0.42 ✓ — **stargaze mode**: free the camera to tilt up and pan across the night sky (button or the **G** key).
 - v0.43 ✓ — **distinct species**: five heritable archetypes (Pebble, Foxling, Hopkin, Slink, Beetlebug) with different shapes, motion, and **smartness** — same cuteness, obviously different.
+- v0.44 ✓ — **calmer food**: sparser, smaller, soft-green pellets so they read as scattered flora instead of carpeting the biome (raise via the Food lever).
+- v0.45 ✓ — **drifting clouds** with soft travelling shadows; cloud cover thickens with the weather.
+- v0.46 ✓ — **flocks of birds** cross the sky at dawn and dusk.
+- v0.47 ✓ — **snow** instead of rain in cold biomes (Frost Tundra).
+- v0.48 ✓ — **trees sway** in the wind (gentle when calm, whipping in a storm).
+- v0.49 ✓ — softer, fewer floating **motes** (drifting pollen) and round-glow fireflies — a cleaner meadow.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.
