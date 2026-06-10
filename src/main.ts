@@ -4,6 +4,7 @@ import { World } from './sim/world';
 import { Scene3D } from './render/scene';
 import { Hud } from './ui/hud';
 import { Controls } from './ui/controls';
+import { Narrator } from './ui/narrator';
 
 const container = document.getElementById('app');
 if (!container) throw new Error('missing #app');
@@ -13,6 +14,7 @@ let world = new World(biome);
 const scene = new Scene3D(container, biome);
 const hud = new Hud();
 const controls = new Controls();
+const narrator = new Narrator();
 
 const biomeEl = document.getElementById('s-biome');
 const showBiome = (): void => { if (biomeEl) biomeEl.textContent = biome.name; };
@@ -52,9 +54,11 @@ function frame(now: number): void {
   scene.sync(world);
   scene.follow(world);
 
-  hud.updateStats(world.stats());
+  const stats = world.stats();
+  hud.updateStats(stats);
   const sel = scene.getSelected();
   hud.showSelected(sel != null ? (world.creatures.find((c) => c.id === sel) ?? null) : null);
+  narrator.update(stats, biome.name, params.weather, world.lightningFlash > 0);
 
   scene.render();
   requestAnimationFrame(frame);

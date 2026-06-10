@@ -26,6 +26,7 @@ export class Hud {
   private avgAgeEl = $('s-avgage');
   private socialEl = $('s-social');
   private predEl = $('s-pred');
+  private flyEl = $('s-fly');
 
   private selPanel = $('hud-selected');
   private selTitle = $('sel-title');
@@ -67,6 +68,7 @@ export class Hud {
     this.avgAgeEl.textContent = `${s.avgAge.toFixed(0)}s`;
     this.socialEl.textContent = `${(s.avgSocial * 100).toFixed(0)}%`;
     this.predEl.textContent = `${s.predators} / ${s.population}`;
+    this.flyEl.textContent = `${s.flyers} / ${s.population}`;
 
     if (this.frame++ % 12 === 0) {
       this.history.push(s.population);
@@ -116,7 +118,9 @@ export class Hud {
       ${bar('Speed', norm(g.speed, GENE_RANGES.speed) * 100, hueColor)}
       ${bar('Sense', norm(g.sense, GENE_RANGES.sense) * 100, hueColor)}
       ${bar('Sociability', g.social * 100, '#34d399')}
-      <div class="stat" style="margin-top:8px"><span>📣 Social</span><span>${c.signalTimer > 0 ? 'calling: found food!' : 'quiet'}</span></div>
+      ${bar('Wings', g.wings * 100, '#7dd3fc')}
+      <div class="stat" style="margin-top:8px"><span>🕊 Flight</span><span>${c.canFly ? 'can fly' : 'grounded'}</span></div>
+      <div class="stat"><span>📣 Social</span><span>${c.signalTimer > 0 ? 'calling: found food!' : 'quiet'}</span></div>
       <div class="stat"><span>🧠 Brain</span><span>${seesFood ? 'sees food' : 'searching'}</span></div>
       ${bar('↻ Turn', turnPct, '#60a5fa')}
       ${bar('» Throttle', throttlePct, '#a78bfa')}

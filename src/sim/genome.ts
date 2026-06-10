@@ -14,6 +14,8 @@ export interface Genome {
   social: number;
   /** > 0.5 = carnivore (hunts other creatures); otherwise a plant-eating prey animal. */
   predator: number;
+  /** > 0.5 = can fly: escapes ground predators + roams freely, but burns more energy and can't shelter. */
+  wings: number;
 }
 
 type Range = readonly [number, number];
@@ -42,6 +44,8 @@ export function randomGenome(): Genome {
     social: Math.random(),
     // ~12% of the starting population are predators; the rest are prey.
     predator: Math.random() < 0.12 ? 0.6 + Math.random() * 0.4 : Math.random() * 0.45,
+    // ~10% can already fly; flight spreads (or dies out) depending on the world's conditions.
+    wings: Math.random() < 0.1 ? 0.55 + Math.random() * 0.45 : Math.random() * 0.45,
   };
 }
 
@@ -63,5 +67,6 @@ export function mutate(g: Genome): Genome {
     look: Math.random() < params.mutationRate * 0.25 ? Math.floor(Math.random() * 0x7fffffff) : g.look,
     social: jitter(g.social, [0, 1] as const),
     predator: jitter(g.predator, [0, 1] as const),
+    wings: jitter(g.wings, [0, 1] as const),
   };
 }

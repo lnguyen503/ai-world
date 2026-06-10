@@ -1,4 +1,4 @@
-import { LIFE, FOOD, BRAIN, SOCIAL, PRED, WEATHER, params } from '../config';
+import { LIFE, FOOD, BRAIN, SOCIAL, PRED, WEATHER, FLIGHT, params } from '../config';
 import { type Genome, mutate } from './genome';
 import { think } from './brain';
 import type { Food } from './food';
@@ -70,15 +70,21 @@ export class Creature {
     return this.genome.predator > PRED.threshold;
   }
 
+  get canFly(): boolean {
+    return this.genome.wings > FLIGHT.threshold;
+  }
+
   /** Advance one sim-step. Mutates self; may hunt, eat, reproduce, or die. */
   update(dt: number, ctx: CreatureContext): void {
     const g = this.genome;
     const predator = this.isPredator;
+    const flying = this.canFly;
     const weather = params.weather;
     this.signalTimer = Math.max(0, this.signalTimer - dt);
 
     const ni = ctx.neighbors(this.x, this.z, SOCIAL.radius, this.id);
     const tree = ctx.nearestTree(this.x, this.z);
+    const sheltered = tree.sheltered && !flying; // flyers are aloft — no shelter from the storm
 
     // --- pick a target: prey (predators) or plant food (prey animals) ---
     let tx = 0, tz = 0, hasTarget = false;
@@ -121,8 +127,8 @@ export class Creature {
       turn += PRED.fleeGain * angDelta(this.heading, Math.atan2(this.z - ni.predZ, this.x - ni.predX));
     }
 
-    // --- as weather worsens, head for the nearest tree (huddle for shelter) ---
-    if (weather > WEATHER.startAt && tree.hasTree && !tree.sheltered) {
+    // --- as weather worsens, the grounded head for the nearest tree (flyers can't shelter) ---
+    if (weather > WEATHER.startAt && tree.hasTree && !flying && !sheltered) {
       turn += weather * WEATHER.shelterSeekGain * angDelta(this.heading, Math.atan2(tree.z - this.z, tree.x - this.x));
     }
 
@@ -131,24 +137,26 @@ export class Creature {
 
     // --- move ---
     const throttle = BRAIN.minThrottle + (1 - BRAIN.minThrottle) * (this.act[1] + 1) / 2;
-    const speed = g.speed * throttle;
+    const speed = g.speed * throttle * (flying ? FLIGHT.speedMult : 1);
     this.x += Math.cos(this.heading) * speed * dt;
     this.z += Math.sin(this.heading) * speed * dt;
     this.bounceOffEdges(ctx.half);
 
-    // --- metabolism (predators burn more) ---
+    // --- metabolism (predators and flyers burn more) ---
     const moveCost = LIFE.moveCostK * g.size * speed * speed;
-    this.energy -= (LIFE.baseMetabolism + moveCost) * params.metabolism * (predator ? PRED.metabolismMult : 1) * dt;
+    this.energy -= (LIFE.baseMetabolism + moveCost) * params.metabolism
+      * (predator ? PRED.metabolismMult : 1) * (flying ? FLIGHT.costMult : 1) * dt;
 
     // --- weather: an EXPOSED creature is battered by the storm; shelter protects it ---
-    if (weather > WEATHER.startAt && !tree.sheltered) {
+    if (weather > WEATHER.startAt && !sheltered) {
       this.energy -= WEATHER.damagePerSec * (weather - WEATHER.startAt) * dt;
     }
 
     // --- eat: predator kills prey on contact; prey grazes plant food ---
     if (predator) {
       const prey = ni.preyRef;
-      if (prey && prey.alive) {
+      // a ground predator can't catch a flyer — only a flying predator can
+      if (prey && prey.alive && !(prey.canFly && !flying)) {
         const eatR = this.radius + prey.radius + PRED.eatRadiusBonus;
         if (dist2(this.x, this.z, prey.x, prey.z) <= eatR * eatR) {
           this.energy = Math.min(this.maxEnergy, this.energy + PRED.gain + prey.energy * 0.4);

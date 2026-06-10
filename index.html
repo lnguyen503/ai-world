@@ -70,6 +70,11 @@
       }
       .ctrl.btns button:hover { background: rgba(255,255,255,0.15); }
       .ctrl.btns button.primary { background: #2563eb; border-color: #3b82f6; }
+
+      #narration { top: 156px; right: 14px; width: 274px; max-height: 44vh; overflow: hidden; }
+      #narration .nhead { font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: #8b98a8; margin-bottom: 8px; }
+      #narration-body p { margin: 0 0 10px; font-family: Georgia, 'Times New Roman', serif; font-style: italic;
+        font-size: 13px; line-height: 1.55; color: #eef3f8; transition: opacity 0.8s ease; }
     </style>
   </head>
   <body>
@@ -88,11 +93,17 @@
       <div class="stat"><span>Avg age (smarts)</span><span id="s-avgage">—</span></div>
       <div class="stat"><span>Avg sociability</span><span id="s-social">—</span></div>
       <div class="stat"><span>Predators</span><span id="s-pred">—</span></div>
+      <div class="stat"><span>Flyers</span><span id="s-fly">—</span></div>
     </div>
 
     <div class="panel" id="hud-graph">
       <h2>Population over time</h2>
       <canvas id="graph"></canvas>
+    </div>
+
+    <div class="panel" id="narration">
+      <div class="nhead">🎙 a life documentary</div>
+      <div id="narration-body"></div>
     </div>
 
     <div class="panel" id="hud-selected">

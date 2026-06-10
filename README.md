@@ -54,6 +54,7 @@ src/
 - v0.4 ✓ — **cute cartoon creatures**: cel/toon shading, black outlines, big anime eyes (that blink), pastel colors, and randomized **heritable** features — round ears / pointy ears / antennae, optional tails, and squishy body shapes — so every lineage looks different.
 - v0.5 ✓ — **social life**: creatures form **communities** (they herd with neighbors, weighted by an evolvable *sociability* gene) and **communicate** — a creature that finds food broadcasts a signal that draws nearby creatures in (emergent group foraging). Faint **bond lines** show who's grouped; an expanding **pulse ring** shows a "found food!" call.
 - v0.6 ✓ — **predators & prey** (red carnivores hunt; prey flee — an evolving food chain), a **Weather lever** (calm → rain → hail/storms → **lightning that kills the exposed**), and **shelter trees** the critters huddle under as storms roll in. Plus little mouths for extra cuteness.
-- v0.7 — a "family tree" you can browse, save/replay a world
+- v0.7 ✓ — **David Attenborough narration** (a reactive documentary voiceover), and **evolvable flight**: a `wings` gene where flyers escape ground predators but can't shelter from storms — so calm worlds grow wings while storm-wracked worlds keep them grounded. (Brains keep evolving smarter, too.)
+- v0.8 — a "family tree" you can browse, save/replay a world
 
 Built with TypeScript + Three.js + Vite.

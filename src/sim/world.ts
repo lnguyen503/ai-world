@@ -17,6 +17,8 @@ export interface WorldStats {
   avgAge: number;
   avgSocial: number;
   predators: number;
+  flyers: number;
+  avgWings: number;
 }
 
 const MAX_CREATURES = 700;
@@ -236,7 +238,8 @@ export class World implements CreatureContext {
         this.lightningFlash = 0.35;
         const kr2 = WEATHER.lightningKillRadius * WEATHER.lightningKillRadius;
         for (const c of this.creatures) {
-          if (!c.alive || this.nearestTree(c.x, c.z).sheltered) continue;
+          if (!c.alive) continue;
+          if (this.nearestTree(c.x, c.z).sheltered && !c.canFly) continue; // flyers are exposed aloft
           if ((c.x - this.lightningX) ** 2 + (c.z - this.lightningZ) ** 2 <= kr2) { c.energy = 0; c.alive = false; }
         }
         this.lightningTimer = (WEATHER.lightningMinInterval / params.weather) * (0.6 + Math.random() * 0.9);
@@ -260,10 +263,12 @@ export class World implements CreatureContext {
   }
 
   stats(): WorldStats {
-    let s = 0, sp = 0, se = 0, ag = 0, so = 0, preds = 0;
+    let s = 0, sp = 0, se = 0, ag = 0, so = 0, preds = 0, wi = 0, flyers = 0;
     for (const c of this.creatures) {
       s += c.genome.size; sp += c.genome.speed; se += c.genome.sense; ag += c.age; so += c.genome.social;
+      wi += c.genome.wings;
       if (c.isPredator) preds++;
+      if (c.canFly) flyers++;
     }
     const n = this.creatures.length || 1;
     return {
@@ -274,7 +279,7 @@ export class World implements CreatureContext {
       deaths: this.deaths,
       age: this.age,
       avgSize: s / n, avgSpeed: sp / n, avgSense: se / n, avgAge: ag / n, avgSocial: so / n,
-      predators: preds,
+      predators: preds, flyers, avgWings: wi / n,
     };
   }
 }

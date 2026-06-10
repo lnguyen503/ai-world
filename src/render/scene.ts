@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { WORLD, FOOD, SOCIAL, WEATHER, params } from '../config';
+import { WORLD, FOOD, SOCIAL, WEATHER, FLIGHT, params } from '../config';
 import type { World } from '../sim/world';
 import type { Biome } from '../biome';
 
@@ -34,6 +34,7 @@ interface CreatureRig {
   antenna: THREE.Mesh[];
   tail: THREE.Mesh;
   mouth: THREE.Mesh;
+  wings: THREE.Mesh[];
 }
 
 export class Scene3D {
@@ -62,6 +63,8 @@ export class Scene3D {
   private antBallGeo = new THREE.SphereGeometry(0.08, 8, 8);
   private tailGeo = new THREE.SphereGeometry(0.14, 8, 8);
   private mouthGeo = new THREE.SphereGeometry(0.09, 8, 8);
+  private wingGeo = new THREE.ConeGeometry(0.32, 0.62, 4);
+  private wingMat = new THREE.MeshToonMaterial({ color: 0xeaf2ff, gradientMap: this.toonGrad, transparent: true, opacity: 0.82 });
   private whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
   private darkMat = new THREE.MeshBasicMaterial({ color: 0x232334 });
   private mouthMat = new THREE.MeshBasicMaterial({ color: 0x3a2030 });
@@ -244,11 +247,20 @@ export class Scene3D {
     const mouth = new THREE.Mesh(this.mouthGeo, this.mouthMat);
     mouth.position.set(0.49, -0.08, 0); mouth.scale.set(0.7, 0.5, 1.4);
 
+    const wing = (z: number, dir: number): THREE.Mesh => {
+      const m = new THREE.Mesh(this.wingGeo, this.wingMat);
+      m.position.set(-0.1, 0.18, z);
+      m.rotation.x = dir * Math.PI / 2; // splay outward along ±z
+      m.visible = false;
+      return m;
+    };
+    const wingL = wing(0.2, 1), wingR = wing(-0.2, -1);
+
     group.add(body, outline, eyeL, eyeR, pupil(0.2), pupil(-0.2), hi(0.16), hi(-0.16),
-      earRL, earRR, earPL, earPR, ...antL, ...antR, tail, mouth);
+      earRL, earRR, earPL, earPR, ...antL, ...antR, tail, mouth, wingL, wingR);
     const rig: CreatureRig = {
       body, mat, eyes: [eyeL, eyeR], earRound: [earRL, earRR],
-      earPointy: [earPL, earPR], antenna: [...antL, ...antR], tail, mouth,
+      earPointy: [earPL, earPR], antenna: [...antL, ...antR], tail, mouth, wings: [wingL, wingR],
     };
     group.userData.rig = rig;
     this.scene.add(group);
@@ -275,9 +287,11 @@ export class Scene3D {
       const eyeScale = 1 + ((look >> 3) & 3) * 0.12;
       const squash = 0.88 + ((look >> 5) & 3) * 0.08;
       const bodyScale = c.genome.size * (pred ? 1.28 : 1);
+      const flying = c.canFly;
 
-      const gy = this.biome.height(c.x, c.z) + bodyScale * 0.5 * squash + 0.05;
-      const bob = Math.sin(t * (1.5 + c.genome.speed * 0.4) + c.id) * 0.07 * c.genome.size;
+      let gy = this.biome.height(c.x, c.z) + bodyScale * 0.5 * squash + 0.05;
+      if (flying) gy += FLIGHT.altitude;
+      const bob = Math.sin(t * (1.5 + c.genome.speed * 0.4) + c.id) * (flying ? 0.18 : 0.07) * c.genome.size;
       g.position.set(c.x, gy + bob, c.z);
       g.scale.set(bodyScale, bodyScale * squash, bodyScale);
       g.rotation.y = -c.heading;
@@ -296,6 +310,14 @@ export class Scene3D {
       for (const a of rig.antenna) a.visible = earType === 2;
       rig.tail.visible = hasTail;
       rig.mouth.scale.set(pred ? 1.1 : 0.7, pred ? 0.85 : 0.5, pred ? 1.9 : 1.4);
+
+      // wings: visible + flapping only for flyers
+      rig.wings[0]!.visible = rig.wings[1]!.visible = flying;
+      if (flying) {
+        const flap = Math.sin(t * 14 + c.id) * 0.55;
+        rig.wings[0]!.rotation.z = flap;
+        rig.wings[1]!.rotation.z = -flap;
+      }
 
       // big cute eyes that occasionally blink (predators have narrowed, meaner eyes)
       const blink = Math.sin(t * 3 + c.id * 1.7) > 0.97 ? 0.12 : 1;
