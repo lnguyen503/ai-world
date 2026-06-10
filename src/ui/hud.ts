@@ -1,4 +1,4 @@
-import { GENE_RANGES } from '../config';
+import { GENE_RANGES, SPECIES } from '../config';
 import type { WorldStats } from '../sim/world';
 import type { Creature } from '../sim/creature';
 
@@ -117,6 +117,7 @@ export class Hud {
     this.selTitle.innerHTML = `Following <span style="color:${hueColor}">${c.name}</span>`;
     this.selBody.innerHTML = `
       ${row('Generation', String(c.generation))}
+      ${row('Species', SPECIES[g.species]?.name ?? '—')}
       ${row('Lineage', `clan #${g.clan}`)}
       ${row('Type', c.isPredator ? '🥩 predator' : '🌿 prey')}
       ${barId('Energy', 'sb-energy', '#4ade80')}

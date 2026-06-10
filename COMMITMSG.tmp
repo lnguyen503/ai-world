@@ -1,5 +1,7 @@
-v0.42.0: stargaze mode
+v0.43.0: distinct critter species
 
-- new 'Stargaze' button + G key frees the camera to tilt up and pan across the night sky (constellations, galaxies, phasing moon, aurora, shooting stars)
-- aims up-and-forward from the current view, slow auto-drift across the stars; restores the normal ground camera on exit
-- creature-picking is disabled while gazing; combines with photo mode (H) for a pure sky view
+- new heritable 'species' gene (5 archetypes) drives body proportions, features, MOTION, and SMARTNESS:
+  Pebble (round, big-eyed, slow), Foxling (sleek, pointy-eared, quick & clever), Hopkin (tall, springy hopper), Slink (long, low, earless slitherer), Beetlebug (wide, antennaed, skittery & dim)
+- smarts multiplies sense range + steering finesse (clear survival differences); locomotion adds bob/hop/wobble per species
+- inherited like clan; very rarely speciates on mutation; mixed via crossover; old saves default to Pebble
+- follow panel shows the species name

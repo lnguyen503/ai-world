@@ -1,4 +1,4 @@
-import { LIFE, FOOD, BRAIN, SOCIAL, PRED, WEATHER, FLIGHT, PONDS, STAMINA, params } from '../config';
+import { LIFE, FOOD, BRAIN, SOCIAL, PRED, WEATHER, FLIGHT, PONDS, STAMINA, SPECIES, params } from '../config';
 import { type Genome, mutate, crossover } from './genome';
 import { think } from './brain';
 import type { Food } from './food';
@@ -98,6 +98,7 @@ export class Creature {
     const predator = this.isPredator;
     const flying = this.canFly;
     const weather = params.weather;
+    const smarts = (SPECIES[g.species] ?? SPECIES[0]!).smarts; // species intelligence (sense + steering)
     this.signalTimer = Math.max(0, this.signalTimer - dt);
     this.alarmTimer = Math.max(0, this.alarmTimer - dt);
     this.lungeTimer = Math.max(0, this.lungeTimer - dt);
@@ -126,7 +127,7 @@ export class Creature {
     if (predator) {
       if (ni.hasPrey) { tx = ni.preyX; tz = ni.preyZ; hasTarget = true; }
     } else {
-      food = ctx.findNearestFood(this.x, this.z, g.sense);
+      food = ctx.findNearestFood(this.x, this.z, g.sense * smarts); // smarter species spot food sooner
       if (food) { tx = food.x; tz = food.z; hasTarget = true; }
     }
 
@@ -140,9 +141,9 @@ export class Creature {
     const energy01 = Math.max(0, Math.min(1, this.energy / this.maxEnergy));
     this.senseIn = [fSin, fCos, fClose, energy01, 1];
 
-    // --- think ---
+    // --- think (smarter species steer with more finesse, dimmer ones are clumsier) ---
     this.act = think(g.brain, this.senseIn);
-    let turn = this.act[0] * BRAIN.maxTurn;
+    let turn = this.act[0] * BRAIN.maxTurn * (0.6 + 0.4 * smarts);
 
     // --- social: herd + communicate ---
     if (ni.count > 0) {

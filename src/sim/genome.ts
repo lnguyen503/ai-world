@@ -1,4 +1,4 @@
-import { GENE_RANGES, params } from '../config';
+import { GENE_RANGES, SPECIES, params } from '../config';
 import { type Brain, randomBrain, mutateBrain, crossoverBrain } from './brain';
 
 let nextClan = 1;
@@ -20,6 +20,8 @@ export interface Genome {
   wings: number;
   /** Founding-lineage id. Inherited unchanged, so a clan = one extended family. Used for lineage coloring. */
   clan: number;
+  /** Index into SPECIES — body archetype (look + motion + smartness). Inherited; rarely speciates. */
+  species: number;
 }
 
 type Range = readonly [number, number];
@@ -51,6 +53,7 @@ export function randomGenome(): Genome {
     // ~10% can already fly; flight spreads (or dies out) depending on the world's conditions.
     wings: Math.random() < 0.1 ? 0.55 + Math.random() * 0.45 : Math.random() * 0.45,
     clan: nextClan++,
+    species: Math.floor(Math.random() * SPECIES.length),
   };
 }
 
@@ -61,6 +64,7 @@ export function crossover(a: Genome, b: Genome): Genome {
     size: p(a.size, b.size), speed: p(a.speed, b.speed), sense: p(a.sense, b.sense),
     hue: p(a.hue, b.hue), social: p(a.social, b.social), predator: p(a.predator, b.predator),
     wings: p(a.wings, b.wings), look: p(a.look, b.look), clan: p(a.clan, b.clan),
+    species: p(a.species ?? 0, b.species ?? 0),
     brain: crossoverBrain(a.brain, b.brain),
   };
 }
@@ -85,5 +89,7 @@ export function mutate(g: Genome): Genome {
     predator: jitter(g.predator, [0, 1] as const),
     wings: jitter(g.wings, [0, 1] as const),
     clan: g.clan, // lineage is inherited unchanged
+    // species is inherited; very rarely a lineage speciates into a different archetype
+    species: Math.random() < params.mutationRate * 0.08 ? Math.floor(Math.random() * SPECIES.length) : (g.species ?? 0),
   };
 }

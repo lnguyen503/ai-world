@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { WORLD, FOOD, SOCIAL, WEATHER, FLIGHT, LIFE, PRED, params } from '../config';
+import { WORLD, FOOD, SOCIAL, WEATHER, FLIGHT, LIFE, PRED, SPECIES, params } from '../config';
 import type { World } from '../sim/world';
 import type { Biome, SkyState } from '../biome';
 import { Cosmos } from './cosmos';
@@ -404,19 +404,19 @@ export class Scene3D {
       rig.body.userData.creatureId = c.id;
       this.pickables.push(rig.body);
 
-      // appearance derived from the heritable "look" gene
+      // appearance + motion derived from the heritable SPECIES archetype
       const pred = c.isPredator;
+      const sp = SPECIES[c.genome.species] ?? SPECIES[0]!;
       const look = c.genome.look | 0;
-      const earType = pred ? 1 : look % 3; // predators always get pointy ears
-      const hasTail = ((look >> 2) & 1) === 1;
-      const eyeScale = 1 + ((look >> 3) & 3) * 0.12;
-      const squash = 0.88 + ((look >> 5) & 3) * 0.08;
+      const earType = pred ? 1 : sp.ear; // predators always get pointy ears
+      const hasTail = sp.tail;
+      const eyeScale = sp.eye * (1 + ((look >> 3) & 1) * 0.08); // species eye size + a touch of variation
       const growth = Math.min(1, 0.4 + 0.6 * Math.min(1, c.age / LIFE.matureAge)); // babies start small, grow up
       const bodyScale = c.genome.size * (pred ? 1.28 : 1) * growth;
       const flying = c.canFly;
       const asleep = c.asleep;
 
-      const baseY = this.biome.height(c.x, c.z) + bodyScale * 0.5 * squash + 0.05;
+      const baseY = this.biome.height(c.x, c.z) + bodyScale * 0.5 * sp.scale[1] + 0.05;
       let gy = baseY;
       let pitch = 0;
       let roll = asleep ? 0.42 : 0; // tip over to sleep
@@ -427,18 +427,25 @@ export class Scene3D {
         let dh = c.heading - rig.lastHeading; // bank into turns
         dh = ((dh + Math.PI) % (Math.PI * 2)) - Math.PI; if (dh < -Math.PI) dh += Math.PI * 2;
         roll = Math.max(-0.6, Math.min(0.6, dh * 9));
+      } else if (asleep) {
+        gy = baseY + Math.sin(t * 1.0 + c.id) * 0.03 * c.genome.size;
       } else {
-        gy = baseY + Math.sin(t * (asleep ? 1.0 : 1.5 + c.genome.speed * 0.4) + c.id) * (asleep ? 0.03 : 0.08) * c.genome.size;
+        // species locomotion: a gentle bob, an optional springy hop, and a side-to-side wobble
+        const m = sp.bob;
+        const ph = t * (m.freq + c.genome.speed * 0.25) + c.id;
+        const hop = m.hop > 0 ? Math.abs(Math.sin(ph)) * m.hop * (0.6 + 0.4 * c.genome.size) : 0;
+        gy = baseY + Math.sin(ph) * m.amp * c.genome.size + hop;
+        roll += Math.sin(ph * 0.5) * m.wobble;
       }
       rig.lastHeading = c.heading;
 
       // cartoon pounce: predators stretch forward + squash + hop mid-dart, then punch-scale on a kill
-      let sx = 1, sy = squash, sz = 1;
+      let sx = sp.scale[0], sy = sp.scale[1], sz = sp.scale[2];
       if (pred && c.lungeTimer > 0) {
         const k = Math.sin((c.lungeTimer / PRED.lungeDuration) * Math.PI); // 0 → 1 → 0
-        sx = 1 + 0.5 * k;            // stretch along travel (local +x = forward)
-        sy = squash * (1 - 0.28 * k); // flatten down
-        sz = 1 - 0.12 * k;
+        sx = sp.scale[0] * (1 + 0.5 * k); // stretch along travel (local +x = forward)
+        sy = sp.scale[1] * (1 - 0.28 * k); // flatten down
+        sz = sp.scale[2] * (1 - 0.12 * k);
         gy += k * 0.6;               // a springy pounce arc
         pitch += 0.42 * k;           // lean into the dive
       }

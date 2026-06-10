@@ -23,6 +23,31 @@ export const GENE_RANGES = {
   hue: [0, 1] as const, // visual marker; drifts with lineage
 };
 
+// Distinct creature archetypes ("species"). A heritable gene picks one; it drives body proportions,
+// which features show, how the creature MOVES, and how SMART it is (sense + steering finesse).
+// Same cuteness, obviously different silhouettes and behaviour.
+export interface SpeciesDef {
+  name: string;
+  scale: readonly [number, number, number]; // body proportions (x wide, y tall, z deep)
+  ear: 0 | 1 | 2 | 3;   // 0 round · 1 pointy · 2 antennae · 3 none
+  tail: boolean;
+  eye: number;          // base eye size
+  smarts: number;       // multiplies sense range + steering finesse (food-finding, threat-dodging)
+  bob: { freq: number; amp: number; hop: number; wobble: number }; // locomotion feel
+}
+export const SPECIES: SpeciesDef[] = [
+  // round, big-eyed, slow and placid
+  { name: 'Pebble', scale: [1.05, 0.95, 1.05], ear: 0, tail: false, eye: 1.3, smarts: 0.85, bob: { freq: 1.3, amp: 0.07, hop: 0, wobble: 0 } },
+  // sleek, pointy-eared, quick and clever
+  { name: 'Foxling', scale: [1.05, 0.92, 0.95], ear: 1, tail: true, eye: 1.0, smarts: 1.3, bob: { freq: 2.2, amp: 0.05, hop: 0.12, wobble: 0.03 } },
+  // tall egg that springs along in big hops
+  { name: 'Hopkin', scale: [0.85, 1.3, 0.85], ear: 0, tail: false, eye: 1.15, smarts: 1.0, bob: { freq: 2.6, amp: 0.02, hop: 0.6, wobble: 0 } },
+  // long, low, earless — slithers with a side-to-side wobble
+  { name: 'Slink', scale: [1.6, 0.6, 0.8], ear: 3, tail: true, eye: 0.85, smarts: 0.95, bob: { freq: 3.2, amp: 0.04, hop: 0, wobble: 0.22 } },
+  // small, wide, antennaed — skitters fast and isn't very bright
+  { name: 'Beetlebug', scale: [1.15, 0.7, 1.2], ear: 2, tail: false, eye: 0.8, smarts: 0.6, bob: { freq: 8, amp: 0.04, hop: 0.05, wobble: 0.06 } },
+];
+
 export const LIFE = {
   startEnergy: 42,
   /** maxEnergy = base + size * perSize */
