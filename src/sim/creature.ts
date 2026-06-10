@@ -165,12 +165,20 @@ export class Creature {
         if (this.lungeTimer > 0) {
           turn += PRED.huntGain * 1.4 * angDelta(this.heading, toPrey); // locked on, darting straight in
         } else if (ni.hasPredator && dPrey > PRED.circleRadius) {
-          // wolf pack: fan out and circle the quarry rather than all charging from one side
-          const side = (this.id & 1) ? 1 : -1;
-          turn += PRED.orbitGain * angDelta(this.heading, toPrey + side * Math.PI * 0.5);
-          turn += PRED.huntGain * 0.35 * angDelta(this.heading, toPrey); // keep tightening the ring
+          // pack tactics: whoever is closest to the quarry drives it; the others flank to the far side
+          const dChaser = Math.hypot(ni.predX - ni.preyX, ni.predZ - ni.preyZ);
+          if (dChaser < dPrey - 1) {
+            // ambusher: swing around to the OPPOSITE side so the fleeing prey is driven onto me
+            const nx = ni.preyX - ni.predX, nz = ni.preyZ - ni.predZ;
+            const nl = Math.hypot(nx, nz) || 1;
+            const fx = ni.preyX + (nx / nl) * PRED.ambushDist;
+            const fz = ni.preyZ + (nz / nl) * PRED.ambushDist;
+            turn += PRED.orbitGain * angDelta(this.heading, Math.atan2(fz - this.z, fx - this.x));
+          } else {
+            turn += PRED.huntGain * angDelta(this.heading, toPrey); // chaser: drive the quarry forward
+          }
         } else {
-          turn += PRED.huntGain * angDelta(this.heading, toPrey); // stalking in for the kill
+          turn += PRED.huntGain * angDelta(this.heading, toPrey); // close in / lone hunter
         }
       } else if (ni.hasPredator) {
         turn += SOCIAL.cohesionGain * angDelta(this.heading, Math.atan2(ni.predZ - this.z, ni.predX - this.x)); // regroup

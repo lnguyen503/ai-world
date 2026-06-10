@@ -1,5 +1,4 @@
-v0.33.0: stamina (chases that tire out)
+v0.34.0: cooperative ambush hunting
 
-- creatures have a 0..1 sprint reserve: a predator's dart and a prey's fright bolt drain it; rest refills it
-- a predator needs stamina to commit to a dart (low → it must stalk and recover = an escape window); a prey's bolt fades as it tires
-- stamina bar added to the follow panel
+- pack roles emerge: the predator closest to the quarry becomes the CHASER (drives it forward); the others become AMBUSHERS and swing to the far side so the fleeing prey is driven onto them
+- a pincer that reads as real cooperative hunting; refines the v0.23 encircle

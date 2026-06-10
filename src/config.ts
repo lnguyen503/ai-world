@@ -106,6 +106,7 @@ export const PRED = {
   // beyond circleRadius, then commit to a dart once close (see lunge tuning below).
   circleRadius: 9, // orbit the prey while farther than this
   orbitGain: 1.6, // tangential steering that drives the encircling
+  ambushDist: 8, // how far past the prey an ambusher swings to flank from the far side
   // stalk → dart rhythm: predators creep, then burst toward prey when in range.
   lungeRange: 7, // a predator commits to a lunge when prey is within this
   lungeCooldown: 2.2, // seconds between lunges
