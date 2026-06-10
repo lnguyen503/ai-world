@@ -1,4 +1,3 @@
-v0.47.0: snow in cold biomes
+v0.48.0: trees sway in the wind
 
-- Frost Tundra (and any preset flagged snowy) now gets SNOW instead of rain: slow drifting white flakes with a gentle sideways flutter, bigger and softer than raindrops
-- other biomes keep rain; weather severity still drives intensity
+- tree canopies now sway and tilt on the breeze — gentle when calm, whipping harder as the weather rises

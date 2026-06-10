@@ -168,6 +168,7 @@ export class Scene3D {
   private foliageMat = new THREE.MeshToonMaterial({ color: 0x3f8f4a, gradientMap: this.toonGrad });
   private treeGroup = new THREE.Group();
   private treePositions: { x: number; z: number }[] = [];
+  private treeSway: { foliage: THREE.Mesh; bx: number; bz: number; phase: number }[] = [];
   private pondGroup = new THREE.Group();
   private pondData: { x: number; z: number; r: number }[] = [];
   private waterMat!: THREE.ShaderMaterial;
@@ -518,6 +519,7 @@ export class Scene3D {
     this.updateRainbow(dt);
     this.updateClouds(dt, this.lastSky ? this.lastSky.dayFactor : 1, params.weather);
     this.updateBirds(t, dt, this.lastSky ? this.lastSky.dayFactor : 1);
+    this.updateTrees(t);
     this.updateNight(t);
 
     // birth / death particle bursts
@@ -799,6 +801,7 @@ export class Scene3D {
 
   buildTrees(): void {
     this.treeGroup.clear();
+    this.treeSway = [];
     for (const t of this.treePositions) {
       const y = this.biome.height(t.x, t.z);
       const trunk = new THREE.Mesh(this.trunkGeo, this.trunkMat);
@@ -808,6 +811,18 @@ export class Scene3D {
       foliage.position.set(t.x, y + 5.3, t.z);
       foliage.castShadow = true;
       this.treeGroup.add(trunk, foliage);
+      this.treeSway.push({ foliage, bx: t.x, bz: t.z, phase: Math.random() * Math.PI * 2 });
+    }
+  }
+
+  /** Sway the tree canopies on the breeze — gentle when calm, whipping in a storm. */
+  private updateTrees(t: number): void {
+    const wind = 0.05 + params.weather * 0.16;
+    for (const s of this.treeSway) {
+      s.foliage.position.x = s.bx + Math.sin(t * 0.8 + s.phase) * wind * 2.2;
+      s.foliage.position.z = s.bz + Math.cos(t * 0.6 + s.phase) * wind * 1.6;
+      s.foliage.rotation.z = Math.sin(t * 0.8 + s.phase) * wind;
+      s.foliage.rotation.x = Math.cos(t * 0.6 + s.phase) * wind * 0.7;
     }
   }
 
