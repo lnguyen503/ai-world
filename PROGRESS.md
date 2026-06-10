@@ -170,6 +170,24 @@ thread (no GPU can help with that). Now the panel is built once per selected
 creature and only its live values update in place via cached element refs —
 verified smooth, with every field still populating.
 
+### v0.42.0 — Stargaze mode
+A button (and the **G** key) frees the camera from its ground-facing clamp: it
+aims up-and-forward and lets you pan across the night sky with a slow drift
+across the stars, then restores the normal camera on exit. Creature-picking is
+disabled while gazing, and it pairs with photo mode (**H**) for a pure sky view.
+
+### v0.43.0 — Distinct species
+A heritable `species` gene picks one of five archetypes that differ in **every**
+manner — silhouette, features, motion, and intelligence: **Pebble** (round,
+big-eyed, placid), **Foxling** (sleek, pointy-eared, quick and clever),
+**Hopkin** (tall egg that springs in big hops), **Slink** (long, low, earless,
+slithers with a wobble), and **Beetlebug** (small, wide, antennaed, skittery and
+dim). Smartness multiplies a creature's sense range and steering finesse, so the
+species genuinely differ in survival skill; locomotion adds per-species bob, hop
+and wobble. Species is inherited like a clan, mixes via crossover, and very
+rarely speciates on mutation. The follow panel shows which species you're
+watching.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

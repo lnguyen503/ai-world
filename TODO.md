@@ -8,6 +8,8 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.28–v0.37: constellations, moon phases, ponds, rainbows, butterflies, stamina, cooperative ambush, panic waves, hunt play-by-play narration, and photo mode.
 
 ## Building on the new work
+- [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).
+- [ ] **Species stats overlay**: population per species over time; watch one out-compete another.
 - [ ] **Camera drama**: when not following anyone, the camera drifts toward an active hunt or a dramatic moment.
 - [ ] **Drinking at the pond**: thirsty creatures path to the shoreline and pause to drink (gathering, not just avoiding).
 - [ ] **Reflections in the water**: mirror the sky / nearby creatures in the pond surface.

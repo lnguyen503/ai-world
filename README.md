@@ -90,6 +90,8 @@ src/
 - v0.39 ✓ — the **aurora is now occasional**: a fresh strength is rolled each night (most nights none or faint, sometimes a real show), and toned down overall.
 - v0.40 ✓ — removed the **ominous prowl drone** (it was an annoying noise).
 - v0.41 ✓ — **fixed follow-camera jank**: the follow panel no longer rebuilds its DOM every frame, so following a creature is smooth.
+- v0.42 ✓ — **stargaze mode**: free the camera to tilt up and pan across the night sky (button or the **G** key).
+- v0.43 ✓ — **distinct species**: five heritable archetypes (Pebble, Foxling, Hopkin, Slink, Beetlebug) with different shapes, motion, and **smartness** — same cuteness, obviously different.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.
