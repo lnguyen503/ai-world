@@ -214,6 +214,12 @@ export class Scene3D {
   private selectedId: number | null = null;
   onSelect: (id: number | null) => void = () => {};
 
+  private stargaze = false;
+  private savedView: {
+    target: THREE.Vector3; maxPolar: number; minDist: number; maxDist: number;
+    autoRotate: boolean; autoSpeed: number; enablePan: boolean;
+  } | null = null;
+
   constructor(container: HTMLElement, biome: Biome) {
     this.biome = biome;
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -966,6 +972,7 @@ export class Scene3D {
   }
 
   follow(world: World): void {
+    if (this.stargaze) { this.nameSprite.visible = false; this.controls.update(); return; }
     this.controls.autoRotate = this.selectedId == null; // gentle cinematic orbit when free
     const sel = this.selectedId != null ? world.creatures.find((x) => x.id === this.selectedId) : undefined;
 
@@ -995,6 +1002,47 @@ export class Scene3D {
   setSelected(id: number | null): void { this.selectedId = id; this.onSelect(id); }
   getSelected(): number | null { return this.selectedId; }
 
+  isStargazing(): boolean { return this.stargaze; }
+
+  /** Stargaze mode: free the camera to tilt up and pan across the night sky. */
+  setStargaze(on: boolean): void {
+    if (on === this.stargaze) return;
+    this.stargaze = on;
+    if (on) {
+      this.setSelected(null);
+      this.savedView = {
+        target: this.controls.target.clone(),
+        maxPolar: this.controls.maxPolarAngle, minDist: this.controls.minDistance,
+        maxDist: this.controls.maxDistance, autoRotate: this.controls.autoRotate,
+        autoSpeed: this.controls.autoRotateSpeed, enablePan: this.controls.enablePan,
+      };
+      this.controls.maxPolarAngle = Math.PI; // allow looking all the way up
+      this.controls.minPolarAngle = 0;
+      this.controls.minDistance = 5;
+      this.controls.maxDistance = 500;
+      this.controls.enablePan = false;
+      this.controls.autoRotate = true;
+      this.controls.autoRotateSpeed = 0.18; // a slow drift across the stars
+      // aim the view up-and-forward from where the camera is now
+      const fwd = new THREE.Vector3();
+      this.camera.getWorldDirection(fwd); fwd.y = 0;
+      if (fwd.lengthSq() < 1e-4) fwd.set(0, 0, -1);
+      fwd.normalize();
+      this.controls.target.copy(this.camera.position).addScaledVector(fwd, 35);
+      this.controls.target.y += 48;
+      this.controls.update();
+    } else if (this.savedView) {
+      const s = this.savedView;
+      this.controls.maxPolarAngle = s.maxPolar; this.controls.minPolarAngle = 0;
+      this.controls.minDistance = s.minDist; this.controls.maxDistance = s.maxDist;
+      this.controls.enablePan = s.enablePan; this.controls.autoRotate = s.autoRotate;
+      this.controls.autoRotateSpeed = s.autoSpeed;
+      this.controls.target.copy(s.target);
+      this.controls.update();
+      this.savedView = null;
+    }
+  }
+
   render(): void {
     if (params.bloom) this.composer.render();
     else this.renderer.render(this.scene, this.camera);
@@ -1007,6 +1055,7 @@ export class Scene3D {
     const el = this.renderer.domElement;
     el.addEventListener('pointerdown', (e) => { downX = e.clientX; downY = e.clientY; });
     el.addEventListener('pointerup', (e) => {
+      if (this.stargaze) return; // no creature-picking while gazing at the sky
       if (Math.hypot(e.clientX - downX, e.clientY - downY) > 6) return;
       ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
       ray.setFromCamera(ndc, this.camera);

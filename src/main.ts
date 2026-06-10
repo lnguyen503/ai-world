@@ -37,8 +37,21 @@ const togglePhoto = (): void => {
   if (photoBtn) photoBtn.textContent = on ? '📷 Show UI' : '📷 Photo';
 };
 photoBtn?.addEventListener('click', togglePhoto);
+
+// stargaze mode — free the camera to look up and pan across the night sky (button or the G key)
+const gazeBtn = document.getElementById('gaze-btn');
+const toggleGaze = (): void => {
+  const on = !scene.isStargazing();
+  scene.setStargaze(on);
+  gazeBtn?.classList.toggle('on', on);
+  if (gazeBtn) gazeBtn.textContent = on ? '🔭 Exit sky' : '🔭 Stargaze';
+};
+gazeBtn?.addEventListener('click', toggleGaze);
+
 window.addEventListener('keydown', (e) => {
-  if ((e.key === 'h' || e.key === 'H') && !(e.target instanceof HTMLInputElement)) togglePhoto();
+  if (e.target instanceof HTMLInputElement) return;
+  if (e.key === 'h' || e.key === 'H') togglePhoto();
+  if (e.key === 'g' || e.key === 'G') toggleGaze();
 });
 
 controls.onNewBiome = () => {

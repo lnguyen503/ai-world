@@ -1,5 +1,5 @@
-v0.39.0: aurora is now an occasional, varied treat
+v0.42.0: stargaze mode
 
-- fresh aurora strength rolled each nightfall: ~45% of nights none, ~35% faint, ~20% a real show — no longer the same every night
-- overall intensity toned down (per-night strength caps it)
-- addresses 'too much aurora borealis, should be random'
+- new 'Stargaze' button + G key frees the camera to tilt up and pan across the night sky (constellations, galaxies, phasing moon, aurora, shooting stars)
+- aims up-and-forward from the current view, slow auto-drift across the stars; restores the normal ground camera on exit
+- creature-picking is disabled while gazing; combines with photo mode (H) for a pure sky view
