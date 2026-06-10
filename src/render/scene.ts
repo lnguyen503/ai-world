@@ -324,8 +324,9 @@ export class Scene3D {
   }
 
   private makeFoodMesh(): THREE.InstancedMesh {
-    const geo = new THREE.SphereGeometry(FOOD.radius, 7, 7);
-    const mat = new THREE.MeshStandardMaterial({ color: 0x6dff9e, emissive: 0x1f8f4a, emissiveIntensity: 1.1, roughness: 0.4 });
+    const geo = new THREE.SphereGeometry(FOOD.radius, 6, 6);
+    // soft sprout-green, barely emissive so bloom doesn't turn the field into glowing orbs
+    const mat = new THREE.MeshStandardMaterial({ color: 0x86c46a, emissive: 0x2e6b33, emissiveIntensity: 0.35, roughness: 0.85 });
     const mesh = new THREE.InstancedMesh(geo, mat, WORLD.foodMax);
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     mesh.count = WORLD.foodMax;
@@ -533,7 +534,7 @@ export class Scene3D {
     const n = Math.min(world.food.length, WORLD.foodMax);
     for (let i = 0; i < n; i++) {
       const f = world.food[i]!;
-      this.dummy.position.set(f.x, this.biome.height(f.x, f.z) + 0.4, f.z);
+      this.dummy.position.set(f.x, this.biome.height(f.x, f.z) + 0.26, f.z);
       this.dummy.scale.setScalar(1);
       this.dummy.updateMatrix();
       this.foodMesh.setMatrixAt(i, this.dummy.matrix);

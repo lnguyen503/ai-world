@@ -5,15 +5,16 @@ export const WORLD = {
   /** Arena is a square from -HALF..HALF on the X/Z plane. */
   half: 70,
   initialCreatures: 70,
-  /** Food carrying capacity and how fast it regrows toward the cap. */
-  initialFood: 260,
-  foodMax: 360,
-  foodRegrowPerSec: 22,
+  /** Food carrying capacity and how fast it regrows toward the cap. Kept sparse so the pellets
+   *  read as scattered ground flora and don't carpet the biome (raise via the Food lever). */
+  initialFood: 150,
+  foodMax: 210,
+  foodRegrowPerSec: 15,
 };
 
 export const FOOD = {
-  energy: 24, // energy a creature gains by eating one pellet
-  radius: 0.45,
+  energy: 28, // energy a creature gains by eating one pellet (a touch higher to offset fewer pellets)
+  radius: 0.3,
 };
 
 export const GENE_RANGES = {
