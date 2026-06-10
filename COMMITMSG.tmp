@@ -1,4 +1,6 @@
-v0.58.0: ripples when critters drink
+v0.59.0: evolutionary surprises you can see
 
-- a drinking critter now sends soft expanding rings spreading across the pond from the shoreline in front of it
-- new instanced RippleField (additive rings, expand + fade); spawns at the nearest pond's edge
+- rare macro-mutations now produce visibly striking newborns: a giant or dwarf, a bold new colour, a brand-new species, sudden flight, fangs, a sprinter or sharp senses
+- each surprise pops with a bright magical sparkle and keeps shimmering for a few seconds
+- David calls it out: 'nature tries something new, and a giant appears among them'
+- you just watch interesting changes happen; the narration explains them

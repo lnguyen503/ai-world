@@ -118,7 +118,9 @@ export class World implements CreatureContext {
   prowling = 0; // # of predators currently stalking nearby prey (ominous audio + narration)
   killFlash = 0; // >0 briefly after a kill — lets the narrator call the play-by-play
   lastKillX = 0; lastKillZ = 0; // where the most recent kill happened (cinematic camera drifts there)
-  events: { t: 0 | 1 | 2; x: number; z: number }[] = []; // transient birth(0)/death(1)/kill-impact(2) events
+  noveltyFlash = 0; // >0 briefly after a striking mutant is born
+  lastNovelty: string | null = null; // what the surprise was (for the narrator)
+  events: { t: 0 | 1 | 2 | 3; x: number; z: number }[] = []; // birth(0)/death(1)/kill(2)/novelty(3) events
   private lightningTimer = 0;
 
   private biome: Biome;
@@ -187,16 +189,21 @@ export class World implements CreatureContext {
   eatFood(food: Food): void { food.alive = false; }
 
   burst(type: number, x: number, z: number): void {
-    if (this.events.length < 300) this.events.push({ t: type as 0 | 1 | 2, x, z });
+    if (this.events.length < 300) this.events.push({ t: type as 0 | 1 | 2 | 3, x, z });
     if (type === 2) { this.killFlash = 1.2; this.lastKillX = x; this.lastKillZ = z; } // a kill just happened
   }
 
-  spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number): void {
+  spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number, novelty: string | null = null): void {
     if (this.creatures.length + this.pendingChildren.length >= MAX_CREATURES) return;
     const h = this.half - 1;
-    this.pendingChildren.push(
-      newCreature(genome, Math.max(-h, Math.min(h, x)), Math.max(-h, Math.min(h, z)), generation, energy),
-    );
+    const cx = Math.max(-h, Math.min(h, x)), cz = Math.max(-h, Math.min(h, z));
+    const cr = newCreature(genome, cx, cz, generation, energy);
+    if (novelty) {
+      cr.novelKind = novelty; cr.novelTimer = 5;
+      this.lastNovelty = novelty; this.noveltyFlash = 1.5;
+      this.burst(3, cx, cz); // a bright sparkle marks the surprise
+    }
+    this.pendingChildren.push(cr);
     if (generation > this.generation) this.generation = generation;
   }
 
@@ -281,6 +288,7 @@ export class World implements CreatureContext {
     for (const c of this.creatures) if (c.alive) c.update(dt, this);
 
     this.killFlash = Math.max(0, this.killFlash - dt);
+    this.noveltyFlash = Math.max(0, this.noveltyFlash - dt);
     // weather: lightning strikes the exposed at high severity (sheltered creatures are safe)
     this.lightningFlash = Math.max(0, this.lightningFlash - dt);
     if (params.weather > 0.5) {

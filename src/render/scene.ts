@@ -583,6 +583,11 @@ export class Scene3D {
       const eyeY = (pred ? 0.62 : 1) * (asleep ? 0.06 : 1);
       for (const e of rig.eyes) e.scale.set(eyeScale, eyeScale * blink * eyeY, eyeScale);
 
+      // a freshly-born striking mutant keeps shimmering for a few seconds
+      if (c.novelTimer > 0 && Math.random() < dt * 5) {
+        this.bursts.emit(c.x, this.biome.height(c.x, c.z) + bodyScale * 0.7, c.z, 0xfff0b0, 2, 1.3);
+      }
+
       // a drinking critter sends ripples across the pond
       if (c.drinkTimer > 0 && Math.random() < dt * 1.5) {
         const pd = this.nearestPondData(c.x, c.z);
@@ -621,6 +626,9 @@ export class Scene3D {
       else if (e.t === 2) { // kill impact: a punchy white/orange "POW" star-burst
         this.bursts.emit(e.x, y, e.z, 0xfff2c2, 14, 2.8);
         this.bursts.emit(e.x, y, e.z, 0xff8a3a, 8, 1.6);
+      } else if (e.t === 3) { // novelty: a bright magical burst marks a striking new mutant
+        this.bursts.emit(e.x, y, e.z, 0xfff0b0, 18, 3.0);
+        this.bursts.emit(e.x, y, e.z, 0x9af0ff, 10, 2.0);
       } else this.bursts.emit(e.x, y, e.z, 0x9aa0aa, 7, 0.6); // death: grey poof
     }
     ev.length = 0;

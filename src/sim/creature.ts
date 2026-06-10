@@ -28,7 +28,7 @@ export interface CreatureContext {
   half: number;
   findNearestFood(x: number, z: number, radius: number): Food | null;
   eatFood(food: Food): void;
-  spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number): void;
+  spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number, novelty?: string | null): void;
   neighbors(x: number, z: number, radius: number, selfId: number, selfPredator: boolean): NeighborInfo;
   nearestTree(x: number, z: number): TreeInfo;
   nearestPond(x: number, z: number): PondInfo;
@@ -62,6 +62,8 @@ export class Creature {
   stamina = 1; // 0..1 sprint reserve — drains while darting/bolting, recovers at rest
   drinkTimer = 0; // >0 means pausing at a pond's edge for a drink (head-dip)
   drinkCd = 0; // cooldown before wanting another drink
+  novelKind: string | null = null; // set if born a striking mutant (drives the narrator + shimmer)
+  novelTimer = 0; // >0 = freshly-born novelty still shimmering
 
   constructor(genome: Genome, x: number, z: number, generation: number, energy: number) {
     this.id = nextCreatureId++;
@@ -109,6 +111,7 @@ export class Creature {
     this.startleTimer = Math.max(0, this.startleTimer - dt);
     this.drinkTimer = Math.max(0, this.drinkTimer - dt);
     this.drinkCd = Math.max(0, this.drinkCd - dt);
+    this.novelTimer = Math.max(0, this.novelTimer - dt);
 
     const ni = ctx.neighbors(this.x, this.z, SOCIAL.radius, this.id, predator);
     const tree = ctx.nearestTree(this.x, this.z);
@@ -291,7 +294,8 @@ export class Creature {
       const childGenome = mate && mate.energy > 0.4 * mate.maxEnergy
         ? mutate(crossover(g, mate.genome))
         : mutate(g);
-      ctx.spawnChild(childGenome, this.x + Math.cos(a) * (this.radius + 0.6), this.z + Math.sin(a) * (this.radius + 0.6), this.generation + 1, childEnergy);
+      const novelty = noveltyKind(childGenome, g); // did a bold mutation just appear?
+      ctx.spawnChild(childGenome, this.x + Math.cos(a) * (this.radius + 0.6), this.z + Math.sin(a) * (this.radius + 0.6), this.generation + 1, childEnergy, novelty);
     }
 
     // --- age & death ---
@@ -316,6 +320,21 @@ function dist2(ax: number, az: number, bx: number, bz: number): number {
   const dx = ax - bx;
   const dz = az - bz;
   return dx * dx + dz * dz;
+}
+
+/** Describe how a child visibly differs from its parent — drives the "evolutionary surprise" callout. */
+function noveltyKind(c: Genome, p: Genome): string | null {
+  if (c.species !== p.species) return 'a whole new kind of creature';
+  const ratio = c.size / p.size;
+  if (ratio > 1.55) return 'a giant';
+  if (ratio < 0.64) return 'a curious little dwarf';
+  let dh = Math.abs(c.hue - p.hue); dh = Math.min(dh, 1 - dh);
+  if (dh > 0.3) return 'a striking new colour';
+  if (c.predator > PRED.threshold && p.predator <= PRED.threshold) return 'a new predator';
+  if (c.wings > FLIGHT.threshold && p.wings <= FLIGHT.threshold) return 'the gift of flight';
+  if (c.speed > p.speed * 1.5) return 'remarkable speed';
+  if (c.sense > p.sense * 1.5) return 'sharpened new senses';
+  return null;
 }
 
 /** Signed shortest angle (radians, -pi..pi) to rotate from heading `a` toward `b`. */

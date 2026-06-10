@@ -76,7 +76,7 @@ export function mutate(g: Genome): Genome {
     const span = range[1] - range[0];
     return clamp(value + gaussian() * params.mutationStep * span, range);
   };
-  return {
+  const child: Genome = {
     size: jitter(g.size, GENE_RANGES.size),
     speed: jitter(g.speed, GENE_RANGES.speed),
     sense: jitter(g.sense, GENE_RANGES.sense),
@@ -92,4 +92,18 @@ export function mutate(g: Genome): Genome {
     // species is inherited; very rarely a lineage speciates into a different archetype
     species: Math.random() < params.mutationRate * 0.08 ? Math.floor(Math.random() * SPECIES.length) : (g.species ?? 0),
   };
+  // a rare "macro-mutation" — a bold genetic leap producing a visibly striking individual
+  if (Math.random() < 0.03) macroMutate(child);
+  return child;
+}
+
+function macroMutate(c: Genome): void {
+  const roll = Math.random();
+  if (roll < 0.24) c.size = clamp(c.size * (Math.random() < 0.5 ? 1.8 : 0.5), GENE_RANGES.size); // a giant or a dwarf
+  else if (roll < 0.44) c.hue = Math.random();                                  // a bold new colour
+  else if (roll < 0.60) c.species = Math.floor(Math.random() * SPECIES.length); // speciation into a new form
+  else if (roll < 0.74) c.speed = clamp(c.speed * 1.7, GENE_RANGES.speed);      // a sudden sprinter
+  else if (roll < 0.86) c.sense = clamp(c.sense * 1.7, GENE_RANGES.sense);      // sharpened senses
+  else if (roll < 0.95) c.wings = 0.7 + Math.random() * 0.3;                    // the gift of flight
+  else c.predator = 0.7 + Math.random() * 0.3;                                  // a new carnivore
 }

@@ -45,6 +45,7 @@ export class Narrator {
   private prevProwl = false;
   private lastLightning = -999;
   private lastKill = -999;
+  private lastNoveltyAt = -999;
   private lastText = '';
   private llmOn: HTMLInputElement | null;
   private llmUrl: HTMLInputElement | null;
@@ -69,10 +70,22 @@ export class Narrator {
     return !!this.llmOn?.checked && !!this.llmUrl?.value.trim();
   }
 
-  update(s: WorldStats, biome: string, weather: number, lightning: boolean, dayFactor: number, prowling: boolean, hunt: 'kill' | 'chase' | 'none' = 'none'): void {
+  update(s: WorldStats, biome: string, weather: number, lightning: boolean, dayFactor: number, prowling: boolean, hunt: 'kill' | 'chase' | 'none' = 'none', novelty: string | null = null): void {
     if (lightning) this.lastLightning = s.age;
     const night = dayFactor < 0.28;
     if (this.prevPop < 0) { this.prevPop = s.population; this.prevBiome = biome; this.prevNight = night; }
+
+    // an evolutionary surprise gets its own delighted callout
+    if (novelty && s.age - this.lastNoveltyAt > 9) {
+      this.lastNoveltyAt = s.age;
+      this.show(pick([
+        `Now here is something — ${novelty}. Evolution, quietly experimenting.`,
+        `Look closely: ${novelty} has just been born. A roll of the genetic dice.`,
+        `Extraordinary — nature tries something new, and ${novelty} appears among them.`,
+      ]));
+      this.nextAt = Math.max(this.nextAt, s.age + 6);
+      return;
+    }
 
     // a kill interjects a quick play-by-play line, bypassing the slow ambient cadence
     if (hunt === 'kill' && s.age - this.lastKill > 5) {
