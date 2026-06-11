@@ -400,6 +400,17 @@ parched mesa, strange cyan wilds…) woven through the ambient narration and the
 voiceover reflects *where* you are. Measured at 20×: ~10/11 lines unique, birth callouts down from
 ~9 to ~3 per ½-minute, with biome character throughout.
 
+### v0.76.0 — Smoother frames (render hygiene)
+A pass to reduce frame-time variance (the cause of judder / perceived tearing) and give the GPU
+headroom. The renderer now requests the **high-performance GPU** and caps the render resolution at
+**1.5× pixel ratio** (on hi-DPI screens, 2× quadruples the pixels — especially costly through the
+bloom passes — for little visible gain). The sim's worst-case **sub-steps-per-frame cap dropped from
+40 to 14**, so after a hitch the clock dilates a hair instead of running a giant batch that spikes
+the next frame — bounding worst-case frame time keeps fast-forward smooth. And the follow-camera math
+**reuses temp vectors** instead of allocating each frame, easing GC pressure. (Measured a clean 60 FPS
+before and after; these target the *consistency* of frames and load on weaker / hi-DPI GPUs. Note:
+true vsync *tearing* is a display/driver setting outside the page's control.)
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

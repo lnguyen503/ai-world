@@ -12,6 +12,8 @@ import { Cosmos } from './cosmos';
 const MAX_PULSES = 256; // max simultaneous "found food!" signal rings drawn
 const RAIN_HEIGHT = 60; // how high rain spawns above the ground
 const TMP = new THREE.Vector3();
+const TMP2 = new THREE.Vector3();
+const TMP3 = new THREE.Vector3();
 const STORM = new THREE.Color(0x2a2e36);
 const FLASH = new THREE.Color(0xe6f0ff);
 const FOLIAGE_SUMMER = new THREE.Color(0x3f8f4a);
@@ -366,8 +368,10 @@ export class Scene3D {
 
   constructor(container: HTMLElement, biome: Biome) {
     this.biome = biome;
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    // cap the render resolution: on hi-DPI screens, 2× pixel ratio quadruples the pixels (esp. costly
+    // through the bloom passes) and is a common cause of frame-time variance / tearing — 1.5 is plenty
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1845,8 +1849,9 @@ export class Scene3D {
     this.controls.target.lerp(TMP, manual ? 0.12 : 0.035); // gentle, lagging ease on auto
     const desired = (manual ? 5 : 9) + c.genome.size * 3; // hang back farther when auto-following
     if (this.camera.position.distanceTo(this.controls.target) > desired * (manual ? 1.6 : 2.0)) {
-      const dir = this.camera.position.clone().sub(this.controls.target).normalize();
-      this.camera.position.lerp(this.controls.target.clone().add(dir.multiplyScalar(desired)), manual ? 0.08 : 0.025);
+      const dir = TMP2.copy(this.camera.position).sub(this.controls.target).normalize(); // reuse temps (no per-frame GC)
+      const goal = TMP3.copy(this.controls.target).addScaledVector(dir, desired);
+      this.camera.position.lerp(goal, manual ? 0.08 : 0.025);
     }
   }
 

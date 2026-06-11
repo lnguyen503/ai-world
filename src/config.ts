@@ -89,8 +89,10 @@ export const MUTATION = {
 export const SIM = {
   /** Largest sim-seconds advanced per physics sub-step (keeps fast-forward stable). */
   maxStep: 0.05,
-  /** Hard cap on sub-steps per frame so a slow frame can't freeze the tab. */
-  maxSubStepsPerFrame: 40,
+  /** Hard cap on sub-steps per frame so a slow frame can't freeze the tab. Kept low so that after a
+   *  hitch (a big realDt) the sim dilates time slightly rather than running a huge batch that spikes
+   *  the next frame — bounding worst-case frame time keeps fast-forward smooth. */
+  maxSubStepsPerFrame: 14,
 };
 
 export const BRAIN = {
