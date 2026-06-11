@@ -712,6 +712,14 @@ are **rebuilt when ponds move** (e.g. after terraforming) via a new `SoundManage
 that `main.ts` calls wherever it sets the ponds. Verified: tsc + build clean; in-browser nature audio
 enables with the pond beds and zero Web Audio errors.
 
+### v2.2.0 — Panel alignment pass (UI polish)
+A tidy-up of the HUD after the panels had drifted to four different widths. Every left-column panel (stats,
+LEVERS, Discoveries, Hall of Fame) now shares **one 248px width and left edge**, so their right edges line
+up; the right column (population graph + narration) is unified the same way. The LEVERS panel was overlapping
+the bottom of the stats panel and **hiding the "Flyers" row** — it's been pushed down to clear the full
+13-row stat list, and the bottom-left stack (Discoveries → Hall of Fame → camera toolbar) was re-spaced into
+an even, non-overlapping column. Verified visually in-browser at the working resolution.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
