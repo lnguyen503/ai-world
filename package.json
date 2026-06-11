@@ -1,6 +1,6 @@
 {
   "name": "ai-world",
-  "version": "2.11.0",
+  "version": "2.12.0",
   "private": true,
   "type": "module",
   "description": "A 3D artificial-life world where AI creatures forage, reproduce, mutate, and evolve on their own. Watch it like a living zoo, with time controls and god-mode tools. Runs entirely in the browser — no backend.",

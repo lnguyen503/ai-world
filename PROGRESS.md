@@ -836,6 +836,17 @@ time**, the global hunt only tags ~30% of prey as 'hunted', and the herd-reactio
 lines (all panic) to ~30 unique lines with the meta/personality/idle humor surfacing ("somewhere a fitness
 function judges me", "i'm not smug, i'm correct", "i think therefore i… snack").
 
+### v2.12.0 — Smartness shapes the canned lines too
+The opt-in local-LLM path already varied dialogue by a critter's smarts; this brings the offline canned path
+in line. A new `witLevel(c)` blends the species' smarts (~0.85 Pebble … 1.3 Foxling) with a little age
+("a survivor seems wiser") into a 0..1 brightness, and `canned()` uses it on calm-moment (idle/social)
+lines: bright critters pull from a new `SMART_MUSING` pool (witty / existential / meta — "we are matter,
+contemplating matter", "free will, or just my brain weights?") and the meta gags, while simpler ones pull
+from `SIMPLE_MUSING` (concrete and goofy — "grass good", "pretty rock", "i did a think. it hurt."). The
+per-species voice still seasons both. Verified live by tagging each bubble with its speaker's species: the
+simple musings came from the dim species (Pebble ×5, Slink, young Hopkins), the witty/meta musings from the
+Foxling (the smartest) — so brightness is clearly steering the tone, and an old Hopkin drifts wittier with age.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

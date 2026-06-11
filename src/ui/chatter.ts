@@ -2,7 +2,8 @@
 // mature critters chat. When two evolved critters are near each other they have a short, playful
 // back-and-forth (bubbles pop over each in turn); a lone critter just blurts a single line. Lines react
 // to what's actually happening (a hunt, a plague, a volcano), each species has its own comedy voice, and
-// — when nothing's going on — they get a little meta about being tiny creatures watched by a giant. A
+// how bright a critter is (its smarts + a little age) shapes its calm-moment lines — sharp ones muse and
+// get meta about being tiny creatures watched by a giant; simpler ones keep it short and concrete. A
 // local LLM writes the lines when AI narration is enabled; otherwise the (big, anti-repeating) canned
 // pools are used. Paced so it's lively but never spammy.
 
@@ -60,6 +61,39 @@ const META = [
   "plot twist: i'm the main character",
   "the giant fed us again. simp.",
   "somewhere a fitness function judges me",
+];
+
+// Calm-moment musings split by how bright a critter is (its species smarts + a little hard-won age).
+// Brighter critters get witty / meta / existential lines; simpler ones keep it short, concrete and goofy.
+const SMART_MUSING = [
+  "i think, therefore i graze",
+  "free will, or just my brain weights?",
+  "we are matter, contemplating matter",
+  "evolution has no plan. unsettling.",
+  "i suspect the sky is a screen",
+  "is the giant… benevolent? debatable.",
+  "i've been optimizing my whole life",
+  "consciousness: a weird side effect",
+  "i may be a mere local maximum",
+  "someone is reading my thoughts. hi.",
+  "small brain, enormous questions",
+  "i'd unionize, but who's the boss",
+  "the meadow is finite. i am pensive.",
+];
+const SIMPLE_MUSING = [
+  "grass good",
+  "ooh, shiny",
+  "me like green",
+  "wheee, legs!",
+  "is food? is food?",
+  "pretty rock",
+  "i did a think. it hurt.",
+  "bouncy bouncy",
+  "sun warm. me happy.",
+  "where my friends go",
+  "i forgot what i was doing",
+  "snack? …snack.",
+  "round. i am round.",
 ];
 
 // Each species talks with its own comedy voice, so lineages feel like characters, not clones.
@@ -288,14 +322,29 @@ export class Chatter {
     return 'idle';
   }
 
+  /** How bright this critter comes across: its species smarts, nudged up a little by how long it's lived
+   *  (a survivor seems wiser). 0 ≈ simple/goofy … 1 ≈ clever/meta. Shapes what its calm-moment lines sound like. */
+  private witLevel(c: Creature): number {
+    const smarts = SPECIES[c.genome.species]?.smarts ?? 1; // ~0.85 (Pebble) … 1.3 (Foxling) among talkers
+    const ageWisdom = Math.min(1, c.age / (LIFE.matureAge * 4)); // older critters read as a touch wiser
+    return Math.max(0, Math.min(1, (smarts - 0.85) / 0.45 + ageWisdom * 0.3));
+  }
+
   private canned(c: Creature, world: World): string {
     const scene = this.sceneTag(world, c);
-    // when nothing dramatic is happening, lean on personality + the meta gags (the funniest material)
+    // when nothing dramatic is happening, who they ARE comes through — and how bright they are shapes it:
+    // sharp critters muse / get meta, simple ones keep it short and concrete.
     if (scene === 'idle' || scene === 'social') {
       const voice = SPECIES_VOICE[SPECIES[c.genome.species]?.name ?? ''];
+      const wit = this.witLevel(c);
       const r = Math.random();
-      if (voice && r < 0.4) return this.fresh(voice);
-      if (r < 0.6) return this.fresh(META);
+      if (voice && r < 0.35) return this.fresh(voice); // the species' signature voice
+      if (wit > 0.5) { // a bright one
+        if (r < 0.75) return this.fresh(SMART_MUSING);
+        return this.fresh(META);
+      }
+      // a simpler one — concrete, goofy, no existential dread
+      if (r < 0.8) return this.fresh(SIMPLE_MUSING);
     }
     return this.fresh(LINES[scene]);
   }
