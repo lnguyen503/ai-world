@@ -693,6 +693,14 @@ export class Scene3D {
         rig.mat.color.setHSL(hue, 0.55, 0.68);
         rig.mat.emissive.setHSL(hue, 0.7, 0.14 * vigor);
       }
+      // bioluminescence: a high-glow critter shimmers at night, tinted to its own colour
+      const night = 1 - (this.lastSky ? this.lastSky.dayFactor : 1);
+      const glowGene = c.genome.glow ?? 0;
+      if (glowGene > 0.1 && night > 0.05) {
+        const shimmer = 0.55 + 0.25 * Math.sin(t * 2.5 + c.id);
+        const ghue = pred && !params.colorByLineage ? 0.02 : params.colorByLineage ? lineageHue : c.genome.hue;
+        rig.mat.emissive.setHSL(ghue, 0.85, Math.min(0.62, 0.14 * vigor + glowGene * night * 0.7 * shimmer));
+      }
 
       rig.earRound[0]!.visible = rig.earRound[1]!.visible = earType === 0;
       rig.earPointy[0]!.visible = rig.earPointy[1]!.visible = earType === 1;

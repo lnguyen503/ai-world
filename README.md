@@ -140,6 +140,7 @@ src/
 - v0.89 ✓ — **time-lapse & chapter cards**: a **⏩ Time-lapse** button fast-forwards through generations with cinematic **chapter title cards** — a quick montage of the world's deep time.
 - v0.90 ✓ — **genome radar**: the follow panel shows a 5-axis radar of the selected critter's genes vs the **herd average**, so you can see how it stands out.
 - v0.91 ✓ — **lineage**: the follow panel shows a critter's **parent** and **offspring** count, with a **"→ follow a living relative"** button to hop along its family line.
+- v0.92 ✓ — **bioluminescence evolves**: a heritable **glow** gene makes critters **shimmer at night** — watch luminous lineages emerge in the dark.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

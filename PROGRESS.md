@@ -540,6 +540,13 @@ button that jumps the camera to another living member of the same clan (`hud.onR
 path is the same one proven by the genome radar; no console errors); precise manual selection was hard
 to script this pass because the browser window (2560-wide) is larger than the captured frame.
 
+### v0.92.0 — Bioluminescence evolves
+A new heritable **glow** gene (`genome.ts`). At night, a high-glow critter's body **shimmers** — its
+emissive brightens (tinted to its own colour, with a gentle sine pulse), so glowing lineages stand out
+in the dark (`scene.ts`). ~15% start with some glow and it's inherited/mutated like any trait, so a
+luminous family can emerge over generations. Verified live: glowing critters clearly lit up against a
+night Amber Savanna (alongside a meteor shower and a milestone banner).
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
