@@ -116,6 +116,10 @@ export class World implements CreatureContext {
   lightningZ = 0;
   dayFactor = 1; // 0 = night, 1 = midday (creatures read this to sleep)
   gloom = 0; // 0..1 cataclysm pall: darkens the sky + crashes food (impact winter, ash, freeze)
+  volcanoX = 0; volcanoZ = 0; volcanoT = 0; // active eruption: vent location + seconds remaining
+  /** 0..1 eruption glow for the renderer (reddens the sky, lava light), ramps down as it ends. */
+  get volcanoGlow(): number { return Math.min(1, this.volcanoT / 4); }
+  private lavaDebt = 0; // paces the sustained lava kills near the vent
   crowding = 1; // ≥1; rises as the population passes the soft cap (brakes reproduction + raises metabolism)
   get camoHue(): number { return this.biome.camoHue; } // the ground hue prey camouflage toward
   prowling = 0; // # of predators currently stalking nearby prey (ominous audio + narration)
@@ -216,6 +220,19 @@ export class World implements CreatureContext {
     for (const c of this.creatures) if (c.alive && (c.x - cx) ** 2 + (c.z - cz) ** 2 <= r2) { c.energy = 0; c.alive = false; }
     this.burst(2, cx, cz); // a big impact POW
     this.gloom = 1; this.killFlash = 1.2; this.lastKillX = cx; this.lastKillZ = cz;
+    return { x: cx, z: cz };
+  }
+
+  /** Cataclysm — a volcano erupts: an initial blast, then a sustained lava field + lingering ashfall. */
+  eruptVolcano(): { x: number; z: number } {
+    const h = this.half - 12;
+    const cx = (Math.random() * 2 - 1) * h, cz = (Math.random() * 2 - 1) * h;
+    this.volcanoX = cx; this.volcanoZ = cz; this.volcanoT = 18; // ~18s of active eruption
+    const r2 = 13 * 13; // the initial pyroclastic blast
+    for (const c of this.creatures) if (c.alive && (c.x - cx) ** 2 + (c.z - cz) ** 2 <= r2) { c.energy = 0; c.alive = false; }
+    this.food = this.food.filter((f) => (f.x - cx) ** 2 + (f.z - cz) ** 2 > r2); // scorch the ground
+    this.burst(2, cx, cz);
+    this.gloom = Math.max(this.gloom, 0.7); // ashfall
     return { x: cx, z: cz };
   }
 
@@ -331,6 +348,19 @@ export class World implements CreatureContext {
   step(dt: number): void {
     this.dayFactor = this.biome.dayFactor(this.age);
     this.gloom = Math.max(0, this.gloom - dt * 0.022); // a cataclysm pall lifts over ~45s
+    // an active volcano keeps ash in the sky, spits embers, and roasts anything near the vent
+    if (this.volcanoT > 0) {
+      this.volcanoT = Math.max(0, this.volcanoT - dt);
+      this.gloom = Math.max(this.gloom, 0.6 * this.volcanoGlow); // top up the ashfall while erupting
+      const lr2 = 8 * 8;
+      for (const c of this.creatures) if (c.alive && (c.x - this.volcanoX) ** 2 + (c.z - this.volcanoZ) ** 2 <= lr2) { c.energy = 0; c.alive = false; }
+      this.lavaDebt += 9 * dt; // ember sparks fly from the vent
+      while (this.lavaDebt >= 1) {
+        const a = Math.random() * Math.PI * 2, r = Math.random() * 6;
+        this.burst(2, this.volcanoX + Math.cos(a) * r, this.volcanoZ + Math.sin(a) * r);
+        this.lavaDebt -= 1;
+      }
+    }
     // crowding brake: ≥1, climbing as the population passes the soft cap (self-limits before overshoot)
     this.crowding = 1 + Math.max(0, (this.creatures.length - ECO.softCap) / ECO.softCap) * ECO.crowdingK;
     // food regrows toward an abundance- and season-scaled cap, faster when the meadow is grazed bare,

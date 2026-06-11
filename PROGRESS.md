@@ -647,6 +647,16 @@ the remaining cataclysms (volcano, ice age, plague) build on. Verified: button r
 `cataclysm` class, click fires the banner ("☄️ Impact!") and logs the event; gloom darkening wired into
 the sky shader.
 
+### v1.6.0 — Volcano cataclysm
+The second cataclysm, and the first **sustained** one. A **🌋 Volcano** button fires
+`World.eruptVolcano`: an initial pyroclastic blast kills + scorches the ground in a ~13-unit radius,
+then the vent stays **active for ~18s** — a lava field (`volcanoT` counts down in `step`) that **roasts
+anything within ~8 units** and **spits embers** (orange burst events) the whole time, while **ashfall**
+keeps the gloom topped up. The renderer reads `world.volcanoGlow` and **bleeds an angry red-orange into
+the sky, fog and sunlight** (a lava light) on top of the cataclysm darkening. Banner + discovery-log +
+stinger + a camera swoop to the vent. Verified: button renders, click fires the "🌋 Eruption!" banner
+and logs it; sustained-lava + red-sky tint build clean.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

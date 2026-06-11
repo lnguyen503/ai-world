@@ -328,6 +328,7 @@ export class Scene3D {
   private lastAge = 0;
   private prevNightForAurora = false;
   private gloom = 0; // cataclysm darkening, read from world each frame
+  private volcano = 0; // 0..1 eruption glow: reddens the sky + casts a lava light
   private bloodMoon = false; // a rare red-moon night
   onBloodMoon: () => void = () => {}; // fired when a blood moon rises
   private lastSky!: SkyState;
@@ -809,6 +810,7 @@ export class Scene3D {
     this.syncFood(world);
     this.syncSocial(world);
     this.gloom = world.gloom; // cataclysm darkening (impact winter / ash / freeze)
+    this.volcano = world.volcanoGlow; // eruption red-glow (reddens sky, lava light)
     this.updateSky(world.age);
     this.syncWeather(world);
     this.updateRainbow(dt);
@@ -1402,6 +1404,15 @@ export class Scene3D {
       (this.scene.fog as THREE.Fog).color.multiplyScalar(dark);
       (this.skyMat.uniforms.uTop!.value as THREE.Color).multiplyScalar(dark);
       (this.skyMat.uniforms.uBottom!.value as THREE.Color).multiplyScalar(dark);
+    }
+    if (this.volcano > 0.01) { // an eruption bleeds an angry red-orange glow into the sky + light
+      const k = this.volcano;
+      const ember = new THREE.Color(0.85, 0.18, 0.04);
+      (this.scene.fog as THREE.Fog).color.lerp(ember, k * 0.6);
+      (this.skyMat.uniforms.uBottom!.value as THREE.Color).lerp(ember, k * 0.7);
+      (this.skyMat.uniforms.uTop!.value as THREE.Color).lerp(new THREE.Color(0.25, 0.05, 0.02), k * 0.55);
+      this.sun.color.lerp(ember, k * 0.5);
+      this.sun.intensity = Math.max(this.sun.intensity, s.sunIntensity * 0.4 * k); // lava casts its own light
     }
     this.cosmos.setNight(s.starAlpha);
     // roll a fresh aurora each nightfall — most nights none/faint, occasionally a real show

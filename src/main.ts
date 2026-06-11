@@ -53,6 +53,12 @@ function triggerCataclysm(id: string): void {
     discovery.add('☄️ an asteroid struck — the skies darken', world.age);
     sound.stinger('kill');
     scene.highlightPoint(p.x, p.z); // swoop the camera to the crater
+  } else if (id === 'volcano') {
+    const p = world.eruptVolcano();
+    banner.flash('🌋 Eruption!', 'a volcano splits the earth and spews fire');
+    discovery.add('🌋 a volcano erupted — ash blots the sun', world.age);
+    sound.stinger('kill');
+    scene.highlightPoint(p.x, p.z); // swoop the camera to the vent
   }
 }
 function applyGodTool(x: number, z: number, tool: string): void {

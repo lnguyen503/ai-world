@@ -18,6 +18,7 @@ const TOOLS: Tool[] = [
 // Cataclysms fire immediately on click (world-scale disasters), unlike the brush tools above.
 const ACTIONS: Tool[] = [
   { id: 'asteroid', label: '☄️ Asteroid' },
+  { id: 'volcano', label: '🌋 Volcano' },
 ];
 
 export class GodMode {
