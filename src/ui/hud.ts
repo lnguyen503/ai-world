@@ -49,6 +49,7 @@ export class Hud {
   private graph = $('graph') as HTMLCanvasElement;
   private gctx = this.graph.getContext('2d')!;
   private history: number[] = [];
+  private lastStats: WorldStats | null = null; // latest population averages, for the genome radar
   private speciesHistory: number[][] = SPECIES.map(() => []); // per-species count over time
   private tgraph = $('tgraph') as HTMLCanvasElement;
   private tgctx = this.tgraph.getContext('2d')!;
@@ -96,6 +97,7 @@ export class Hud {
   }
 
   updateStats(s: WorldStats): void {
+    this.lastStats = s;
     this.pop.textContent = String(s.population);
     this.gen.textContent = String(s.generation);
     this.bd.textContent = `${s.births} / ${s.deaths}`;
@@ -207,6 +209,8 @@ export class Hud {
       <div class="stat"><span>🧠 Brain</span><span id="sv-brain"></span></div>
       ${barId('↻ Turn', 'sb-turn', '#60a5fa')}
       ${barId('» Throttle', 'sb-throttle', '#a78bfa')}
+      <div class="stat" style="margin-top:8px"><span>Genes vs herd</span></div>
+      <canvas id="sel-radar" width="170" height="132" style="display:block;margin:2px auto 0;"></canvas>
     `;
     const q = (sel: string): HTMLElement => this.selBody.querySelector(sel) as HTMLElement;
     const pair = (id: string): [HTMLElement, HTMLElement] => [q(`#${id} .pct`), q(`#${id} i`)];
@@ -216,6 +220,7 @@ export class Hud {
       energyV: eV, energyB: eB, stamV: sV, stamB: sB, ageV: aV, ageB: aB,
       flight: q('#sv-flight'), signal: q('#sv-signal'), brain: q('#sv-brain'),
       turnV: tV, turnB: tB, throttleV: thV, throttleB: thB,
+      radar: q('#sel-radar') as HTMLCanvasElement,
     };
   }
 
@@ -230,6 +235,42 @@ export class Hud {
     setText(d.flight, c.canFly ? 'can fly' : 'grounded');
     setText(d.signal, c.signalTimer > 0 ? 'calling: found food!' : 'quiet');
     setText(d.brain, c.senseIn[2]! > 0.01 ? 'sees food' : 'searching');
+    if (d.radar) this.drawRadar(c, d.radar);
+  }
+
+  /** A 5-axis radar of the selected critter's genes (filled, its own colour) vs the herd average (grey). */
+  private drawRadar(c: Creature, cv: HTMLCanvasElement): void {
+    const s = this.lastStats;
+    const ctx = cv.getContext('2d');
+    if (!ctx || !s) return;
+    const w = cv.width, h = cv.height, cx = w / 2, cy = h / 2 + 2, R = Math.min(w, h) / 2 - 20;
+    const g = c.genome;
+    const axes = ['Size', 'Speed', 'Sense', 'Social', 'Wings'];
+    const ind = [norm(g.size, GENE_RANGES.size), norm(g.speed, GENE_RANGES.speed), norm(g.sense, GENE_RANGES.sense), g.social, g.wings];
+    const avg = [norm(s.avgSize, GENE_RANGES.size), norm(s.avgSpeed, GENE_RANGES.speed), norm(s.avgSense, GENE_RANGES.sense), s.avgSocial, s.avgWings];
+    const pt = (i: number, v: number): [number, number] => {
+      const a = -Math.PI / 2 + (i / 5) * Math.PI * 2;
+      return [cx + Math.cos(a) * R * v, cy + Math.sin(a) * R * v];
+    };
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
+    for (const ring of [0.5, 1]) {
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) { const [x, y] = pt(i, ring); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.closePath(); ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(180,190,200,0.7)'; ctx.font = '9px ui-sans-serif, system-ui'; ctx.textAlign = 'center';
+    for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + (i / 5) * Math.PI * 2; ctx.fillText(axes[i]!, cx + Math.cos(a) * (R + 11), cy + Math.sin(a) * (R + 11) + 3); }
+    const poly = (vals: number[], stroke: string, fill: string | null): void => {
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) { const [x, y] = pt(i, Math.max(0.02, vals[i]!)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+      ctx.closePath();
+      if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+      ctx.strokeStyle = stroke; ctx.lineWidth = 1.5; ctx.stroke();
+    };
+    poly(avg, 'rgba(160,170,180,0.55)', null); // the herd average
+    const hue = (g.hue * 360) | 0;
+    poly(ind, `hsl(${hue},75%,62%)`, `hsla(${hue},75%,62%,0.2)`); // this critter
   }
 }
 
@@ -241,6 +282,7 @@ interface SelRefs {
   flight: HTMLElement; signal: HTMLElement; brain: HTMLElement;
   turnV: HTMLElement; turnB: HTMLElement;
   throttleV: HTMLElement; throttleB: HTMLElement;
+  radar: HTMLCanvasElement;
 }
 
 /** A bar row with a stable id so its value span + fill can be updated in place. */

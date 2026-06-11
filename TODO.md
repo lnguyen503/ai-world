@@ -33,6 +33,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.87: **camouflage evolution** — predators spot off-colour prey at longer range; prey hue drifts toward the biome palette (ecosystem stays stable at ~150).
 - v0.88: **highlight reel** — the camera occasionally swoops to a fresh kill / striking birth, then resumes.
 - v0.89: **time-lapse & chapter cards** — ⏩ button fast-forwards (40×) through generations with cinematic chapter title cards.
+- v0.90: **genome radar** — 5-axis radar (size/speed/sense/social/wings) of the selected critter vs herd average.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).

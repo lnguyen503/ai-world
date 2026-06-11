@@ -526,6 +526,12 @@ closing "— and the world goes on —". Click again to stop early. A quick, epi
 deep time. Verified live: the button started the montage, "Chapter I" appeared, and the world ran at
 40× (120 sim-seconds in ~3 real seconds) before restoring.
 
+### v0.90.0 — Genome radar
+The follow panel now ends with a **5-axis radar** (`src/ui/hud.ts`): the selected critter's genes —
+size, speed, sense, sociability, wings — drawn as a filled polygon in its own colour over the **herd
+average** (grey outline), so you can see at a glance how this individual differs from the norm. Verified
+live: following "Wotoa", the radar canvas rendered its grid, labels and both polygons.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
