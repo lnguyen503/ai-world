@@ -129,6 +129,7 @@ src/
 - v0.78 ✓ — **a real narrator voice**: an in-browser **neural TTS** (Kokoro, ~82M) that runs locally on **WebGPU** — pick from British/American voices (defaults to a British male), no server. Falls back to the system voice.
 - v0.79 ✓ — **critters talk to each other**: once evolved, two nearby critters strike up a short, slightly-funny **back-and-forth** ("hi! do i know you?" → "we are literally cousins") instead of only blurting solo lines — written by the local LLM when AI narration is on, canned otherwise.
 - v0.80 ✓ — **watch the traits evolve**: a second graph plots average **size / speed / sense over time**, so you can see the herd drift smaller/faster/sharper as selection works.
+- v0.81 ✓ — **milestone title cards**: a cinematic banner fades in for the big moments — **first flight**, first predator, **generation milestones**, a lineage coming to **rule**, a thriving peak.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

@@ -454,6 +454,15 @@ size, speed and sense over time** — each normalised to its gene range so they 
 colour-matched legend. Paired with the species race it tells the genetic story at a glance: you can
 watch the herd drift smaller, faster, sharper-eyed as selection works.
 
+### v0.81.0 — Cinematic milestone banners
+The world's big moments now get a **title card** (`src/ui/banner.ts`): a large centre-screen banner
+fades in for the first flight ("🕊 The Age of Flight"), the first predator, each generation milestone
+(10 / 25 / 50 / 100 / 200), one lineage coming to rule ("👑 The Foxling Reign" at ≥60% share), and a
+thriving population peak. Gated to stay rare and special (≥12s apart), reset when the world reseeds,
+and hidden in photo mode. (The HUD graph panel was trimmed and the narration panel dropped to make
+room for the new trait graph without overlap.) Verified live: caught "🕊 The Age of Flight" and
+"Generation 25" firing as the world ran.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
