@@ -46,6 +46,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v1.0: **God Mode foundation** — top toolbar + ground-click raycast; 🌾 Feed tool rains food where you click.
 - v1.1: **⚡ Smite tool** — click to strike lightning that kills in a radius (reuses the lightning visual).
 - v1.2: **Spawn tools** — 🌿 Hatch (prey) / 🐺 Predator drop fresh creatures where you click.
+- v1.3: **Drought / Bloom brush** — paint dead/lush zones (World.addZone, processed each step).
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).

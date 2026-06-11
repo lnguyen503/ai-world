@@ -50,6 +50,8 @@ function applyGodTool(x: number, z: number, tool: string): void {
   else if (tool === 'smite') { world.smite(x, z); sound.stinger('kill'); }
   else if (tool === 'hatch') world.spawnAt(x, z, false);
   else if (tool === 'predator') world.spawnAt(x, z, true);
+  else if (tool === 'bloom') world.addZone(x, z, false);
+  else if (tool === 'drought') world.addZone(x, z, true);
 }
 const chatter = new Chatter(); // critters start talking once evolved enough
 narrator.onLine = (text) => speaker.speak(text);

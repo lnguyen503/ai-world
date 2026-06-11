@@ -9,6 +9,8 @@ const TOOLS: Tool[] = [
   { id: 'smite', label: '⚡ Smite' },
   { id: 'hatch', label: '🌿 Hatch' },
   { id: 'predator', label: '🐺 Predator' },
+  { id: 'bloom', label: '🌸 Bloom' },
+  { id: 'drought', label: '🌵 Drought' },
 ];
 
 export class GodMode {

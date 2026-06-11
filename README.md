@@ -153,6 +153,7 @@ src/
 - v1.0 ✓ — **God Mode**: a toolbar of tools you apply by **clicking the ground**. First tool: **🌾 Feed** rains food where you click — grow the herd, bait it, or end a famine. The framework for every tool + cataclysm.
 - v1.1 ✓ — **⚡ Smite**: click to call down a lightning bolt that kills everything in a radius.
 - v1.2 ✓ — **🌿 Hatch / 🐺 Predator**: click to drop fresh prey or a carnivore — ignite an arms race or repopulate.
+- v1.3 ✓ — **🌸 Bloom / 🌵 Drought**: paint a lush zone or a dead one — starve a region and watch the herd migrate and adapt.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

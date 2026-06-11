@@ -131,6 +131,9 @@ export class World implements CreatureContext {
   private creatureGrid = new CreatureGrid(WORLD.half);
   private pendingChildren: Creature[] = [];
   private foodDebt = 0;
+  private bloomDebt = 0;
+  /** Painted drought/bloom zones (god-mode brush): drought clears food, bloom keeps it lush, for a while. */
+  zones: { x: number; z: number; r: number; drought: boolean; life: number }[] = [];
 
   constructor(biome: Biome) {
     this.biome = biome;
@@ -202,6 +205,12 @@ export class World implements CreatureContext {
       this.food.push(makeFood(fx, fz));
       if (this.events.length < 300) this.events.push({ t: 0, x: fx, z: fz }); // a little sparkle
     }
+  }
+
+  /** Paint a drought (clears food + suppresses growth) or a bloom (a lush flush) over a spot. */
+  addZone(x: number, z: number, drought: boolean): void {
+    this.zones.push({ x, z, r: 14, drought, life: 24 });
+    if (!drought) this.addFoodAt(x, z, 20, 12); // bloom starts with an instant flush
   }
 
   /** Drop a fresh creature at a spot (god-mode Spawn tools), as a predator or as prey. */
@@ -318,6 +327,20 @@ export class World implements CreatureContext {
     while (this.foodDebt >= 1 && this.food.length < targetCap) {
       this.food.push(this.growFood());
       this.foodDebt -= 1;
+    }
+
+    // painted zones: bloom keeps adding food, drought clears it; both expire after a while
+    if (this.zones.length) {
+      for (const zn of this.zones) {
+        zn.life -= dt;
+        if (!zn.drought) {
+          this.bloomDebt += 6 * dt;
+          while (this.bloomDebt >= 1 && this.food.length < WORLD.foodMax) { this.addFoodAt(zn.x, zn.z, 1, zn.r * 0.8); this.bloomDebt -= 1; }
+        }
+      }
+      this.zones = this.zones.filter((z) => z.life > 0);
+      const dz = this.zones.filter((z) => z.drought);
+      if (dz.length) this.food = this.food.filter((f) => !dz.some((z) => (f.x - z.x) ** 2 + (f.z - z.z) ** 2 < z.r * z.r));
     }
 
     this.grid.rebuild(this.food);

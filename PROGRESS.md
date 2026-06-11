@@ -621,6 +621,13 @@ Predator** drops a carnivore (`World.spawnAt` makes a random genome with the pre
 high/low and spawns it well-fed). Introduce an apex predator and watch the arms race ignite, or repopulate
 after a cataclysm. Verified: both tools in the toolbar; reuses the proven spawn + ground-click paths.
 
+### v1.3.0 — Drought / Bloom brush
+A selection-pressure brush: **🌸 Bloom** paints a lush zone (an instant flush of food, then steady
+regrowth there for ~24s) and **🌵 Drought** paints a dead zone (clears food and suppresses it for a
+while). `World.addZone` tracks the painted zones and `step` keeps feeding bloom zones / clearing
+drought zones until they expire. Starve one half of the map and watch the herd migrate and adapt — you
+shape where life can thrive. Verified: both tools in the toolbar; zone processing builds clean.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
