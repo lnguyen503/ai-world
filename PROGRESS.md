@@ -800,6 +800,17 @@ rock colour bleeds onto steep faces), faint **valley shading** (low ground sits 
 subtle **per-vertex grain** that breaks up the flat gradient — the ground reads as natural rather than a
 smooth ramp. Verified in-browser across biomes: cleaner nights, more natural terrain, zero console errors.
 
+### v2.9.0 — Ship prep (open-source hygiene)
+Getting the repo ready for GitHub. Added an **MIT `LICENSE`**; filled out **`package.json`** (real version,
+`license`, `author`, `repository`/`homepage`/`bugs` pointing at the GitHub repo, `keywords`, `engines:
+node >=18`, and a `typecheck` script). The **narrator voice now defaults to the instant browser voice**
+(`Speaker.preferredSystemValue()` picks a pleasant English system voice; Kokoro neural stays one click away
+and a real user pick still sticks) so first-enable needs no ~80MB download. Polished the **README**: a clear
+"runs entirely in your browser — no backend, no setup, works offline" statement up top, a generic
+`git clone` + `npm` quick-start (not a hard-coded local path), a **Requirements** section (WebGL2 browser;
+Node 18+ to build; optional Ollama/WebGPU clearly marked), a ready hero-image slot (`docs/`), and the
+voice docs updated for the new default. Verified in-browser: the voice dropdown defaults to a system voice.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

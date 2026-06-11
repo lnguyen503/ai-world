@@ -2,18 +2,37 @@
 
 A 3D artificial-life world where little AI creatures forage, reproduce, mutate, and **evolve on
 their own** under natural selection. You're a visitor — wander the world like a zoo, click any
-creature to follow it close-up, and speed up or slow down time to watch generations unfold.
+creature to follow it close-up, speed up or slow down time to watch generations unfold, and wield
+**god-mode tools** (rain food, sculpt the land, or unleash an asteroid) to shape what survives.
+
+**Runs entirely in your browser — no backend, no account, no setup.** Everything (the sim, the
+neural-net brains, the visuals, the sound) is computed locally and works fully offline. An optional
+local LLM + neural voice can narrate it (see below), but they're not required.
+
+<!-- Hero image: in-app, hit the 📷 Photo button for a clean frame, screenshot it to docs/hero.png,
+     then uncomment the next line. -->
+<!-- ![AI World — a living, evolving 3D zoo](docs/hero.png) -->
 
 Inspired by artificial-life simulations like **The Bibites**, MinuteLabs' evolution simulator, and
 Framsticks.
 
 ## Watch it
 
-```
-cd C:\ai-world
+```bash
+git clone https://github.com/lnguyen503/ai-world.git
+cd ai-world
 npm install      # first time only
 npm run dev      # opens http://localhost:5173 in your browser
 ```
+
+Then open the printed URL. To build a static bundle: `npm run build` (output in `dist/`).
+
+## Requirements
+
+- A modern browser with **WebGL2** (Chrome, Edge, Firefox, or Safari). Best on desktop.
+- **Node 18+** and npm — only to run the dev server / build. (The app itself has no server.)
+- *Optional:* a local **Ollama** for AI-written narration, and a **WebGPU** browser (Chrome/Edge) for
+  the neural voice — both off by default; the app is fully featured without them.
 
 ## Controls
 
@@ -21,7 +40,7 @@ npm run dev      # opens http://localhost:5173 in your browser
 - **Click a creature** to follow it close-up (a panel shows its genes, energy, age)
 - **Time bar (bottom):** ⏸ pause · 0.25× slow-mo · 1× · 2× · 5× · 20× fast-forward
 
-## How the life works (v0.1)
+## How the life works
 
 Each creature carries a **genome**: size, speed, sense range, and color. They wander, sense nearby
 food, head for it, and eat to gain energy. Moving and living costs energy (bigger + faster = hungrier).
@@ -191,12 +210,12 @@ The same model also writes the critters' spontaneous **speech-bubble** lines onc
 far enough.
 
 ## The narrator's voice
-Click **🔊 voice** in the documentary panel and pick a voice. The default is **Neural** — **Kokoro**,
-a small open TTS that runs **entirely in your browser** (WebGPU if available, else WASM); its weights
-(~300 MB) download once from the Hugging Face CDN and the browser caches them, so the first line waits
-on that download and the rest are instant. Choose a British or American voice (defaults to British
-male **George**). Prefer something else? The dropdown also lists your OS's **system voices**, and the
-optional **local neural-TTS URL** box still works (POST `{text}` → audio) for a Piper/XTTS server.
-Note: Kokoro emits a couple of harmless `onnxruntime` warnings to the console on load.
+Click **🔊 voice** in the documentary panel. It defaults to your **browser's built-in voice** — instant,
+no download, works everywhere. For a richer documentary feel, the dropdown also offers **Neural** voices:
+**Kokoro**, a small open TTS that runs **entirely in your browser** (WebGPU if available, else WASM); its
+weights (~80–300 MB) download once from the Hugging Face CDN and are cached, so only the first neural line
+waits on that download. Pick a British or American Kokoro voice, or point the optional **local neural-TTS
+URL** box at a Piper/XTTS server (POST `{text}` → audio). Note: Kokoro emits a couple of harmless
+`onnxruntime` warnings to the console on load.
 
 Built with TypeScript + Three.js + Vite.

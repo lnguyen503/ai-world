@@ -37,6 +37,7 @@ export class Speaker {
   private speaking = false;
   private pending: string | null = null;
   private watchdog: ReturnType<typeof setTimeout> | null = null;
+  private userPicked = false; // until the user chooses a voice, default to the instant browser voice
 
   constructor() {
     this.btn = document.getElementById('tts-btn') as HTMLButtonElement | null;
@@ -48,8 +49,8 @@ export class Speaker {
     this.kokoro.onStatus = (m) => { if (this.statusEl) this.statusEl.textContent = m; };
     this.buildVoiceList();
     if (this.supported) window.speechSynthesis.onvoiceschanged = () => this.buildVoiceList();
-    // pre-warm the neural model as soon as a neural voice is selected (so the first line isn't delayed)
-    this.select.addEventListener('change', () => { if (this.usingKokoro()) void this.kokoro.load(); });
+    // a real user pick sticks; pre-warm the neural model when they choose a neural voice
+    this.select.addEventListener('change', () => { this.userPicked = true; if (this.usingKokoro()) void this.kokoro.load(); });
   }
 
   /** Build the dropdown: neural (Kokoro) voices first, then the system voices. */
@@ -73,8 +74,20 @@ export class Speaker {
         const o = document.createElement('option'); o.value = `sys:${i}`; o.textContent = `${v.name} (${v.lang})`; sys.appendChild(o);
       });
     }
-    const want = prev || DEFAULT_VOICE;
-    this.select.value = [...this.select.options].some((o) => o.value === want) ? want : DEFAULT_VOICE;
+    // default to the instant browser voice (no download); the neural voices stay one click away. Once the
+    // user picks a voice themselves, keep their choice across rebuilds (system voices load asynchronously).
+    const preferred = this.preferredSystemValue() ?? DEFAULT_VOICE;
+    const want = this.userPicked && prev ? prev : preferred;
+    this.select.value = [...this.select.options].some((o) => o.value === want) ? want : preferred;
+  }
+
+  /** The dropdown value of a pleasant English system voice (British male if there is one), or null. */
+  private preferredSystemValue(): string | null {
+    if (!this.systemVoices.length) return null;
+    const i = this.systemVoices.findIndex((v) => /en-gb/i.test(v.lang) && /male|george|daniel|arthur|ryan/i.test(v.name));
+    if (i >= 0) return `sys:${i}`;
+    const gb = this.systemVoices.findIndex((v) => /en-gb/i.test(v.lang));
+    return `sys:${gb >= 0 ? gb : 0}`;
   }
 
   private endpoint(): string { return this.urlInput?.value.trim() ?? ''; }
