@@ -133,6 +133,7 @@ src/
 - v0.82 ✓ — **Hall of Fame**: a little panel tracks the world's standout critters — the **eldest**, the **most prolific** parent, and the **biggest** alive — named characters to root for as records change hands.
 - v0.83 ✓ — **meteor showers & comets**: rare night-sky spectacles — a **meteor shower** radiating from one point, and an occasional slow **comet** with a long glowing tail.
 - v0.84 ✓ — **the herd reacts together**: a predator scare or a food find sets off a quick **wave** of reaction bubbles across nearby critters ("run!" / "behind you!", "free food!" / "dibs!").
+- v0.85 ✓ — **mini-map**: a corner overview of the **herd**, **predators** (red), **ponds** and **trees**, with a wedge showing where you're looking — keep your bearings and spot the action.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

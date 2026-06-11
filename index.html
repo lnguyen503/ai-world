@@ -64,6 +64,9 @@
       #hof { left: 14px; bottom: 52px; width: 196px; }
       #hof h2 { margin: 0 0 6px; font-size: 12px; color: #8b98a8; font-weight: 600; }
       body.photo #hof { opacity: 0; pointer-events: none; }
+      #minimap { position: fixed; right: 14px; bottom: 14px; width: 132px; height: 132px; z-index: 18;
+        border-radius: 8px; border: 1px solid rgba(255,255,255,0.14); background: rgba(13,18,28,0.5); }
+      body.photo #minimap { display: none; }
 
       #hud-selected { bottom: 14px; right: 14px; width: 250px; display: none; }
       #hud-selected.show { display: block; }
@@ -100,7 +103,7 @@
       .ctrl.btns button:hover { background: rgba(255,255,255,0.15); }
       .ctrl.btns button.primary { background: #2563eb; border-color: #3b82f6; }
 
-      #narration { top: 372px; right: 14px; width: 274px; max-height: 34vh; overflow: hidden; }
+      #narration { top: 372px; right: 14px; width: 274px; max-height: 26vh; overflow: hidden; }
       #narration .nhead { display: flex; justify-content: space-between; align-items: center; gap: 8px;
         font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; color: #8b98a8; margin-bottom: 8px; }
       #tts-btn { font: inherit; font-size: 10.5px; font-weight: 600; letter-spacing: 0; text-transform: none;
@@ -206,6 +209,7 @@
       <div class="stat"><span>🏅 Most young</span><span id="hof-kids">—</span></div>
       <div class="stat"><span>🐘 Biggest</span><span id="hof-big">—</span></div>
     </div>
+    <canvas id="minimap" title="Mini-map — herd, predators (red), ponds, your view"></canvas>
 
     <details class="panel" id="hud-controls" open>
       <summary>LEVERS — shape the world</summary>

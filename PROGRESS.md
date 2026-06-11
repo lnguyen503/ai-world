@@ -486,6 +486,14 @@ a quick staggered **wave** — "run!" / "behind you!" / "scatter!" to a threat, 
 the normal conversations/musings carry on. Reuses the same bubble queue, so it stays brief and
 cooldowned.
 
+### v0.85.0 — Mini-map
+A small top-down map in the bottom-right (`src/ui/minimap.ts`): **ponds** (blue), **trees** (green
+dots), the **herd** (pale dots) and **predators** (red), plus a soft **wedge** showing where the
+camera is and which way it's looking (`Scene3D.cameraInfo()`). Helps you keep your bearings on a big
+world and spot where the action is; drawn every other frame so it's cheap. (Narration panel trimmed
+slightly to keep the corner clear.) Verified live: the map showed ponds, scattered prey, red
+predators and the view wedge.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

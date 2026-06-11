@@ -28,6 +28,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.82: **Hall of Fame** — eldest / most-prolific / biggest living critters (offspring counter added).
 - v0.83: **meteor showers & comets** — radiant meteor-shower bursts (pool 4→14) + a rare slow comet.
 - v0.84: **herd reaction chatter** — group reaction waves to predators/food (reuses the bubble queue).
+- v0.85: **mini-map** — corner overview (herd, predators, ponds, trees + camera view wedge).
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).

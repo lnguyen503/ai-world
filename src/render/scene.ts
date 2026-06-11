@@ -1865,6 +1865,12 @@ export class Scene3D {
   setSelected(id: number | null): void { this.selectedId = id; this.onSelect(id); }
   getSelected(): number | null { return this.selectedId; }
 
+  /** Camera position + look-direction on the ground plane, for the mini-map's "you are here" wedge. */
+  cameraInfo(): { x: number; z: number; yaw: number } {
+    const p = this.camera.position, t = this.controls.target;
+    return { x: p.x, z: p.z, yaw: Math.atan2(t.z - p.z, t.x - p.x) };
+  }
+
   isStargazing(): boolean { return this.stargaze; }
 
   /** Stargaze mode: free the camera to tilt up and pan across the night sky. */
