@@ -823,6 +823,19 @@ group-reaction pools grew, and a small **anti-repeat** (`fresh()` tracks the las
 "same line twice in a row" feel. When nothing dramatic is happening, idle/social lines lean ~60% on the
 species voice + meta gags. Verified: tsc + build clean.
 
+### v2.11.0 — Chatter density + variety (watched live, then fixed)
+v2.10 added the funnier writing, but watching it live exposed two separate problems. **Too sparse**: one
+event every 2.2–5s, a +5s pause after every conversation, and a gate that blocked all new chatter while any
+conversation was mid-flight. **Too repetitive**: predators are almost always prowling, the panic-wave
+mechanic spreads `startleTimer` across the whole herd, so nearly every speaker was in 'flee' mode — a wall
+of "RUN! / scatter! / not me, not me!" while the personality/meta jokes never got picked. Fixes: cooldown
+0.7–2.1s, conversations no longer block others (MAX_BUBBLES caps the screen at 8), and the post-conversation
+pause dropped to ~1.2s. Crucially, `pickSpeaker` now **prefers a calm (non-startled) critter ~80% of the
+time**, the global hunt only tags ~30% of prey as 'hunted', and the herd-reaction wave is rarer (0.7 → 0.3)
++ anti-repeated. Verified by instrumenting the live bubble list: a 30-second window went from ~13 unique
+lines (all panic) to ~30 unique lines with the meta/personality/idle humor surfacing ("somewhere a fitness
+function judges me", "i'm not smug, i'm correct", "i think therefore i… snack").
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

@@ -13,9 +13,9 @@ import type { Creature } from '../sim/creature';
 const TALK_GEN = 2;        // a lineage must be this many generations deep before any talking begins
 const SMART_ENOUGH = 0.85; // most species develop speech now (only the dim Beetlebug stays mute)
 const BUBBLE_LIFE = 4.2;   // seconds a bubble lingers
-const MAX_BUBBLES = 6;     // never more than this on screen at once
+const MAX_BUBBLES = 8;     // never more than this on screen at once
 const PARTNER_RADIUS = 12; // how close another critter must be to strike up a conversation
-const LINE_GAP = 1.2;      // seconds between the back-and-forth replies
+const LINE_GAP = 1.0;      // seconds between the back-and-forth replies
 
 // What's happening to a critter right now, most urgent/dramatic first. Drives which lines it says, so the
 // chatter is always about the moment on screen — a plague, a volcano, a hunt — not a random non-sequitur.
@@ -162,12 +162,15 @@ export class Chatter {
 
     if (world.generation < TALK_GEN) return;
     this.cooldown -= dt;
-    if (this.cooldown > 0 || this.queue.length || this.active.size >= MAX_BUBBLES) return;
-    this.cooldown = 2.2 + Math.random() * 2.8; // livelier than before, but still paced so it never spams
+    // note: a queued conversation no longer blocks new chatter — other critters can chime in while two
+    // are mid-exchange, so a busy herd actually feels busy (MAX_BUBBLES still caps what's on screen)
+    if (this.cooldown > 0 || this.active.size >= MAX_BUBBLES) return;
+    this.cooldown = 0.7 + Math.random() * 1.4; // brisk, lively chatter (still capped by MAX_BUBBLES)
 
-    // a group reaction takes priority when something is happening to the herd
+    // a group reaction occasionally fires when something hits the herd — kept rare so it punctuates the
+    // chatter rather than drowning it (predators are around a lot; we don't want a constant wall of "run!")
     const trig = this.findReactionTrigger(world);
-    if (trig && Math.random() < (trig.kind === 'predator' ? 0.7 : 0.3)) { this.herdReact(world, trig.c, trig.kind); return; }
+    if (trig && Math.random() < (trig.kind === 'predator' ? 0.3 : 0.2)) { this.herdReact(world, trig.c, trig.kind); return; }
 
     const speaker = this.pickSpeaker(world);
     if (!speaker) return;
@@ -205,13 +208,21 @@ export class Chatter {
       this.queue.push({ id: i % 2 === 0 ? idA : idB, text: this.clean(lines[i]!), delay: t });
       t += LINE_GAP + Math.random() * 0.5;
     }
-    this.cooldown = Math.max(this.cooldown, t + 5); // let the conversation breathe before the next one
+    this.cooldown = Math.max(this.cooldown, 1.2); // a short beat before the next line; others can still chime in
   }
 
-  /** A random mature, awake, sufficiently-bright critter that isn't already talking. */
+  /** A mature, awake, sufficiently-bright critter that isn't already talking. Most of the time we prefer a
+   *  CALM one (not mid-panic): a hunt spreads startle across the whole herd, and without this bias every
+   *  speaker would be fleeing and you'd see nothing but "RUN!" — this lets the personality/idle/meta lines
+   *  actually surface, while still occasionally picking a panicking critter for reactive flavour. */
   private pickSpeaker(world: World): Creature | null {
     const able = world.creatures.filter((c) => this.eligible(c) && !this.active.has(c.id));
-    return able.length ? able[Math.floor(Math.random() * able.length)]! : null;
+    if (!able.length) return null;
+    if (Math.random() < 0.8) {
+      const calm = able.filter((c) => c.startleTimer <= 0 && c.alarmTimer <= 0);
+      if (calm.length) return calm[Math.floor(Math.random() * calm.length)]!;
+    }
+    return able[Math.floor(Math.random() * able.length)]!;
   }
 
   /** The nearest other eligible critter within chatting range, to converse with. */
@@ -244,11 +255,11 @@ export class Chatter {
       .filter((c) => this.eligible(c) && (c.x - center.x) ** 2 + (c.z - center.z) ** 2 < 14 * 14)
       .slice(0, 4);
     let t = 0;
-    for (const c of near) {
-      this.queue.push({ id: c.id, text: pick(pool), delay: t });
-      t += 0.25 + Math.random() * 0.4;
+    for (const c of near.slice(0, 3)) { // a smaller wave, and anti-repeated so it's not the same word x3
+      this.queue.push({ id: c.id, text: this.fresh(pool), delay: t });
+      t += 0.3 + Math.random() * 0.4;
     }
-    this.cooldown = Math.max(this.cooldown, t + 5);
+    this.cooldown = Math.max(this.cooldown, 1.5); // a quick beat after the reaction wave
   }
 
   private eligible(c: Creature): boolean {
@@ -263,8 +274,10 @@ export class Chatter {
     if (world.cold > 0.05) return 'freeze';
     if (world.radiationT > 0) return 'radiate';
     if (world.gloom > 0.05) return 'dark'; // asteroid pall / generic darkening
-    if (world.plagueActive && Math.random() < 0.6) return 'sick'; // gossip about the outbreak even if healthy
-    if (world.prowling > 0 && !c.isPredator) return 'hunted';
+    if (world.plagueActive && Math.random() < 0.5) return 'sick'; // gossip about the outbreak even if healthy
+    // a hunt is usually happening somewhere — only let it dominate a fraction of the herd's chatter,
+    // so the personality / meta / idle lines still come through instead of a wall of "run!"
+    if (world.prowling > 0 && !c.isPredator && Math.random() < 0.3) return 'hunted';
     if (params.weather > 0.6) return 'storm';
     if (c.drinkTimer > 0) return 'drink';
     if (c.signalTimer > 0) return 'eat';
