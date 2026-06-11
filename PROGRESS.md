@@ -411,6 +411,17 @@ the next frame — bounding worst-case frame time keeps fast-forward smooth. And
 before and after; these target the *consistency* of frames and load on weaker / hi-DPI GPUs. Note:
 true vsync *tearing* is a display/driver setting outside the page's control.)
 
+### v0.77.0 — Pick your narration model
+The narration model was a free-text box defaulting to `llama3.2`. For the open-source release it's now
+a proper picker (`src/ui/llm-models.ts`): it **auto-detects the models installed on your Ollama**
+(querying `/api/tags`, derived from the generate URL) and lists them, alongside a few **recommended
+tags** with rough VRAM hints and a **✏️ Custom…** free-text entry. It defaults to the *best installed*
+model — biggest, preferring a truly-local one over `:cloud`, and skipping `*-embed` / `*-coder` /
+reasoning models that read poorly for short lines. The URL is pre-filled for Ollama. The chosen name
+is written to a hidden `#llm-model` field, so the narrator and the critter-chatter (which share it)
+are unchanged. Verified live against a real Ollama install: it listed all the pulled models and
+defaulted to a 33B local model; the Custom path and the detect/fallback both work.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

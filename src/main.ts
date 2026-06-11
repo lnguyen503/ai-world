@@ -9,6 +9,7 @@ import { Speaker } from './ui/tts';
 import { SoundManager } from './ui/sound';
 import { Tips } from './ui/tips';
 import { Chatter } from './ui/chatter';
+import { ModelPicker } from './ui/llm-models';
 
 const container = document.getElementById('app');
 if (!container) throw new Error('missing #app');
@@ -22,6 +23,7 @@ const narrator = new Narrator();
 const speaker = new Speaker();
 const sound = new SoundManager();
 new Tips(); // gentle "did you know" nudges
+new ModelPicker(); // narration model dropdown (auto-detects installed Ollama models)
 const chatter = new Chatter(); // critters start talking once evolved enough
 narrator.onLine = (text) => speaker.speak(text);
 

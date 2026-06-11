@@ -125,8 +125,26 @@ src/
 - v0.74 ✓ — **watch the species race**: the population graph now draws a **colored line per species** (with a matching tinted legend), so you can see one lineage climb and overtake the rest over time — evolution as a live chart.
 - v0.75 ✓ — **better narration**: the documentary voice no longer **repeats itself** (it remembers its recent lines), no longer **floods** at fast-forward (real-time pacing), and now reflects the **biome's character** (a frozen tundra and strange cyan wilds narrate differently), not just its name.
 - v0.76 ✓ — **smoother frames**: render hygiene — high-performance GPU hint, capped render resolution, a tighter sim sub-step cap (no post-hitch spikes), and fewer per-frame allocations, to reduce judder and lighten the load on hi-DPI / weaker GPUs.
+- v0.77 ✓ — **narration model picker**: a dropdown that **auto-detects the models installed on your Ollama** (plus recommended tags and a Custom entry), defaulting to your biggest local model — pick whichever you like.
 
 ## Connecting a local LLM for narration
-Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.
+Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama
+(`http://localhost:11434/api/generate`), and the **model dropdown auto-detects whatever models you've
+pulled** (via Ollama's `/api/tags`) — pick any of them, choose one of the recommended tags, or select
+**✏️ Custom…** to type your own (e.g. a fine-tune). It defaults to the largest local model you have
+installed. The app POSTs `{model, prompt, stream:false}` and uses the `response`; if the server can't
+be reached it silently falls back to the built-in template narration.
+
+**CORS:** browser requests need the server to allow your origin — start Ollama with `OLLAMA_ORIGINS=*`
+(or your specific origin). This is required for both the narration calls and the model auto-detect.
+
+**Picking a model (rough guide).** Narration lines are short, so even an 8B model reads well; a bigger
+model gives richer prose. By VRAM: **~5 GB** → `llama3.1:8b` / `qwen2.5:7b`; **~9 GB** → `qwen2.5:14b`;
+**~16 GB** → `gemma2:27b`; **~20 GB+** (e.g. a 4090 / 5090) → `qwen2.5:32b` or any 27–33B model fully
+on-GPU. Avoid `*-coder` / `*-embed` models (poor for prose) and reasoning models that emit `<think>`
+traces for short lines. Pull one with e.g. `ollama pull qwen2.5:32b`.
+
+The same model also writes the critters' spontaneous **speech-bubble** lines once a lineage evolves
+far enough.
 
 Built with TypeScript + Three.js + Vite.

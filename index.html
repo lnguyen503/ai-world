@@ -102,9 +102,9 @@
         background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; }
       #tts-url.show { display: block; }
       #llm-row { display: flex; gap: 6px; align-items: center; font-size: 11px; color: #cdd6e0; margin: 4px 0 6px; cursor: pointer; }
-      #llm-url, #llm-model { display: none; width: 100%; margin-bottom: 6px; font-size: 11px; padding: 4px 6px; color: #cdd6e0;
+      #llm-url, #llm-model-pick, #llm-model-custom { display: none; width: 100%; margin-bottom: 6px; font-size: 11px; padding: 4px 6px; color: #cdd6e0;
         background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; }
-      #llm-url.show, #llm-model.show { display: block; }
+      #llm-url.show, #llm-model-pick.show, #llm-model-custom.show { display: block; }
       #narration-body p { margin: 0 0 10px; font-family: Georgia, 'Times New Roman', serif; font-style: italic;
         font-size: 13px; line-height: 1.55; color: #eef3f8; transition: opacity 0.8s ease; }
 
@@ -163,8 +163,10 @@
       <select id="tts-voice" title="Narrator voice"></select>
       <input id="tts-url" placeholder="local neural TTS URL (optional)" />
       <label id="llm-row"><input type="checkbox" id="llm-on" /> 🤖 AI narration (local LLM)</label>
-      <input id="llm-url" placeholder="LLM URL — e.g. http://localhost:11434/api/generate" />
-      <input id="llm-model" placeholder="model — e.g. llama3.2" />
+      <input id="llm-url" value="http://localhost:11434/api/generate" placeholder="LLM URL — e.g. http://localhost:11434/api/generate" />
+      <select id="llm-model-pick" title="Narration model — auto-detects the models installed on your Ollama"></select>
+      <input id="llm-model-custom" placeholder="custom model — e.g. qwen2.5:32b" />
+      <input type="hidden" id="llm-model" />
       <div id="narration-body"></div>
     </div>
 

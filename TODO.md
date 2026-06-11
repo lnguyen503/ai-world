@@ -20,6 +20,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.74: **species race graph** — per-species colored lines over time on the population chart (legend tinted to match).
 - v0.75: **narration fixes** (from feedback) — no repeats (recent-line memory), real-time pacing (no fast-forward flood), and per-biome character woven into the lines + LLM prompt.
 - v0.76: **render hygiene** (from feedback on smoothness) — high-perf GPU hint, 1.5× pixel-ratio cap, sub-step cap 40→14, fewer per-frame allocations.
+- v0.77: **narration model picker** — auto-detects installed Ollama models (/api/tags) + recommended tags + Custom entry; defaults to your biggest local model.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).
@@ -45,7 +46,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 
 ## Audio
 - [ ] **Fuller spatial audio / reverb** (a convolver room on the music + nature bed; v0.70 added a music echo and panned creature voices, but the bed is still mono).
-- [ ] Hook up a real **Piper / XTTS** server for higher-quality narration voices.
+- [ ] **Better narrator voice** than the default Web Speech system voice: an in-browser neural TTS (e.g. **Kokoro** via transformers.js — no server) and/or a documented **Piper / XTTS** local-server path (the app already POSTs `{text}` to a TTS URL). A voice/model picker like the v0.77 LLM one would fit here too.
 
 ## Narration & AI
 - [ ] Let the **local LLM** name dramatic individuals and tell their ongoing story across the session.
