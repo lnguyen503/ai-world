@@ -43,6 +43,11 @@ scene.setPonds(world.ponds);
 
 hud.onSpeedChange = (s) => { params.timeSpeed = s; };
 hud.onDeselect = () => scene.setSelected(null);
+hud.onRelative = (clan, excludeId) => {
+  const kin = world.creatures.find((c) => c.genome.clan === clan && c.id !== excludeId)
+    ?? world.creatures.find((c) => c.id !== excludeId);
+  if (kin) scene.setSelected(kin.id);
+};
 
 // photo mode — hide all UI for a clean cinematic frame (button or the H key)
 const photoBtn = document.getElementById('photo-btn');

@@ -28,7 +28,7 @@ export interface CreatureContext {
   half: number;
   findNearestFood(x: number, z: number, radius: number): Food | null;
   eatFood(food: Food): void;
-  spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number, novelty?: string | null): void;
+  spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number, novelty?: string | null, parentId?: number, parentName?: string): void;
   neighbors(x: number, z: number, radius: number, selfId: number, selfPredator: boolean): NeighborInfo;
   nearestTree(x: number, z: number): TreeInfo;
   nearestPond(x: number, z: number): PondInfo;
@@ -51,6 +51,8 @@ export class Creature {
   age = 0;
   generation: number;
   offspring = 0; // how many young this critter has produced (for the Hall of Fame)
+  parentId = -1; // who it descends from (for the lineage panel)
+  parentName = '';
   alive = true;
   senseIn: number[] = [0, 0, 0, 0, 1]; // last brain inputs (for the follow panel)
   act: [number, number] = [0, 0]; // last brain outputs [turn, throttle]
@@ -314,7 +316,7 @@ export class Creature {
         ? mutate(crossover(g, mate.genome))
         : mutate(g);
       const novelty = noveltyKind(childGenome, g); // did a bold mutation just appear?
-      ctx.spawnChild(childGenome, this.x + Math.cos(a) * (this.radius + 0.6), this.z + Math.sin(a) * (this.radius + 0.6), this.generation + 1, childEnergy, novelty);
+      ctx.spawnChild(childGenome, this.x + Math.cos(a) * (this.radius + 0.6), this.z + Math.sin(a) * (this.radius + 0.6), this.generation + 1, childEnergy, novelty, this.id, this.name);
       this.offspring++;
     }
 

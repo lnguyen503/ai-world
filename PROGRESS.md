@@ -532,6 +532,14 @@ size, speed, sense, sociability, wings — drawn as a filled polygon in its own 
 average** (grey outline), so you can see at a glance how this individual differs from the norm. Verified
 live: following "Wotoa", the radar canvas rendered its grid, labels and both polygons.
 
+### v0.91.0 — Lineage & "follow a relative"
+Creatures now remember their **parent** (id + name, threaded through `spawnChild`). The follow panel
+shows the **parent's name** and a live **offspring** count, and a **"→ follow a living relative"**
+button that jumps the camera to another living member of the same clan (`hud.onRelative` →
+`scene.setSelected`), so you can hop along a family line. Verified at the code level (the panel build
+path is the same one proven by the genome radar; no console errors); precise manual selection was hard
+to script this pass because the browser window (2560-wide) is larger than the captured frame.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

@@ -139,6 +139,7 @@ src/
 - v0.88 ✓ — **highlight reel**: the camera occasionally **swoops to a fresh kill or striking birth** for a few cinematic seconds, then resumes — a gentle cut-away to wherever the drama is.
 - v0.89 ✓ — **time-lapse & chapter cards**: a **⏩ Time-lapse** button fast-forwards through generations with cinematic **chapter title cards** — a quick montage of the world's deep time.
 - v0.90 ✓ — **genome radar**: the follow panel shows a 5-axis radar of the selected critter's genes vs the **herd average**, so you can see how it stands out.
+- v0.91 ✓ — **lineage**: the follow panel shows a critter's **parent** and **offspring** count, with a **"→ follow a living relative"** button to hop along its family line.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

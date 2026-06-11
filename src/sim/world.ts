@@ -199,11 +199,12 @@ export class World implements CreatureContext {
     if (type === 2) { this.killFlash = 1.2; this.lastKillX = x; this.lastKillZ = z; } // a kill just happened
   }
 
-  spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number, novelty: string | null = null): void {
+  spawnChild(genome: Genome, x: number, z: number, generation: number, energy: number, novelty: string | null = null, parentId = -1, parentName = ''): void {
     if (this.creatures.length + this.pendingChildren.length >= MAX_CREATURES) return;
     const h = this.half - 1;
     const cx = Math.max(-h, Math.min(h, x)), cz = Math.max(-h, Math.min(h, z));
     const cr = newCreature(genome, cx, cz, generation, energy);
+    cr.parentId = parentId; cr.parentName = parentName;
     if (novelty) {
       cr.novelKind = novelty; cr.novelTimer = 5;
       this.lastNovelty = novelty; this.noveltyFlash = 1.5;

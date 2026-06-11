@@ -25,6 +25,7 @@ const TRAITS = [
 export class Hud {
   onSpeedChange: (speed: number) => void = () => {};
   onDeselect: () => void = () => {};
+  onRelative: (clan: number, excludeId: number) => void = () => {}; // jump to a living kin
 
   private pop = $('s-pop');
   private gen = $('s-gen');
@@ -195,7 +196,10 @@ export class Hud {
       ${row('Generation', String(c.generation))}
       ${row('Species', SPECIES[g.species]?.name ?? '—')}
       ${row('Lineage', `clan #${g.clan}`)}
+      ${row('Parent', c.parentName || '—')}
+      <div class="stat"><span>Offspring</span><span id="sv-kids"></span></div>
       ${row('Type', c.isPredator ? '🥩 predator' : '🌿 prey')}
+      <button id="kin-btn" style="margin:4px 0 6px;width:100%;font:inherit;font-size:11px;font-weight:600;color:#cdd6e0;background:rgba(80,120,200,0.25);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:5px;cursor:pointer">→ follow a living relative</button>
       ${barId('Energy', 'sb-energy', '#4ade80')}
       ${barId('Stamina', 'sb-stam', '#f87171')}
       ${barId('Age', 'sb-age', '#f59e0b')}
@@ -221,7 +225,9 @@ export class Hud {
       flight: q('#sv-flight'), signal: q('#sv-signal'), brain: q('#sv-brain'),
       turnV: tV, turnB: tB, throttleV: thV, throttleB: thB,
       radar: q('#sel-radar') as HTMLCanvasElement,
+      kids: q('#sv-kids'),
     };
+    (q('#kin-btn') as HTMLButtonElement).onclick = () => this.onRelative(c.genome.clan, c.id);
   }
 
   private updateSelected(c: Creature): void {
@@ -235,6 +241,7 @@ export class Hud {
     setText(d.flight, c.canFly ? 'can fly' : 'grounded');
     setText(d.signal, c.signalTimer > 0 ? 'calling: found food!' : 'quiet');
     setText(d.brain, c.senseIn[2]! > 0.01 ? 'sees food' : 'searching');
+    setText(d.kids, String(c.offspring));
     if (d.radar) this.drawRadar(c, d.radar);
   }
 
@@ -283,6 +290,7 @@ interface SelRefs {
   turnV: HTMLElement; turnB: HTMLElement;
   throttleV: HTMLElement; throttleB: HTMLElement;
   radar: HTMLCanvasElement;
+  kids: HTMLElement;
 }
 
 /** A bar row with a stable id so its value span + fill can be updated in place. */
