@@ -17,11 +17,11 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.71: **pond fish** (circling/darting under the surface) + **dawn/dusk god-ray sun shafts**.
 - v0.72: **food-chain balance** — innate prey foraging + carrying-capacity brake; population now holds a stable ~150 for generations instead of crashing to extinction.
 - v0.73: **calmer camera** (from feedback) — gentler/farther auto-follow, calm subjects, longer dwells, + a 🎥 Auto-cam on/off toggle (C key).
+- v0.74: **species race graph** — per-species colored lines over time on the population chart (legend tinted to match).
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).
 - [ ] **Water reflections** in the ponds (mirror the sky / nearby creatures on the surface).
-- [ ] **Per-species lines on the population graph** (not just current counts).
 - [ ] **A bigger "evolution event" banner** for the rarest surprises (first-ever flyer, a new apex predator).
 - [ ] **Herd defense**: big prey turn and stand their ground instead of always fleeing.
 - [ ] **Seasonal night sky**: constellations rotate / different stars rise across the in-world year.

@@ -376,6 +376,16 @@ free-roam orbit drifts more slowly. And there's now a **🎥 Auto-cam toggle** (
 / Stargaze, or the **C** key): turn it off and the camera simply drifts in a slow, steady
 orbit — clicking a creature still follows it manually either way.
 
+### v0.74.0 — Watch the species race
+Now that the world survives for tens of generations, you can watch evolution as a chart.
+The "Population over time" graph became a **species race**: a faint white line for the
+total population, plus a **coloured line per species** tracing how each lineage's numbers
+rise and fall over time. The species panel's labels are tinted to match, so it doubles as
+the legend. It makes **competitive exclusion legible** — you can see a clever lineage climb
+and overtake the rest (in testing, Hopkin surged then Slink overtook the field), instead of
+only reading the current head-count. (`src/ui/hud.ts` keeps a rolling per-species history and
+draws all the lines scaled to the total, so each species reads as its share of the world.)
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

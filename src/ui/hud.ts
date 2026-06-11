@@ -11,6 +11,10 @@ const $ = (id: string): HTMLElement => {
 const norm = (v: number, [lo, hi]: readonly [number, number]): number =>
   Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
 
+// distinct legend colours for the five species (Pebble, Foxling, Hopkin, Slink, Beetlebug) —
+// used for both the species-panel labels and their lines on the population-over-time graph
+const SPECIES_COLORS = ['#6ec6ff', '#ff9e54', '#6ee7a8', '#b794f6', '#ff7eb6'];
+
 export class Hud {
   onSpeedChange: (speed: number) => void = () => {};
   onDeselect: () => void = () => {};
@@ -38,6 +42,7 @@ export class Hud {
   private graph = $('graph') as HTMLCanvasElement;
   private gctx = this.graph.getContext('2d')!;
   private history: number[] = [];
+  private speciesHistory: number[][] = SPECIES.map(() => []); // per-species count over time
   private frame = 0;
 
   constructor() {
@@ -53,13 +58,14 @@ export class Hud {
     // build the per-species count rows once
     const cont = document.getElementById('s-species');
     if (cont) {
-      for (const sp of SPECIES) {
+      SPECIES.forEach((sp, i) => {
         const row = document.createElement('div'); row.className = 'stat';
         const label = document.createElement('span'); label.textContent = sp.name;
+        label.style.color = SPECIES_COLORS[i] ?? '#cbd5e1'; // legend colour matching its graph line
         const val = document.createElement('span'); val.textContent = '0';
         row.append(label, val); cont.appendChild(row);
         this.speciesEls.push(val);
-      }
+      });
     }
 
     this.resizeGraph();
@@ -92,6 +98,11 @@ export class Hud {
     if (this.frame++ % 12 === 0) {
       this.history.push(s.population);
       if (this.history.length > 240) this.history.shift();
+      for (let i = 0; i < this.speciesHistory.length; i++) {
+        const hist = this.speciesHistory[i]!;
+        hist.push(s.speciesCounts[i] ?? 0);
+        if (hist.length > 240) hist.shift();
+      }
       this.drawGraph();
     }
   }
@@ -101,16 +112,21 @@ export class Hud {
     const ctx = this.gctx;
     ctx.clearRect(0, 0, w, h);
     if (this.history.length < 2) return;
-    const max = Math.max(10, ...this.history);
-    ctx.beginPath();
-    this.history.forEach((v, i) => {
-      const x = (i / (this.history.length - 1)) * w;
-      const y = h - (v / max) * (h - 6) - 3;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
-    ctx.strokeStyle = '#4ade80';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    const max = Math.max(10, ...this.history); // scale to total population, so species read as shares of it
+    const plot = (series: number[], color: string, width: number): void => {
+      if (series.length < 2) return;
+      ctx.beginPath();
+      series.forEach((v, i) => {
+        const x = (i / (series.length - 1)) * w;
+        const y = h - (v / max) * (h - 6) - 3;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+    };
+    plot(this.history, 'rgba(255,255,255,0.28)', 1); // faint total
+    for (let i = 0; i < this.speciesHistory.length; i++) {
+      plot(this.speciesHistory[i]!, SPECIES_COLORS[i] ?? '#fff', 1.6); // the species race
+    }
     ctx.fillStyle = '#8b98a8';
     ctx.font = '10px ui-sans-serif, system-ui';
     ctx.fillText(`peak ${max}`, 4, 11);
