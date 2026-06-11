@@ -199,7 +199,8 @@ export class Hud {
       ${row('Parent', c.parentName || '—')}
       <div class="stat"><span>Offspring</span><span id="sv-kids"></span></div>
       ${row('Type', c.isPredator ? '🥩 predator' : '🌿 prey')}
-      <button id="kin-btn" style="margin:4px 0 6px;width:100%;font:inherit;font-size:11px;font-weight:600;color:#cdd6e0;background:rgba(80,120,200,0.25);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:5px;cursor:pointer">→ follow a living relative</button>
+      <button id="kin-btn" style="margin:4px 0 4px;width:100%;font:inherit;font-size:11px;font-weight:600;color:#cdd6e0;background:rgba(80,120,200,0.25);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:5px;cursor:pointer">→ follow a living relative</button>
+      <button id="card-btn" style="margin:0 0 6px;width:100%;font:inherit;font-size:11px;font-weight:600;color:#cdd6e0;background:rgba(120,90,200,0.25);border:1px solid rgba(255,255,255,0.14);border-radius:6px;padding:5px;cursor:pointer">🪪 save trading card</button>
       ${barId('Energy', 'sb-energy', '#4ade80')}
       ${barId('Stamina', 'sb-stam', '#f87171')}
       ${barId('Age', 'sb-age', '#f59e0b')}
@@ -228,6 +229,51 @@ export class Hud {
       kids: q('#sv-kids'),
     };
     (q('#kin-btn') as HTMLButtonElement).onclick = () => this.onRelative(c.genome.clan, c.id);
+    (q('#card-btn') as HTMLButtonElement).onclick = () => this.exportCard(c);
+  }
+
+  /** Draw a little trading card of this critter to a PNG and download it (shareable; all local). */
+  private exportCard(c: Creature): void {
+    const cv = document.createElement('canvas');
+    cv.width = 360; cv.height = 520;
+    const x = cv.getContext('2d');
+    if (!x) return;
+    const g = c.genome;
+    const hue = (g.hue * 360) | 0;
+    const bg = x.createLinearGradient(0, 0, 0, 520);
+    bg.addColorStop(0, '#1b2433'); bg.addColorStop(1, '#0d1320');
+    x.fillStyle = bg; x.fillRect(0, 0, 360, 520);
+    x.strokeStyle = `hsla(${hue},60%,60%,0.6)`; x.lineWidth = 3; x.strokeRect(9, 9, 342, 502);
+    // portrait swatch (its colour), with a glow ring for luminous critters
+    x.fillStyle = `hsl(${hue},60%,60%)`;
+    x.beginPath(); x.arc(180, 132, 70, 0, Math.PI * 2); x.fill();
+    if ((g.glow ?? 0) > 0.5) { x.strokeStyle = `hsla(${hue},90%,72%,0.85)`; x.lineWidth = 5; x.beginPath(); x.arc(180, 132, 83, 0, Math.PI * 2); x.stroke(); }
+    x.textAlign = 'center';
+    x.fillStyle = '#fff'; x.font = 'bold 30px Georgia, serif'; x.fillText(c.name, 180, 248);
+    x.fillStyle = '#9ad0ff'; x.font = '15px ui-sans-serif, system-ui';
+    x.fillText(`${SPECIES[g.species]?.name ?? '—'} · gen ${c.generation} · clan #${g.clan}`, 180, 272);
+    x.fillStyle = '#cbd5e1'; x.font = '13px ui-sans-serif, system-ui';
+    x.fillText(`${c.isPredator ? '🥩 predator' : '🌿 prey'}${c.canFly ? ' · 🕊 flyer' : ''}${(g.glow ?? 0) > 0.5 ? ' · ✨ glows' : ''}`, 180, 294);
+    const stats: [string, number][] = [
+      ['Size', norm(g.size, GENE_RANGES.size)], ['Speed', norm(g.speed, GENE_RANGES.speed)],
+      ['Sense', norm(g.sense, GENE_RANGES.sense)], ['Social', g.social], ['Wings', g.wings], ['Glow', g.glow ?? 0],
+    ];
+    x.textAlign = 'left'; x.font = '12px ui-sans-serif, system-ui';
+    let yy = 326;
+    for (const [label, v] of stats) {
+      x.fillStyle = '#8b98a8'; x.fillText(label, 40, yy + 9);
+      x.fillStyle = 'rgba(255,255,255,0.1)'; x.fillRect(120, yy, 200, 10);
+      x.fillStyle = `hsl(${hue},65%,60%)`; x.fillRect(120, yy, 200 * Math.max(0.02, Math.min(1, v)), 10);
+      yy += 28;
+    }
+    x.fillStyle = '#5b6b7a'; x.textAlign = 'center'; x.font = '12px ui-sans-serif, system-ui';
+    x.fillText('🌱 AI World', 180, 502);
+    cv.toBlob((blob) => {
+      if (!blob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = `ai-world-${c.name}.png`; a.click();
+      URL.revokeObjectURL(a.href);
+    });
   }
 
   private updateSelected(c: Creature): void {

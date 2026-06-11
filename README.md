@@ -141,6 +141,7 @@ src/
 - v0.90 ✓ — **genome radar**: the follow panel shows a 5-axis radar of the selected critter's genes vs the **herd average**, so you can see how it stands out.
 - v0.91 ✓ — **lineage**: the follow panel shows a critter's **parent** and **offspring** count, with a **"→ follow a living relative"** button to hop along its family line.
 - v0.92 ✓ — **bioluminescence evolves**: a heritable **glow** gene makes critters **shimmer at night** — watch luminous lineages emerge in the dark.
+- v0.93 ✓ — **trading cards**: the follow panel can **save a PNG trading card** of any critter (portrait + genome + badges) — share your favourites.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

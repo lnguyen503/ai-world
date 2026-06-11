@@ -547,6 +547,13 @@ in the dark (`scene.ts`). ~15% start with some glow and it's inherited/mutated l
 luminous family can emerge over generations. Verified live: glowing critters clearly lit up against a
 night Amber Savanna (alongside a meteor shower and a milestone banner).
 
+### v0.93.0 — Creature trading cards
+The follow panel gained a **🪪 save trading card** button (`hud.ts`): it draws a little card to a canvas
+— the critter's name, species, generation, clan, a colour portrait (with a glow ring for luminous
+ones), type/flyer/glow badges, and stat bars (size/speed/sense/social/wings/glow) — and downloads it
+as a PNG (`ai-world-<name>.png`), all local. Great for sharing a favourite critter from an open-source
+build. Built on the proven follow-panel + the same local-download path as Save.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
