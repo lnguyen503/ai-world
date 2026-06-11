@@ -6,6 +6,7 @@ interface Tool { id: string; label: string }
 
 const TOOLS: Tool[] = [
   { id: 'feed', label: '🌾 Feed' },
+  { id: 'smite', label: '⚡ Smite' },
 ];
 
 export class GodMode {

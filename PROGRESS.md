@@ -609,6 +609,12 @@ selection pressure now. This is the framework every other tool and cataclysm bui
 instrumented click: handler fired, terrain hit, `onGround` → `addFoodAt` ran (the on-screen food count
 only refreshes in a foreground tab, per the rAF-throttle caveat).
 
+### v1.1.0 — Smite tool
+A new **⚡ Smite** tool: click anywhere and a **lightning bolt** strikes that spot (`World.smite` reuses
+the weather-lightning flash + beam visual), **killing everything in a ~9-unit radius** with a kill
+stinger. Cull a runaway predator pack, clear a crowded patch, or just play angry god. Verified: tool
+appears in the toolbar; built on the proven ground-click + lightning-render paths.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

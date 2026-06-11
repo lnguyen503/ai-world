@@ -204,6 +204,15 @@ export class World implements CreatureContext {
     }
   }
 
+  /** Strike lightning at a spot (the god-mode Smite tool): a bolt + flash that kills in a radius. */
+  smite(x: number, z: number): void {
+    this.lightningX = x; this.lightningZ = z; this.lightningFlash = 0.4;
+    const r2 = 9 * 9;
+    for (const c of this.creatures) {
+      if (c.alive && (c.x - x) ** 2 + (c.z - z) ** 2 <= r2) { c.energy = 0; c.alive = false; }
+    }
+  }
+
   eatFood(food: Food): void { food.alive = false; }
 
   burst(type: number, x: number, z: number): void {
