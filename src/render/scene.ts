@@ -343,6 +343,10 @@ export class Scene3D {
   private mist: { sprite: THREE.Sprite; x: number; z: number; speed: number }[] = [];
   private flowers!: THREE.Points;
   private flowerCount = 420;
+  private grass!: THREE.Points; // scattered grass tufts
+  private pebbles!: THREE.Points; // scattered pebbles
+  private grassN = 700;
+  private pebbleN = 150;
   private leaves!: THREE.Points;
   private leafSpeed!: Float32Array;
   private petals!: THREE.Points; // spring blossom petals (the counterpart to autumn leaves)
@@ -490,7 +494,59 @@ export class Scene3D {
     this.scene.add(this.terrain);
     this.fillFlowers(); // re-seat the wildflowers on the new terrain
     this.makeBushes(); // re-scatter the understory shrubs
+    this.makeGroundDetail(); // grass tufts + pebbles
     this.buildHorizon(); // re-tint the distant hills to the new palette
+  }
+
+  /** A small green-blade texture for grass-tuft sprites. */
+  private grassTexture(): THREE.CanvasTexture {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 16;
+    const x = cv.getContext('2d')!;
+    x.strokeStyle = '#fff'; x.lineWidth = 1.5; x.lineCap = 'round';
+    for (let i = 0; i < 3; i++) {
+      const bx = 5 + i * 3;
+      x.beginPath(); x.moveTo(bx, 15); x.quadraticCurveTo(bx + (i - 1) * 2, 8, bx + (i - 1) * 3, 2); x.stroke();
+    }
+    const t = new THREE.CanvasTexture(cv); t.needsUpdate = true; return t;
+  }
+
+  /** Scatter grass tufts + pebbles across the terrain (rebuilt per biome; dim at night). */
+  private makeGroundDetail(): void {
+    if (!this.grass) {
+      const tuft = (n: number, map: THREE.Texture, size: number, op: number): THREE.Points => {
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+        geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+        const pts = new THREE.Points(geo, new THREE.PointsMaterial({ map, size, vertexColors: true, transparent: true, opacity: op, depthWrite: true, alphaTest: 0.4, fog: true }));
+        pts.frustumCulled = false; this.scene.add(pts); return pts;
+      };
+      this.grass = tuft(this.grassN, this.grassTexture(), 0.7, 0.8);
+      this.pebbles = tuft(this.pebbleN, dotTexture(), 0.5, 0.7);
+    }
+    this.fillGroundDetail();
+  }
+
+  private fillGroundDetail(): void {
+    const H = WORLD.half - 2;
+    const c = new THREE.Color();
+    const gp = this.grass.geometry.getAttribute('position') as THREE.BufferAttribute;
+    const gc = this.grass.geometry.getAttribute('color') as THREE.BufferAttribute;
+    for (let i = 0; i < this.grassN; i++) {
+      const x = (Math.random() * 2 - 1) * H, z = (Math.random() * 2 - 1) * H;
+      gp.setXYZ(i, x, this.biome.height(x, z) + 0.25, z);
+      c.setHSL(0.26 + Math.random() * 0.08, 0.45, 0.3 + Math.random() * 0.13); // mossy greens
+      gc.setXYZ(i, c.r, c.g, c.b);
+    }
+    gp.needsUpdate = true; gc.needsUpdate = true;
+    const pp = this.pebbles.geometry.getAttribute('position') as THREE.BufferAttribute;
+    const pc = this.pebbles.geometry.getAttribute('color') as THREE.BufferAttribute;
+    for (let i = 0; i < this.pebbleN; i++) {
+      const x = (Math.random() * 2 - 1) * H, z = (Math.random() * 2 - 1) * H;
+      pp.setXYZ(i, x, this.biome.height(x, z) + 0.12, z);
+      const v = 0.38 + Math.random() * 0.26; c.setRGB(v, v * 0.97, v * 0.92); // greys
+      pc.setXYZ(i, c.r, c.g, c.b);
+    }
+    pp.needsUpdate = true; pc.needsUpdate = true;
   }
 
   /** Scatter low shrubs across the meadow (rebuilt per biome; share the seasonal foliage material). */
@@ -1796,6 +1852,8 @@ export class Scene3D {
     this.updateFish(t);
     this.updateSunShafts();
     (this.flowers.material as THREE.PointsMaterial).opacity = 0.4 + 0.55 * this.lastSky.dayFactor; // dim at night
+    (this.grass.material as THREE.PointsMaterial).opacity = 0.3 + 0.5 * this.lastSky.dayFactor;
+    (this.pebbles.material as THREE.PointsMaterial).opacity = 0.25 + 0.45 * this.lastSky.dayFactor;
     const shroomGlow = night * 1.8; // mushrooms bioluminesce after dark
     for (const m of this.glowMats) m.emissiveIntensity = shroomGlow;
     const ff = this.fireflies.material as THREE.PointsMaterial;

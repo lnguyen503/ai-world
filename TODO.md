@@ -40,6 +40,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.94: **shareable world permalink** — 🔗 Share encodes seed + levers in the URL hash; reload restores the world.
 - v0.95: **event sound stingers** — kill thud / birth chime / milestone shimmer (SoundManager.stinger).
 - v0.96: **discovery log** — scrollable 📜 history of striking births + milestones, timestamped.
+- v0.97: **ground detail** — grass tufts + pebbles scattered on the terrain (per biome, dim at night).
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).

@@ -577,6 +577,13 @@ newest on top. A little chronicle to scroll back through on a long watch. Verifi
 timestamped entries like "8:30 🕊 The Age of Flight" and "a curious little dwarf", stacking cleanly
 with no overlap.
 
+### v0.97.0 — Ground detail
+The bare ground between the flowers and bushes filled in: ~700 **grass tufts** (little green blade
+sprites in mossy greens) and ~150 **pebbles** (small greys) now scatter across the terrain
+(`src/render/scene.ts`), re-seeded with each biome and dimming at night like the wildflowers. A
+richer, more lived-in meadow underfoot. Verified live: grass tufts and pebbles scattered visibly
+across a Crimson Mesa.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
