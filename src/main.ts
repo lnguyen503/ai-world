@@ -215,6 +215,8 @@ let last = performance.now();
 let weatherTarget = 0;
 let weatherRetarget = 0; // sim-seconds until the next weather front rolls in
 let voiceCd = 0; // throttle between creature vocalizations
+let hudAccum = 0; // throttle the DOM/canvas HUD writes to ~15Hz (smooth frames don't need more)
+const HUD_INTERVAL = 1 / 15;
 let killStingerMs = -9999; // real-time gates on the event stingers
 let birthStingerMs = -9999;
 
@@ -247,17 +249,25 @@ function frame(now: number): void {
   chatter.update(world, simDt);
   scene.syncBubbles(world, chatter.dialogs());
 
+  // event detectors stay per-frame (cheap logic, timing-sensitive); the DOM/canvas writers are throttled
   const stats = world.stats();
-  hud.updateStats(stats);
   banner.update(stats); // milestone title cards
-  hof.update(world); // current standout individuals
   discovery.update(world); // log striking births
-  minimap.update(world, scene.cameraInfo()); // corner overview
-  const sel = scene.getSelected();
-  hud.showSelected(sel != null ? (world.creatures.find((c) => c.id === sel) ?? null) : null);
   const hunt = world.killFlash > 0 ? 'kill' : world.prowling > 0 ? 'chase' : 'none';
   const novelty = world.noveltyFlash > 0 ? world.lastNovelty : null;
   narrator.update(stats, biome.name, params.weather, world.lightningFlash > 0, world.dayFactor, world.prowling > 0, hunt, novelty);
+
+  // HUD panels (DOM text + minimap canvas) refresh ~15×/sec — rewriting them every frame on a high-refresh
+  // display is the main source of per-frame style-recalc hitching; the stats don't change fast enough to need it
+  hudAccum += realDt;
+  if (hudAccum >= HUD_INTERVAL) {
+    hudAccum = 0;
+    hud.updateStats(stats);
+    hof.update(world); // current standout individuals
+    minimap.update(world, scene.cameraInfo()); // corner overview
+    const sel = scene.getSelected();
+    hud.showSelected(sel != null ? (world.creatures.find((c) => c.id === sel) ?? null) : null);
+  }
   sound.update(params.weather, world.dayFactor);
   sound.setCamera(scene.audioFrame()); // the listener rides the camera → sounds pan + fade as you move/zoom
 

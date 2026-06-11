@@ -760,6 +760,22 @@ Verified live: all 13 god-mode actions fire correctly at the sim level (kills, g
 infections, era bump, food, zones); the flash (opacity 0.9) + shake + darkened world were confirmed on
 screen.
 
+### v2.6.0 — Frame pacing & portability (the jitter fix)
+A user on a high-end GPU reported stutter/"tearing" — which, on hardware that strong, points to frame-pacing
+bugs, not the browser. Two real culprits, both machine-dependent: (1) **all camera smoothing used constant
+per-frame lerp factors tuned for 60fps** (`lerp(…, 0.035)`, `0.025`, etc.), so on a 144/240Hz display they
+converged 2–4× faster and — worse — **jittered whenever frame intervals varied**; and (2) the HUD rewrote
+~17 DOM nodes **every frame**, causing periodic style-recalc spikes. Fixes: a frame-rate-independent damping
+helper `fdamp(k, dt) = 1 - (1-k)^(dt·60)` now wraps every camera lerp (identical feel at 60fps, smooth and
+consistent at any refresh rate); `controls.update(this.lastDt)` makes OrbitControls' auto-rotate
+frame-rate-independent (it was spinning 4× too fast at 240Hz); and the HUD's DOM/canvas writers
+(`updateStats`, `hof`, `minimap`, `showSelected`) are **throttled to ~15Hz** while the cheap event-detectors
+(banner/discovery/narrator) stay per-frame. Combined with the existing pixel-ratio cap (≤1.5) and the
+Glow/bloom toggle that skips post-processing (`render()` renders direct when off), the sim should pace
+smoothly across a wide range of machines — important for open-sourcing. (Note: true *vsync tearing* is a
+driver/compositor setting outside the app's control; this pass fixes the in-app judder.) Verified: tsc +
+build clean, no console errors, HUD still updates live and the camera follows smoothly.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

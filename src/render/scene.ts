@@ -18,6 +18,11 @@ const STORM = new THREE.Color(0x2a2e36);
 const FLASH = new THREE.Color(0xe6f0ff);
 const FOLIAGE_SUMMER = new THREE.Color(0x3f8f4a);
 const FOLIAGE_AUTUMN = new THREE.Color(0xc8772e);
+
+/** Frame-rate-independent damping. Turns a per-frame lerp fraction tuned at 60fps into one that gives the
+ *  same feel at any refresh rate (60 / 144 / 240Hz) and stays smooth when frame times vary — the fix for
+ *  camera jitter on high-refresh displays. */
+function fdamp(k: number, dt: number): number { return 1 - Math.pow(1 - k, dt * 60); }
 const SICK_TINT = new THREE.Color(0.42, 0.74, 0.32); // a sickly green wash over plague-infected critters
 const BLOSSOM_PINK = new THREE.Color(0xffb7d5); // spring blossom on the broadleaf trees
 const FRUIT_RED = new THREE.Color(0xe2402c); // late-season fruit
@@ -1949,7 +1954,7 @@ export class Scene3D {
   }
 
   follow(world: World): void {
-    if (this.stargaze) { this.nameSprite.visible = false; this.controls.update(); return; }
+    if (this.stargaze) { this.nameSprite.visible = false; this.controls.update(this.lastDt); return; }
     const sel = this.selectedId != null ? world.creatures.find((x) => x.id === this.selectedId) : undefined;
     if (this.selectedId != null && !sel) this.setSelected(null); // the creature we followed died
 
@@ -1963,13 +1968,13 @@ export class Scene3D {
       this.controls.autoRotate = false;
       this.nameSprite.visible = false;
       TMP.set(this.highlightX, this.biome.height(this.highlightX, this.highlightZ) + 1.2, this.highlightZ);
-      this.controls.target.lerp(TMP, 0.06); // gentle drift onto the action
+      this.controls.target.lerp(TMP, fdamp(0.06, this.lastDt)); // gentle drift onto the action
       const desired = 11;
       if (this.camera.position.distanceTo(this.controls.target) > desired * 1.6) {
         const dir = TMP2.copy(this.camera.position).sub(this.controls.target).normalize();
-        this.camera.position.lerp(TMP3.copy(this.controls.target).addScaledVector(dir, desired), 0.04);
+        this.camera.position.lerp(TMP3.copy(this.controls.target).addScaledVector(dir, desired), fdamp(0.04, this.lastDt));
       }
-      this.controls.update();
+      this.controls.update(this.lastDt);
       return;
     }
 
@@ -1991,7 +1996,7 @@ export class Scene3D {
     if (followed) {
       this.controls.autoRotate = false;
       this.followCreature(followed);
-      this.controls.update();
+      this.controls.update(this.lastDt);
       return;
     }
 
@@ -2003,8 +2008,8 @@ export class Scene3D {
     this.dramaTimer = Math.max(0, this.dramaTimer - this.lastDt);
     const f = this.dramaTimer > 0 ? 0.35 : 0; // fraction of the way from centre to the action
     TMP.set(this.dramaX * f, 2, this.dramaZ * f);
-    this.controls.target.lerp(TMP, 0.012);
-    this.controls.update();
+    this.controls.target.lerp(TMP, fdamp(0.012, this.lastDt));
+    this.controls.update(this.lastDt);
   }
 
   /**
@@ -2041,12 +2046,12 @@ export class Scene3D {
   private followCreature(c: Creature): void {
     const manual = this.selectedId != null;
     TMP.set(c.x, this.biome.height(c.x, c.z) + c.radius + 0.5, c.z);
-    this.controls.target.lerp(TMP, manual ? 0.12 : 0.035); // gentle, lagging ease on auto
+    this.controls.target.lerp(TMP, fdamp(manual ? 0.12 : 0.035, this.lastDt)); // gentle, lagging ease on auto
     const desired = (manual ? 5 : 9) + c.genome.size * 3; // hang back farther when auto-following
     if (this.camera.position.distanceTo(this.controls.target) > desired * (manual ? 1.6 : 2.0)) {
       const dir = TMP2.copy(this.camera.position).sub(this.controls.target).normalize(); // reuse temps (no per-frame GC)
       const goal = TMP3.copy(this.controls.target).addScaledVector(dir, desired);
-      this.camera.position.lerp(goal, manual ? 0.08 : 0.025);
+      this.camera.position.lerp(goal, fdamp(manual ? 0.08 : 0.025, this.lastDt));
     }
   }
 
