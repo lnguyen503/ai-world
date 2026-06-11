@@ -37,6 +37,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.91: **lineage panel** — parent + offspring on the follow panel, with a "follow a living relative" jump.
 - v0.92: **bioluminescence** — heritable glow gene; critters shimmer at night.
 - v0.93: **creature trading cards** — follow panel exports a PNG card (portrait + genome + badges).
+- v0.94: **shareable world permalink** — 🔗 Share encodes seed + levers in the URL hash; reload restores the world.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).

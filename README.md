@@ -142,6 +142,7 @@ src/
 - v0.91 ✓ — **lineage**: the follow panel shows a critter's **parent** and **offspring** count, with a **"→ follow a living relative"** button to hop along its family line.
 - v0.92 ✓ — **bioluminescence evolves**: a heritable **glow** gene makes critters **shimmer at night** — watch luminous lineages emerge in the dark.
 - v0.93 ✓ — **trading cards**: the follow panel can **save a PNG trading card** of any critter (portrait + genome + badges) — share your favourites.
+- v0.94 ✓ — **shareable worlds**: a **🔗 Share** button copies a link encoding the **seed + levers**; open it and the exact world comes back.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

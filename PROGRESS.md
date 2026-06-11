@@ -554,6 +554,14 @@ ones), type/flyer/glow badges, and stat bars (size/speed/sense/social/wings/glow
 as a PNG (`ai-world-<name>.png`), all local. Great for sharing a favourite critter from an open-source
 build. Built on the proven follow-panel + the same local-download path as Save.
 
+### v0.94.0 — Shareable world permalinks
+A **🔗 Share this world** button (`src/ui/permalink.ts`) encodes the **biome seed + the key levers**
+(food, metabolism, mutation, season, weather, day length) into the URL hash and copies the link to your
+clipboard. Open that link and the exact world comes back — `applyPermalink()` runs right after the biome
+is created (before the world/scene) and reseeds it + restores the levers. Perfect for sharing a find
+from an open-source build. Verified end-to-end: Share produced `#w=965963192&…`, and reloading that link
+restored the same biome (Amber Savanna).
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

@@ -14,11 +14,13 @@ import { EventBanner } from './ui/banner';
 import { HallOfFame } from './ui/hof';
 import { MiniMap } from './ui/minimap';
 import { TimeLapse } from './ui/timelapse';
+import { applyPermalink, setupShare } from './ui/permalink';
 
 const container = document.getElementById('app');
 if (!container) throw new Error('missing #app');
 
 const biome = new Biome();
+applyPermalink(biome); // restore a shared world (seed + levers) from the URL hash, if any
 let world = new World(biome);
 const scene = new Scene3D(container, biome);
 const hud = new Hud();
@@ -32,6 +34,7 @@ const banner = new EventBanner(); // cinematic title cards for milestone moments
 const hof = new HallOfFame(); // the world's standout individuals
 const minimap = new MiniMap(); // corner overview map
 new TimeLapse(); // ⏩ fast-forward montage with chapter cards
+setupShare(biome); // 🔗 copy a link that recreates this exact world
 const chatter = new Chatter(); // critters start talking once evolved enough
 narrator.onLine = (text) => speaker.speak(text);
 
