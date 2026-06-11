@@ -746,6 +746,20 @@ nights**; the nebulae are repositioned, recoloured, and **~3 of 5 shown**. Final
 clear nights but **fades the faint stars out first as it clouds over**, leaving the bright giants. Verified
 in-browser: a forced nightfall shows a smooth spiral galaxy + constellation lines with zero WebGL errors.
 
+### v2.5.0 — Cataclysm feedback (make the disasters unmissable)
+A user reported the asteroid/volcano "did nothing." Instrumenting the live state proved the **mechanics
+were fine** — one asteroid killed 7 creatures, set `world.gloom = 1`, the scene read it (`0.994`) and dimmed
+the sun to `0.287` — but the effect was a *slow* darkening at a *random, often off-screen* spot, with no
+punchy moment, so it was easy to miss. The fix is feedback, not mechanics: each cataclysm now fires an
+instant **full-screen colour flash** the moment you click (warm-white asteroid, fiery-orange volcano, icy
+white-blue ice age, sickly-green plague, golden radiation) and the **violent two (asteroid + volcano) shake
+the screen**, on top of the existing banner/log/stinger/camera-swoop and the slower world-change. Also
+fixed a latent bug: `world.onNewEra` was bound only to the *initial* world, so era banners went silent after
+a reset / new-biome / extinction — the handler is now re-bound (`bindWorldHandlers`) to every fresh world.
+Verified live: all 13 god-mode actions fire correctly at the sim level (kills, gloom, lava, freeze,
+infections, era bump, food, zones); the flash (opacity 0.9) + shake + darkened world were confirmed on
+screen.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

@@ -160,6 +160,11 @@
       body.photo #tips { opacity: 0 !important; }
       #vignette { position: fixed; inset: 0; z-index: 5; pointer-events: none;
         background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,0.45) 100%); }
+      /* cataclysm feedback: a quick full-screen colour flash + a brief screen-shake so a disaster is unmistakable */
+      #cata-flash { position: fixed; inset: 0; z-index: 40; pointer-events: none; opacity: 0; background: #fff; mix-blend-mode: screen; }
+      @keyframes cata-shake { 0%,100%{transform:translate(0,0)} 15%{transform:translate(-7px,5px)} 30%{transform:translate(6px,-6px)}
+        45%{transform:translate(-5px,-4px)} 60%{transform:translate(5px,4px)} 75%{transform:translate(-3px,3px)} 90%{transform:translate(3px,-2px)} }
+      #app.shake { animation: cata-shake 0.5s ease; }
       #intro { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column;
         align-items: center; justify-content: center; gap: 12px; text-align: center;
         background: radial-gradient(ellipse at center, rgba(10,14,20,0.5), rgba(10,14,20,0.92));
@@ -174,6 +179,7 @@
     <div id="app"></div>
     <div id="tips"></div>
     <div id="vignette"></div>
+    <div id="cata-flash"></div>
     <div id="intro"><h1>🌱 AI WORLD</h1><p>a tiny living planet — sit back and watch it evolve</p></div>
     <div class="panel" id="hud-top">
       <h1>🌱 AI WORLD</h1>

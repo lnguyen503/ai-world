@@ -46,39 +46,67 @@ const godmode = new GodMode();
 godmode.onTool = (tool) => scene.setGodTool(tool);
 godmode.onAction = (id) => triggerCataclysm(id);
 scene.onGround = (x, z, tool) => applyGodTool(x, z, tool);
+// cataclysm feedback — a quick screen flash (and, for the violent ones, a shake) so a disaster is
+// impossible to miss, on top of the slower world-changes (darkening, lava, freeze) the sim applies.
+const flashEl = document.getElementById('cata-flash');
+const appEl = document.getElementById('app');
+function screenFlash(color: string, peak: number): void {
+  if (!flashEl) return;
+  flashEl.style.transition = 'none';
+  flashEl.style.background = color;
+  flashEl.style.opacity = String(peak);
+  void flashEl.offsetWidth; // force the browser to apply the peak before we fade from it
+  flashEl.style.transition = 'opacity 0.85s ease';
+  flashEl.style.opacity = '0';
+}
+function screenShake(): void {
+  if (!appEl) return;
+  appEl.classList.remove('shake');
+  void appEl.offsetWidth; // restart the animation even on a rapid second trigger
+  appEl.classList.add('shake');
+}
 function triggerCataclysm(id: string): void {
   if (id === 'asteroid') {
     const p = world.asteroidImpact();
     banner.flash('☄️ Impact!', 'a fireball slams into the world');
     discovery.add('☄️ an asteroid struck — the skies darken', world.age);
     sound.stinger('kill');
+    screenFlash('rgba(255,248,235,1)', 0.9); screenShake(); // blinding impact + a jolt
     scene.highlightPoint(p.x, p.z); // swoop the camera to the crater
   } else if (id === 'volcano') {
     const p = world.eruptVolcano();
     banner.flash('🌋 Eruption!', 'a volcano splits the earth and spews fire');
     discovery.add('🌋 a volcano erupted — ash blots the sun', world.age);
     sound.stinger('kill');
+    screenFlash('rgba(255,110,30,1)', 0.7); screenShake(); // fiery glare + a jolt
     scene.highlightPoint(p.x, p.z); // swoop the camera to the vent
   } else if (id === 'iceage') {
     world.iceAge();
     banner.flash('❄️ Ice Age', 'a great cold descends — the world freezes over');
     discovery.add('❄️ an ice age set in — the meadow froze', world.age);
     sound.stinger('milestone');
+    screenFlash('rgba(215,238,255,1)', 0.75); // an icy white-out wash
   } else if (id === 'plague') {
     world.startPlague();
     banner.flash('🦠 Plague', 'a contagion spreads — only the resistant will endure');
     discovery.add('🦠 a plague broke out — disease swept the herd', world.age);
     sound.stinger('kill');
+    screenFlash('rgba(130,210,90,1)', 0.5); // a sickly green pulse
   } else if (id === 'radiate') {
     world.radiate('a willed awakening'); // fires world.onNewEra → banner + log below
+    screenFlash('rgba(255,232,150,1)', 0.6); // a golden surge of life
   }
 }
-// a new era dawns (an adaptive radiation, on demand or auto after a die-off) — punctuated equilibrium
-world.onNewEra = (era, label) => {
-  banner.flash(`🌟 Era ${era}`, `a new era dawns — ${label}`);
-  discovery.add(`🌟 Era ${era} began — ${label} (life diversifies)`, world.age);
-  sound.stinger('milestone');
-};
+// a new era dawns (an adaptive radiation, on demand or auto after a die-off) — punctuated equilibrium.
+// Re-bound to every fresh world (reset / new-biome / extinction) so era banners never go silent.
+function bindWorldHandlers(w: World): void {
+  w.onNewEra = (era, label) => {
+    banner.flash(`🌟 Era ${era}`, `a new era dawns — ${label}`);
+    discovery.add(`🌟 Era ${era} began — ${label} (life diversifies)`, world.age);
+    sound.stinger('milestone');
+  };
+}
+bindWorldHandlers(world);
 function applyGodTool(x: number, z: number, tool: string): void {
   if (tool === 'feed') world.addFoodAt(x, z, 14);
   else if (tool === 'smite') { world.smite(x, z); sound.stinger('kill'); }
@@ -153,6 +181,7 @@ controls.onNewBiome = () => {
 };
 controls.onReset = () => {
   world = new World(biome);
+  bindWorldHandlers(world);
   scene.setSelected(null);
   scene.setTrees(world.trees);
   scene.setPonds(world.ponds); sound.setEnvironment(world.ponds);
@@ -209,7 +238,7 @@ function frame(now: number): void {
     const steps = Math.min(SIM.maxSubStepsPerFrame, Math.max(1, Math.ceil(simDt / SIM.maxStep)));
     const stepDt = simDt / steps;
     for (let i = 0; i < steps; i++) world.step(stepDt);
-    if (world.creatures.length === 0) { world = new World(biome); scene.setSelected(null); scene.setTrees(world.trees); scene.setPonds(world.ponds); sound.setEnvironment(world.ponds); }
+    if (world.creatures.length === 0) { world = new World(biome); bindWorldHandlers(world); scene.setSelected(null); scene.setTrees(world.trees); scene.setPonds(world.ponds); sound.setEnvironment(world.ponds); }
   }
 
   world.computeLinks();
