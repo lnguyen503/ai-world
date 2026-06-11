@@ -1,4 +1,4 @@
-import { WORLD, SOCIAL, TREES, PONDS, WEATHER, SPECIES, params } from '../config';
+import { WORLD, SOCIAL, TREES, PONDS, WEATHER, SPECIES, LIFE, ECO, params } from '../config';
 import type { Biome } from '../biome';
 import { type Genome, randomGenome } from './genome';
 import { type Food, makeFood } from './food';
@@ -115,6 +115,7 @@ export class World implements CreatureContext {
   lightningX = 0;
   lightningZ = 0;
   dayFactor = 1; // 0 = night, 1 = midday (creatures read this to sleep)
+  crowding = 1; // ≥1; rises as the population passes the soft cap (brakes reproduction + raises metabolism)
   prowling = 0; // # of predators currently stalking nearby prey (ominous audio + narration)
   killFlash = 0; // >0 briefly after a kill — lets the narrator call the play-by-play
   lastKillX = 0; lastKillZ = 0; // where the most recent kill happened (cinematic camera drifts there)
@@ -133,7 +134,10 @@ export class World implements CreatureContext {
     this.biome = biome;
     for (let i = 0; i < WORLD.initialCreatures; i++) {
       const h = WORLD.half - 4;
-      this.creatures.push(newCreature(randomGenome(), (Math.random() * 2 - 1) * h, (Math.random() * 2 - 1) * h));
+      const c = newCreature(randomGenome(), (Math.random() * 2 - 1) * h, (Math.random() * 2 - 1) * h);
+      c.age = Math.random() * 35; // stagger founding ages so the cohort doesn't all die of old age at once
+      c.energy = LIFE.startEnergy * (0.6 + Math.random() * 0.5);
+      this.creatures.push(c);
     }
     for (let i = 0; i < WORLD.initialFood; i++) this.food.push(this.growFood());
     const th = WORLD.half - 8;
@@ -273,9 +277,12 @@ export class World implements CreatureContext {
 
   step(dt: number): void {
     this.dayFactor = this.biome.dayFactor(this.age);
-    // food regrows toward an abundance- and season-scaled cap
+    // crowding brake: ≥1, climbing as the population passes the soft cap (self-limits before overshoot)
+    this.crowding = 1 + Math.max(0, (this.creatures.length - ECO.softCap) / ECO.softCap) * ECO.crowdingK;
+    // food regrows toward an abundance- and season-scaled cap, faster when the meadow is grazed bare
     const targetCap = Math.min(WORLD.foodMax, Math.round(WORLD.initialFood * params.foodAbundance));
-    this.foodDebt += WORLD.foodRegrowPerSec * params.foodAbundance * this.biome.seasonFood(this.age) * dt;
+    const scarcity = 1 - Math.min(1, this.food.length / Math.max(1, targetCap));
+    this.foodDebt += WORLD.foodRegrowPerSec * params.foodAbundance * (1 + scarcity * (ECO.recoveryBoost - 1)) * this.biome.seasonFood(this.age) * dt;
     while (this.foodDebt >= 1 && this.food.length < targetCap) {
       this.food.push(this.growFood());
       this.foodDebt -= 1;

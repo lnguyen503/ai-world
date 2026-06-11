@@ -13,9 +13,15 @@ export const WORLD = {
 };
 
 export const FOOD = {
-  energy: 28, // energy a creature gains by eating one pellet (a touch higher to offset fewer pellets)
+  energy: 34, // energy a creature gains by eating one pellet (a touch higher to offset fewer pellets)
   radius: 0.3,
 };
+
+// Foraging: prey have an innate drive to steer toward sensed food — symmetric with a predator's
+// innate hunt drive — so even a gen-0 random brain can feed itself and the founding population can
+// survive long enough to evolve. The brain still steers on top, adding finesse (patch choice,
+// balancing food against fleeing / herding), so foraging skill still improves over generations.
+export const FORAGE = { gain: 2.4 };
 
 export const GENE_RANGES = {
   size: [0.45, 2.2] as const, // body scale; bigger = more max energy but costlier
@@ -55,7 +61,7 @@ export const LIFE = {
   maxEnergyBase: 30,
   maxEnergyPerSize: 55,
   /** baseline metabolic drain per second, plus movement cost ~ size*speed^2. */
-  baseMetabolism: 1.1,
+  baseMetabolism: 1.0,
   moveCostK: 0.16,
   /** reproduce when energy >= threshold * maxEnergy; child gets half, parent keeps half. */
   reproThreshold: 0.72,
@@ -64,6 +70,15 @@ export const LIFE = {
   maxAgePerSize: 28,
   eatRadiusBase: 0.6, // plus body radius
   matureAge: 12, // seconds before a juvenile grows up and can reproduce
+};
+
+// Carrying capacity: a gentle crowding brake that turns boom-bust crashes into smoother cycles.
+// As the population climbs past softCap, reproduction needs more spare energy and metabolism ticks
+// up (resource competition), so the world self-limits *before* it overshoots its food and collapses.
+export const ECO = {
+  softCap: 100, // the population the meadow comfortably supports
+  crowdingK: 0.8, // how steeply the crowding penalty rises past the soft cap
+  recoveryBoost: 1.8, // food regrows up to this much faster when the meadow has been grazed bare
 };
 
 export const MUTATION = {
@@ -123,7 +138,7 @@ export const params = {
 // Predators hunt prey; prey flee. A creature is a carnivore when its `predator` gene > threshold.
 export const PRED = {
   threshold: 0.5,
-  gain: 36, // base energy gained from a kill (plus a share of the prey's energy)
+  gain: 30, // base energy gained from a kill (plus a share of the prey's energy) — trimmed so predators crop, not crash, the herd
   metabolismMult: 1.35, // predators burn energy faster
   eatRadiusBonus: 0.5,
   huntGain: 1.7, // steering pull toward prey

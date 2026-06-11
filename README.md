@@ -120,6 +120,7 @@ src/
 - v0.69 ✓ — **understory & blossoms**: low **shrubs** fill the meadow between the trees, and the broadleaf trees flush with **seasonal blossom** (pink in spring) that ripens to **red fruit** toward autumn.
 - v0.70 ✓ — **the critters have voices**: little **stereo-panned** sounds — an **alarm squeak** when one bolts in fright, a **chirp** when one finds food, a contented **hum** while grazing (with the Nature ambience on).
 - v0.71 ✓ — **pond life & sun shafts**: **fish** circle and dart under the pond surface, and a soft **god-ray glare** fans out from the low sun at **dawn and dusk**.
+- v0.72 ✓ — **a food chain that doesn't crash**: gave prey an **innate foraging drive** and added a **carrying-capacity** brake, so the population now holds a **stable ~150 for generations** instead of booming and busting to extinction — and you can finally watch natural selection play out (the clever lineages win).
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.

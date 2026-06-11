@@ -1,4 +1,4 @@
-import { LIFE, FOOD, BRAIN, SOCIAL, PRED, WEATHER, FLIGHT, PONDS, STAMINA, SPECIES, params } from '../config';
+import { LIFE, FOOD, FORAGE, BRAIN, SOCIAL, PRED, WEATHER, FLIGHT, PONDS, STAMINA, SPECIES, params } from '../config';
 import { type Genome, mutate, crossover } from './genome';
 import { think } from './brain';
 import type { Food } from './food';
@@ -34,6 +34,7 @@ export interface CreatureContext {
   nearestPond(x: number, z: number): PondInfo;
   burst(type: number, x: number, z: number): void; // queue a particle burst (2 = kill impact)
   dayFactor: number; // 0 = deep night, 1 = midday
+  crowding: number; // ≥1; population-pressure brake on reproduction + metabolism
 }
 
 let nextCreatureId = 1;
@@ -103,6 +104,7 @@ export class Creature {
     const flying = this.canFly;
     const weather = params.weather;
     const smarts = (SPECIES[g.species] ?? SPECIES[0]!).smarts; // species intelligence (sense + steering)
+    const crowdMetab = 1 + (ctx.crowding - 1) * 0.5; // a crowded world costs a little more to live in
     this.signalTimer = Math.max(0, this.signalTimer - dt);
     this.alarmTimer = Math.max(0, this.alarmTimer - dt);
     this.lungeTimer = Math.max(0, this.lungeTimer - dt);
@@ -122,7 +124,7 @@ export class Creature {
     if (threatened) this.drinkTimer = 0; // no time for a drink with a predator about
     this.asleep = ctx.dayFactor < 0.28 && !predator && !flying && !threatened;
     if (this.asleep) {
-      this.energy -= LIFE.baseMetabolism * params.metabolism * 0.35 * dt; // resting burns little
+      this.energy -= LIFE.baseMetabolism * params.metabolism * crowdMetab * 0.35 * dt; // resting burns little
       if (weather > WEATHER.startAt && !sheltered) this.energy -= WEATHER.damagePerSec * (weather - WEATHER.startAt) * dt;
       this.age += dt;
       if (this.energy <= 0 || this.age >= this.maxAge) this.alive = false;
@@ -160,6 +162,11 @@ export class Creature {
       turn += social * SOCIAL.alignGain * angDelta(this.heading, Math.atan2(ni.alignSin, ni.alignCos));
       if (ni.sepX !== 0 || ni.sepZ !== 0) turn += SOCIAL.separationGain * angDelta(this.heading, Math.atan2(ni.sepZ, ni.sepX));
       if (ni.hasSignal && !predator) turn += SOCIAL.signalGain * angDelta(this.heading, Math.atan2(ni.sigZ, ni.sigX));
+    }
+
+    // --- prey have an innate pull toward sensed food (the brain steers on top of this) ---
+    if (!predator && hasTarget) {
+      turn += FORAGE.gain * angDelta(this.heading, Math.atan2(tz - this.z, tx - this.x));
     }
 
     // --- predators hunt prey & pack with other predators; prey flee & raise the alarm ---
@@ -253,7 +260,7 @@ export class Creature {
 
     // --- metabolism (predators and flyers burn more) ---
     const moveCost = LIFE.moveCostK * g.size * speed * speed;
-    this.energy -= (LIFE.baseMetabolism + moveCost) * params.metabolism
+    this.energy -= (LIFE.baseMetabolism + moveCost) * params.metabolism * crowdMetab
       * (predator ? PRED.metabolismMult : 1) * (flying ? FLIGHT.costMult : 1) * dt;
 
     // --- weather: an EXPOSED creature is battered by the storm; shelter protects it ---
@@ -284,8 +291,10 @@ export class Creature {
       }
     }
 
-    // --- reproduce (only once grown up) ---
-    if (this.age >= LIFE.matureAge && this.energy >= LIFE.reproThreshold * this.maxEnergy) {
+    // --- reproduce (only once grown up; a crowded world demands more spare energy to breed) ---
+    // crowding raises the energy bar to breed; past ~1.0 it exceeds reachable energy, a soft cap on growth
+    const reproThresh = Math.min(1.1, LIFE.reproThreshold * ctx.crowding);
+    if (this.age >= LIFE.matureAge && this.energy >= reproThresh * this.maxEnergy) {
       const childEnergy = this.energy * 0.5;
       this.energy *= 0.5;
       const a = Math.random() * Math.PI * 2;

@@ -343,6 +343,29 @@ glare** fades in: an additive sun-disc with radiating streaks, anchored at the s
 that strengthens as the sun nears the horizon and the sky is clear, and fades out
 by midday, at night, and under storm cloud.
 
+### v0.72.0 — A food chain that doesn't crash
+The world used to **boom and bust to extinction** and reseed — watching it long enough,
+the population always collapsed to single digits. Profiling the dynamics turned up the
+real cause: predators had an innate drive to hunt, but **prey had no innate drive to
+forage** — they relied entirely on their *random* gen-0 neural net to find food, so the
+founding population starved before it could evolve competence, then reseeded with fresh
+random brains forever. The fix is a set of mutually-reinforcing balance changes:
+- **Innate foraging** (`FORAGE.gain`): prey now steer toward sensed food, symmetric with a
+  predator's hunt drive, so even a random brain can feed itself (the brain still steers on
+  top, adding finesse — so foraging skill still *evolves*).
+- **Carrying capacity** (`ECO`, `World.crowding`): as the population passes a soft cap,
+  reproduction needs more spare energy (past a point, more than is reachable — a soft
+  ceiling) and metabolism ticks up, so the world self-limits *before* it overshoots its
+  food and collapses.
+- **Faster food recovery** when the meadow is grazed bare, **staggered founding ages** (no
+  synchronized old-age die-off), and a small trim to predator kill-energy and starting
+  numbers so predators crop the herd instead of crashing it.
+
+Measured at 20× over ~10+ in-world days: the population now climbs from ~80 and **holds a
+stable ~150 across generations 1→30+ without ever crashing**, food stays healthy, and you
+can watch selection actually play out — the clever **Foxling** lineage out-competing the
+rest once the world lives long enough to evolve.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

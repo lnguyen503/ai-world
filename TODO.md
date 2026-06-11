@@ -15,6 +15,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.69: **understory bushes** + **seasonal blossom/fruit** on the broadleaf trees.
 - v0.70: **per-creature vocalizations** — stereo-panned alarm/chirp/hum by what each critter is doing.
 - v0.71: **pond fish** (circling/darting under the surface) + **dawn/dusk god-ray sun shafts**.
+- v0.72: **food-chain balance** — innate prey foraging + carrying-capacity brake; population now holds a stable ~150 for generations instead of crashing to extinction.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).
@@ -56,7 +57,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - [ ] Mobile / touch controls.
 
 ## Balance & tech
-- [ ] **Tune the food chain** so predator/prey populations cycle stably instead of crashing (Lotka–Volterra-ish).
+- [x] **Tune the food chain** so the population stops crashing to extinction (v0.72: innate foraging + carrying capacity → stable ~150). *Next:* richer predator/prey *oscillation* (Lotka–Volterra cycles) now that the base is stable.
 - [ ] **Web Worker** for the simulation so heavy worlds stay smooth and the tab can run in the background.
 - [ ] **Deterministic replay** from a seed + recorded levers, for sharing exact worlds.
 - [ ] Performance pass for 1000+ creatures (instancing is in place; profile the brain step).

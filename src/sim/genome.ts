@@ -48,8 +48,8 @@ export function randomGenome(): Genome {
     brain: randomBrain(),
     look: Math.floor(Math.random() * 0x7fffffff),
     social: Math.random(),
-    // ~12% of the starting population are predators; the rest are prey.
-    predator: Math.random() < 0.12 ? 0.6 + Math.random() * 0.4 : Math.random() * 0.45,
+    // ~9% of the starting population are predators; the rest are prey.
+    predator: Math.random() < 0.09 ? 0.6 + Math.random() * 0.4 : Math.random() * 0.45,
     // ~10% can already fly; flight spreads (or dies out) depending on the world's conditions.
     wings: Math.random() < 0.1 ? 0.55 + Math.random() * 0.45 : Math.random() * 0.45,
     clan: nextClan++,
