@@ -327,6 +327,7 @@ export class Scene3D {
   private moonMat!: THREE.ShaderMaterial;
   private lastAge = 0;
   private prevNightForAurora = false;
+  private gloom = 0; // cataclysm darkening, read from world each frame
   private bloodMoon = false; // a rare red-moon night
   onBloodMoon: () => void = () => {}; // fired when a blood moon rises
   private lastSky!: SkyState;
@@ -807,6 +808,7 @@ export class Scene3D {
     }
     this.syncFood(world);
     this.syncSocial(world);
+    this.gloom = world.gloom; // cataclysm darkening (impact winter / ash / freeze)
     this.updateSky(world.age);
     this.syncWeather(world);
     this.updateRainbow(dt);
@@ -1393,8 +1395,14 @@ export class Scene3D {
     const dist = WORLD.half * 1.6;
     this.sun.position.set(s.sunDir[0] * dist, s.sunDir[1] * dist, s.sunDir[2] * dist);
     this.sun.color.copy(toVec3(s.sunColor));
-    this.sun.intensity = s.sunIntensity;
-    this.hemi.intensity = s.ambIntensity;
+    this.sun.intensity = s.sunIntensity * (1 - this.gloom * 0.82);
+    this.hemi.intensity = s.ambIntensity * (1 - this.gloom * 0.7);
+    if (this.gloom > 0.02) { // a cataclysm pall darkens the sky + fog
+      const dark = 1 - this.gloom * 0.7;
+      (this.scene.fog as THREE.Fog).color.multiplyScalar(dark);
+      (this.skyMat.uniforms.uTop!.value as THREE.Color).multiplyScalar(dark);
+      (this.skyMat.uniforms.uBottom!.value as THREE.Color).multiplyScalar(dark);
+    }
     this.cosmos.setNight(s.starAlpha);
     // roll a fresh aurora each nightfall — most nights none/faint, occasionally a real show
     const isNight = s.starAlpha > 0.5;
@@ -2016,6 +2024,9 @@ export class Scene3D {
     this.highlightX = x; this.highlightZ = z;
     this.highlightCdMs = performance.now();
   }
+
+  /** Swoop the cinematic camera to a world point — used by cataclysms to show the impact. */
+  highlightPoint(x: number, z: number): void { this.startHighlight(x, z); }
 
   /** Turn the cinematic auto-follow on/off. Off → the camera just drifts in a slow, gentle orbit. */
   setAutoCam(on: boolean): void {

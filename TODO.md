@@ -48,6 +48,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v1.2: **Spawn tools** — 🌿 Hatch (prey) / 🐺 Predator drop fresh creatures where you click.
 - v1.3: **Drought / Bloom brush** — paint dead/lush zones (World.addZone, processed each step).
 - v1.4: **Terraform** — ⛰ Raise / 🕳 Dig sculpt the biome height (gaussian edits), rebuild terrain/trees/ponds.
+- v1.5: **☄️ Asteroid cataclysm** — a one-click world disaster: mass death in a wide radius, an impact "POW", and a lasting impact-winter pall that darkens the sky and crashes food before it slowly lifts.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).

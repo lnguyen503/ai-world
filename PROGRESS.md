@@ -636,6 +636,17 @@ shape; each edit rebuilds the terrain + trees + ponds. Dam a valley, raise a ref
 the world is clay. Verified: both tools in the toolbar; height-edit + rebuild build clean. (A fresh
 biome starts un-sculpted; edits clear on reseed.)
 
+### v1.5.0 — Asteroid cataclysm
+The first **cataclysm** — a world-scale disaster you trigger with one click. A new **☄️ Asteroid**
+button (a `cataclysm`-styled action, not a brush) fires `World.asteroidImpact`: a fireball slams into a
+random spot, **mass-killing everything in a ~22-unit radius**, throwing a big impact "POW", and — the
+part that lingers — raising a **gloom pall** (`World.gloom = 1`) that **darkens the sun, sky and fog and
+crashes food regrowth**, then slowly lifts over ~45s (an "impact winter"). A banner + discovery-log
+entry + kill stinger announce it, and the cinematic camera swoops to the crater. This is the template
+the remaining cataclysms (volcano, ice age, plague) build on. Verified: button renders with the
+`cataclysm` class, click fires the banner ("☄️ Impact!") and logs the event; gloom darkening wired into
+the sky shader.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

@@ -15,8 +15,14 @@ const TOOLS: Tool[] = [
   { id: 'dig', label: '🕳 Dig' },
 ];
 
+// Cataclysms fire immediately on click (world-scale disasters), unlike the brush tools above.
+const ACTIONS: Tool[] = [
+  { id: 'asteroid', label: '☄️ Asteroid' },
+];
+
 export class GodMode {
   onTool: (tool: string | null) => void = () => {};
+  onAction: (id: string) => void = () => {};
   private active: string | null = null;
   private buttons = new Map<string, HTMLButtonElement>();
 
@@ -29,6 +35,12 @@ export class GodMode {
       b.addEventListener('click', () => this.select(t.id));
       cont.appendChild(b);
       this.buttons.set(t.id, b);
+    }
+    for (const a of ACTIONS) {
+      const b = document.createElement('button');
+      b.textContent = a.label; b.className = 'god-btn cataclysm';
+      b.addEventListener('click', () => this.onAction(a.id));
+      cont.appendChild(b);
     }
   }
 

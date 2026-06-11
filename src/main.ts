@@ -44,7 +44,17 @@ setupShare(biome); // 🔗 copy a link that recreates this exact world
 // god mode — wield tools directly on the world
 const godmode = new GodMode();
 godmode.onTool = (tool) => scene.setGodTool(tool);
+godmode.onAction = (id) => triggerCataclysm(id);
 scene.onGround = (x, z, tool) => applyGodTool(x, z, tool);
+function triggerCataclysm(id: string): void {
+  if (id === 'asteroid') {
+    const p = world.asteroidImpact();
+    banner.flash('☄️ Impact!', 'a fireball slams into the world');
+    discovery.add('☄️ an asteroid struck — the skies darken', world.age);
+    sound.stinger('kill');
+    scene.highlightPoint(p.x, p.z); // swoop the camera to the crater
+  }
+}
 function applyGodTool(x: number, z: number, tool: string): void {
   if (tool === 'feed') world.addFoodAt(x, z, 14);
   else if (tool === 'smite') { world.smite(x, z); sound.stinger('kill'); }

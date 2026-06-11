@@ -115,6 +115,7 @@ export class World implements CreatureContext {
   lightningX = 0;
   lightningZ = 0;
   dayFactor = 1; // 0 = night, 1 = midday (creatures read this to sleep)
+  gloom = 0; // 0..1 cataclysm pall: darkens the sky + crashes food (impact winter, ash, freeze)
   crowding = 1; // ≥1; rises as the population passes the soft cap (brakes reproduction + raises metabolism)
   get camoHue(): number { return this.biome.camoHue; } // the ground hue prey camouflage toward
   prowling = 0; // # of predators currently stalking nearby prey (ominous audio + narration)
@@ -205,6 +206,17 @@ export class World implements CreatureContext {
       this.food.push(makeFood(fx, fz));
       if (this.events.length < 300) this.events.push({ t: 0, x: fx, z: fz }); // a little sparkle
     }
+  }
+
+  /** Cataclysm — an asteroid slams down: mass death in a wide radius + a lasting impact winter. */
+  asteroidImpact(): { x: number; z: number } {
+    const h = this.half - 10;
+    const cx = (Math.random() * 2 - 1) * h, cz = (Math.random() * 2 - 1) * h;
+    const r2 = 22 * 22;
+    for (const c of this.creatures) if (c.alive && (c.x - cx) ** 2 + (c.z - cz) ** 2 <= r2) { c.energy = 0; c.alive = false; }
+    this.burst(2, cx, cz); // a big impact POW
+    this.gloom = 1; this.killFlash = 1.2; this.lastKillX = cx; this.lastKillZ = cz;
+    return { x: cx, z: cz };
   }
 
   /** Paint a drought (clears food + suppresses growth) or a bloom (a lush flush) over a spot. */
@@ -318,12 +330,14 @@ export class World implements CreatureContext {
 
   step(dt: number): void {
     this.dayFactor = this.biome.dayFactor(this.age);
+    this.gloom = Math.max(0, this.gloom - dt * 0.022); // a cataclysm pall lifts over ~45s
     // crowding brake: ≥1, climbing as the population passes the soft cap (self-limits before overshoot)
     this.crowding = 1 + Math.max(0, (this.creatures.length - ECO.softCap) / ECO.softCap) * ECO.crowdingK;
-    // food regrows toward an abundance- and season-scaled cap, faster when the meadow is grazed bare
+    // food regrows toward an abundance- and season-scaled cap, faster when the meadow is grazed bare,
+    // and barely at all under a cataclysm pall (impact winter / ash / freeze)
     const targetCap = Math.min(WORLD.foodMax, Math.round(WORLD.initialFood * params.foodAbundance));
     const scarcity = 1 - Math.min(1, this.food.length / Math.max(1, targetCap));
-    this.foodDebt += WORLD.foodRegrowPerSec * params.foodAbundance * (1 + scarcity * (ECO.recoveryBoost - 1)) * this.biome.seasonFood(this.age) * dt;
+    this.foodDebt += WORLD.foodRegrowPerSec * params.foodAbundance * (1 + scarcity * (ECO.recoveryBoost - 1)) * this.biome.seasonFood(this.age) * (1 - this.gloom * 0.9) * dt;
     while (this.foodDebt >= 1 && this.food.length < targetCap) {
       this.food.push(this.growFood());
       this.foodDebt -= 1;
