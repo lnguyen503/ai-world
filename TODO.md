@@ -14,13 +14,12 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.68: **cinematic director** (camera glides from critter to critter when idle) + **narration voice fix** (finishes each line instead of cutting off during fast events).
 - v0.69: **understory bushes** + **seasonal blossom/fruit** on the broadleaf trees.
 - v0.70: **per-creature vocalizations** — stereo-panned alarm/chirp/hum by what each critter is doing.
+- v0.71: **pond fish** (circling/darting under the surface) + **dawn/dusk god-ray sun shafts**.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).
 - [ ] **Water reflections** in the ponds (mirror the sky / nearby creatures on the surface).
 - [ ] **Per-species lines on the population graph** (not just current counts).
-- [ ] **Fish** darting under the pond surface.
-- [ ] **Sun shafts / god rays** through the trees at dawn and dusk.
 - [ ] **A bigger "evolution event" banner** for the rarest surprises (first-ever flyer, a new apex predator).
 - [ ] **Herd defense**: big prey turn and stand their ground instead of always fleeing.
 - [ ] **Seasonal night sky**: constellations rotate / different stars rise across the in-world year.

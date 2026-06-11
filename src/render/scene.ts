@@ -331,6 +331,11 @@ export class Scene3D {
   private motesCur!: Float32Array;
   private butterflies: { sp: THREE.Sprite; bx: number; bz: number; phase: number; speed: number }[] = [];
   private dragonflies: { sp: THREE.Sprite; phase: number; speed: number }[] = [];
+  // fish circling just under the pond surface, and the dawn/dusk sun-shaft glare
+  private fish: { mesh: THREE.Mesh; cx: number; cz: number; r: number; ang: number; speed: number; y: number; phase: number; dart: number }[] = [];
+  private fishGeo = new THREE.SphereGeometry(1, 8, 6);
+  private fishMats: THREE.MeshToonMaterial[] = [];
+  private sunShafts?: THREE.Sprite;
   private clouds: { sprite: THREE.Sprite; shadow: THREE.Mesh; x: number; z: number; speed: number }[] = [];
   private flocks: { group: THREE.Group; birds: THREE.Sprite[]; speed: number }[] = [];
   private mist: { sprite: THREE.Sprite; x: number; z: number; speed: number }[] = [];
@@ -414,6 +419,7 @@ export class Scene3D {
     this.makeFlowers();
     this.makeLeaves();
     this.makeDragonflies();
+    this.makeSunShafts();
     this.scene.add(this.bursts.mesh);
 
     const renderPass = new RenderPass(this.scene, this.camera);
@@ -1009,12 +1015,29 @@ export class Scene3D {
   private buildPonds(): void {
     this.pondGroup.clear();
     this.lilies = [];
+    this.fish = [];
+    if (!this.fishMats.length) {
+      this.fishMats = [0xd9824a, 0xc8ccd2, 0x5b86a6].map((c) => new THREE.MeshToonMaterial({ gradientMap: this.toonGrad, color: c }));
+    }
     for (const p of this.pondData) {
       const waterY = this.biome.height(p.x, p.z) + 0.06;
       const mesh = new THREE.Mesh(new THREE.CircleGeometry(p.r, 40), this.waterMat);
       mesh.rotation.x = -Math.PI / 2;
       mesh.position.set(p.x, waterY, p.z);
       this.pondGroup.add(mesh);
+
+      // a few fish circling and darting just below the surface
+      const nFish = 1 + Math.floor(p.r * 0.5);
+      for (let k = 0; k < nFish; k++) {
+        const fm = new THREE.Mesh(this.fishGeo, this.fishMats[Math.floor(Math.random() * this.fishMats.length)]!);
+        fm.scale.set(0.18, 0.12, 0.42);
+        this.pondGroup.add(fm);
+        this.fish.push({
+          mesh: fm, cx: p.x, cz: p.z, r: p.r * (0.3 + Math.random() * 0.45),
+          ang: Math.random() * Math.PI * 2, speed: (0.3 + Math.random() * 0.5) * (Math.random() < 0.5 ? 1 : -1),
+          y: waterY - 0.14, phase: Math.random() * Math.PI * 2, dart: 1 + Math.random() * 3,
+        });
+      }
 
       // a few floating lily pads, scattered within the pond
       const pads = 2 + Math.floor(Math.random() * 3);
@@ -1029,6 +1052,67 @@ export class Scene3D {
         this.lilies.push({ mesh: pad, baseY: y, phase: Math.random() * Math.PI * 2 });
       }
     }
+  }
+
+  /** Swim the pond fish in lazy circles, with occasional darts, facing their direction of travel. */
+  private updateFish(t: number): void {
+    const dt = this.lastDt;
+    for (const f of this.fish) {
+      f.dart -= dt;
+      if (f.dart <= 0) { f.dart = 2 + Math.random() * 4; f.speed = (0.3 + Math.random() * 0.7) * (Math.random() < 0.5 ? 1 : -1); }
+      f.ang += f.speed * dt;
+      const rad = f.r * (0.92 + Math.sin(t * 0.6 + f.phase) * 0.08);
+      f.mesh.position.set(f.cx + Math.cos(f.ang) * rad, f.y + Math.sin(t * 1.5 + f.phase) * 0.03, f.cz + Math.sin(f.ang) * rad);
+      const s = Math.sign(f.speed);
+      f.mesh.rotation.y = Math.atan2(-Math.sin(f.ang) * s, Math.cos(f.ang) * s); // face the tangent
+    }
+  }
+
+  /** A soft sun-disc with radiating streaks, for the dawn/dusk god-ray glare. */
+  private sunRayTexture(): THREE.CanvasTexture {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const x = c.getContext('2d')!;
+    x.translate(128, 128);
+    const core = x.createRadialGradient(0, 0, 0, 0, 0, 128);
+    core.addColorStop(0, 'rgba(255,247,224,0.5)');
+    core.addColorStop(0.2, 'rgba(255,240,200,0.12)');
+    core.addColorStop(1, 'rgba(255,240,200,0)');
+    x.fillStyle = core; x.beginPath(); x.arc(0, 0, 128, 0, Math.PI * 2); x.fill();
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2 + Math.random() * 0.12;
+      const len = 88 + Math.random() * 40;
+      const g = x.createLinearGradient(0, 0, Math.cos(a) * len, Math.sin(a) * len);
+      g.addColorStop(0, 'rgba(255,245,210,0.5)');
+      g.addColorStop(1, 'rgba(255,245,210,0)');
+      x.strokeStyle = g; x.lineWidth = 2 + Math.random() * 4;
+      x.beginPath(); x.moveTo(0, 0); x.lineTo(Math.cos(a) * len, Math.sin(a) * len); x.stroke();
+    }
+    const tex = new THREE.CanvasTexture(c); tex.needsUpdate = true; return tex;
+  }
+
+  private makeSunShafts(): void {
+    const mat = new THREE.SpriteMaterial({
+      map: this.sunRayTexture(), transparent: true, opacity: 0, depthWrite: false, depthTest: false,
+      blending: THREE.AdditiveBlending, fog: false,
+    });
+    this.sunShafts = new THREE.Sprite(mat);
+    this.sunShafts.scale.setScalar(WORLD.half * 1.6);
+    this.scene.add(this.sunShafts);
+  }
+
+  /** Anchor the sun-shaft glare at the sun and fade it in when the sun is low and the sky is clear. */
+  private updateSunShafts(): void {
+    if (!this.sunShafts || !this.lastSky) return;
+    const d = this.lastSky.sunDir;
+    const cam = this.camera.position;
+    const dist = WORLD.half * 1.5;
+    this.sunShafts.position.set(cam.x + d[0] * dist, cam.y + d[1] * dist, cam.z + d[2] * dist);
+    const low = Math.max(0, 1 - d[1] * 2.0); // strongest near the horizon (dawn / dusk)
+    const clear = 1 - Math.min(1, params.weather * 1.4);
+    const mat = this.sunShafts.material as THREE.SpriteMaterial;
+    mat.opacity = low * this.lastSky.dayFactor * clear * 0.55;
+    this.sunShafts.visible = mat.opacity > 0.01;
   }
 
   /** A small pool of speech-bubble sprites for critter chatter. */
@@ -1641,6 +1725,8 @@ export class Scene3D {
     this.cosmos.update(t);
     this.updateButterflies(t, this.lastSky.dayFactor);
     this.updateDragonflies(t, this.lastSky.dayFactor);
+    this.updateFish(t);
+    this.updateSunShafts();
     (this.flowers.material as THREE.PointsMaterial).opacity = 0.4 + 0.55 * this.lastSky.dayFactor; // dim at night
     const shroomGlow = night * 1.8; // mushrooms bioluminesce after dark
     for (const m of this.glowMats) m.emissiveIntensity = shroomGlow;

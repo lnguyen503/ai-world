@@ -333,6 +333,16 @@ between voices) so a panicking herd reads as a chorus of alarms without turning 
 noise, and it falls silent while the sim is paused. New `SoundManager.voice()` owns
 the timbres; `main.ts` picks who speaks.
 
+### v0.71.0 — Pond life & sun shafts
+**Fish** now circle and dart just beneath the pond surface: each pond seeds a few
+small toon fish (koi-orange / silver / blue) that swim lazy arcs, occasionally
+change pace and direction, bob a little, and turn to face the way they're going —
+glimpsed through the translucent water. They share one scaled geometry and three
+materials, rebuilt with the ponds. And at **dawn and dusk** a soft **god-ray
+glare** fades in: an additive sun-disc with radiating streaks, anchored at the sun,
+that strengthens as the sun nears the horizon and the sky is clear, and fades out
+by midday, at night, and under storm cloud.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
