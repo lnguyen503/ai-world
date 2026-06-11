@@ -350,4 +350,30 @@ export class SoundManager {
     }
     o.onended = () => panner.disconnect();
   }
+
+  /** A short musical cue tied to a dramatic moment (plays only when some ambience is on). */
+  stinger(kind: 'birth' | 'kill' | 'milestone'): void {
+    const ctx = this.ctx;
+    if (!ctx || this.mode === 'off') return;
+    const t = ctx.currentTime;
+    const tone = (freq: number, when: number, dur: number, vel: number, type: OscillatorType): void => {
+      const o = ctx.createOscillator(); o.type = type; o.frequency.value = freq;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, when);
+      g.gain.exponentialRampToValueAtTime(vel, when + 0.025);
+      g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+      o.connect(g).connect(this.master!); o.start(when); o.stop(when + dur + 0.05);
+    };
+    if (kind === 'kill') {
+      const o = ctx.createOscillator(); o.type = 'sine';
+      const g = ctx.createGain();
+      o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(68, t + 0.5);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.11, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+      o.connect(g).connect(this.master!); o.start(t); o.stop(t + 0.65); // a low ominous thud
+    } else if (kind === 'birth') {
+      [523.25, 659.25, 783.99].forEach((f, i) => tone(f, t + i * 0.09, 0.5, 0.075, 'triangle')); // bright rising chime
+    } else {
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, t + i * 0.12, 0.7, 0.08, 'sine')); // shimmering arpeggio
+    }
+  }
 }

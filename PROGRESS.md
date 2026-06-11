@@ -562,6 +562,13 @@ is created (before the world/scene) and reseeds it + restores the levers. Perfec
 from an open-source build. Verified end-to-end: Share produced `#w=965963192&…`, and reloading that link
 restored the same biome (Amber Savanna).
 
+### v0.95.0 — Event sound stingers
+The drama now has musical punctuation (when an ambience is on). `SoundManager.stinger()` plays a **low
+ominous thud** on a kill, a **bright rising chime** on a striking birth, and a **shimmering arpeggio**
+when a milestone banner appears — wired from the frame loop (kill / novelty flags, real-time gated) and
+from `EventBanner.onShow`. Verified: ran with Nature ambience at 20× while kills and births fired — the
+stinger code path ran with no console errors.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

@@ -31,6 +31,7 @@ const sound = new SoundManager();
 new Tips(); // gentle "did you know" nudges
 new ModelPicker(); // narration model dropdown (auto-detects installed Ollama models)
 const banner = new EventBanner(); // cinematic title cards for milestone moments
+banner.onShow = () => sound.stinger('milestone'); // a shimmer when a milestone card appears
 const hof = new HallOfFame(); // the world's standout individuals
 const minimap = new MiniMap(); // corner overview map
 new TimeLapse(); // ⏩ fast-forward montage with chapter cards
@@ -130,6 +131,8 @@ let last = performance.now();
 let weatherTarget = 0;
 let weatherRetarget = 0; // sim-seconds until the next weather front rolls in
 let voiceCd = 0; // throttle between creature vocalizations
+let killStingerMs = -9999; // real-time gates on the event stingers
+let birthStingerMs = -9999;
 
 function frame(now: number): void {
   const realDt = Math.min(0.1, (now - last) / 1000);
@@ -183,6 +186,10 @@ function frame(now: number): void {
     if (kind) { sound.voice(kind, Math.max(-1, Math.min(1, c.x / WORLD.half))); voiceCd = 0.25 + Math.random() * 0.55; }
     else voiceCd = 0.12;
   }
+
+  // event stingers — a low thud on a kill, a bright chime on a striking birth (real-time gated)
+  if (world.killFlash > 0.9 && now - killStingerMs > 4000) { sound.stinger('kill'); killStingerMs = now; }
+  if (world.noveltyFlash > 1.2 && now - birthStingerMs > 6000) { sound.stinger('birth'); birthStingerMs = now; }
 
   scene.render();
   requestAnimationFrame(frame);
