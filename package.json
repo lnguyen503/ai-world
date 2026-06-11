@@ -5,7 +5,7 @@
   "type": "module",
   "description": "A 3D artificial-life world where AI creatures forage, reproduce, mutate, and evolve on their own. Watch it like a living zoo, with time controls and god-mode tools. Runs entirely in the browser — no backend.",
   "license": "MIT",
-  "author": "Long Nguyen",
+  "author": "lnguyen503",
   "homepage": "https://github.com/lnguyen503/ai-world#readme",
   "repository": { "type": "git", "url": "https://github.com/lnguyen503/ai-world.git" },
   "bugs": { "url": "https://github.com/lnguyen503/ai-world/issues" },
