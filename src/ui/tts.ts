@@ -13,6 +13,9 @@ export class Speaker {
   private voices: SpeechSynthesisVoice[] = [];
   private voice: SpeechSynthesisVoice | null = null;
   private lastLine = '';
+  private speaking = false;
+  private pending: string | null = null; // the newest line to say once the current one finishes
+  private watchdog: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.btn = document.getElementById('tts-btn') as HTMLButtonElement | null;
@@ -66,7 +69,7 @@ export class Speaker {
     this.select.classList.toggle('show', this.enabled);
     this.urlInput?.classList.toggle('show', this.enabled);
     if (this.enabled) this.utter(this.lastLine || 'Here, life unfolds — one small moment at a time.');
-    else if (this.supported) window.speechSynthesis.cancel();
+    else this.stop();
   }
 
   /** Called by the narrator on every new line. Speaks it if TTS is enabled. */
@@ -75,21 +78,49 @@ export class Speaker {
     if (this.enabled) this.utter(text);
   }
 
+  /**
+   * Speak a line. If one is already in progress, remember only the most recent follow-up: a fast
+   * burst of narration (a hunt, a flurry of events) then finishes the current sentence and jumps to
+   * the latest line, instead of cancelling itself mid-word every time a new line arrives.
+   */
   private utter(text: string): void {
     if (!text) return;
+    if (this.speaking) { this.pending = text; return; }
+    this.speaking = true;
     const url = this.endpoint();
     if (url) this.speakRemote(url, text);
     else this.speakLocal(text);
+    // safety net: if the engine never reports completion, recover so narration can't lock up silent
+    if (this.watchdog) clearTimeout(this.watchdog);
+    this.watchdog = setTimeout(() => this.finished(), Math.min(15000, 1500 + text.length * 70));
+  }
+
+  /** One line finished (or errored / timed out) — speak the latest queued line, if any. */
+  private finished(): void {
+    if (this.watchdog) { clearTimeout(this.watchdog); this.watchdog = null; }
+    this.speaking = false;
+    const next = this.pending;
+    this.pending = null;
+    if (next && this.enabled) this.utter(next);
+  }
+
+  /** Stop everything and reset (used when the voice is toggled off). */
+  private stop(): void {
+    this.pending = null;
+    this.speaking = false;
+    if (this.watchdog) { clearTimeout(this.watchdog); this.watchdog = null; }
+    if (this.supported) window.speechSynthesis.cancel();
   }
 
   private speakLocal(text: string): void {
-    if (!this.supported) return;
+    if (!this.supported) { this.finished(); return; }
     const u = new SpeechSynthesisUtterance(text);
     if (this.voice) u.voice = this.voice;
     u.rate = 0.86; // slow, measured
     u.pitch = 0.92; // a touch lower
-    window.speechSynthesis.cancel(); // never overlap lines
-    window.speechSynthesis.speak(u);
+    u.onend = () => this.finished();
+    u.onerror = () => this.finished();
+    window.speechSynthesis.speak(u); // no cancel(): let the current line complete first
   }
 
   /** POST {text} to a local neural-TTS server (Piper/XTTS/etc.) and play the audio it returns;
@@ -97,7 +128,12 @@ export class Speaker {
   private speakRemote(url: string, text: string): void {
     fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) })
       .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(`tts ${r.status}`))))
-      .then((blob) => { const a = new Audio(URL.createObjectURL(blob)); void a.play().catch(() => undefined); })
+      .then((blob) => {
+        const a = new Audio(URL.createObjectURL(blob));
+        a.onended = () => this.finished();
+        a.onerror = () => this.finished();
+        void a.play().catch(() => this.speakLocal(text)); // playback blocked → fall back to system voice
+      })
       .catch(() => this.speakLocal(text));
   }
 }

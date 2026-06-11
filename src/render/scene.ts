@@ -5,6 +5,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { WORLD, FOOD, SOCIAL, WEATHER, FLIGHT, LIFE, PRED, SPECIES, params } from '../config';
 import type { World } from '../sim/world';
+import type { Creature } from '../sim/creature';
 import type { Biome, SkyState } from '../biome';
 import { Cosmos } from './cosmos';
 
@@ -323,6 +324,10 @@ export class Scene3D {
 
   private selectedId: number | null = null;
   onSelect: (id: number | null) => void = () => {};
+  // cinematic director: when nobody is manually selected, the camera glides from critter to critter
+  private autoFollowId: number | null = null;
+  private autoTimer = 0;
+  private autoMode: 'follow' | 'orbit' = 'orbit';
 
   private lastDt = 0;
   private dramaTimer = 0;
@@ -1608,41 +1613,84 @@ export class Scene3D {
 
   follow(world: World): void {
     if (this.stargaze) { this.nameSprite.visible = false; this.controls.update(); return; }
-    this.controls.autoRotate = this.selectedId == null; // gentle cinematic orbit when free
     const sel = this.selectedId != null ? world.creatures.find((x) => x.id === this.selectedId) : undefined;
+    if (this.selectedId != null && !sel) this.setSelected(null); // the creature we followed died
 
-    // floating name tag above the selected creature
-    if (sel) {
-      if (sel.id !== this.lastNameId) { this.drawName(sel.name); this.lastNameId = sel.id; }
-      const ny = this.biome.height(sel.x, sel.z) + sel.genome.size * 1.6 + (sel.canFly ? FLIGHT.altitude : 0) + 1.1;
-      this.nameSprite.position.set(sel.x, ny, sel.z);
+    // when nobody is manually selected, let the director glide between critters
+    const auto = this.selectedId == null ? this.updateDirector(world) : undefined;
+    const followed = sel ?? auto;
+
+    // floating name tag above whoever the camera is watching (manual pick or auto subject)
+    if (followed) {
+      if (followed.id !== this.lastNameId) { this.drawName(followed.name); this.lastNameId = followed.id; }
+      const ny = this.biome.height(followed.x, followed.z) + followed.genome.size * 1.6 + (followed.canFly ? FLIGHT.altitude : 0) + 1.1;
+      this.nameSprite.position.set(followed.x, ny, followed.z);
       this.nameSprite.visible = true;
     } else {
       this.nameSprite.visible = false;
       this.lastNameId = -1;
     }
 
-    if (this.selectedId == null) {
-      // cinematic: gently drift the orbit toward a fresh kill, then ease back to centre
-      if (world.killFlash > 0.001 && this.dramaTimer <= 0) {
-        this.dramaTimer = 6; this.dramaX = world.lastKillX; this.dramaZ = world.lastKillZ;
-      }
-      this.dramaTimer = Math.max(0, this.dramaTimer - this.lastDt);
-      const f = this.dramaTimer > 0 ? 0.35 : 0; // fraction of the way from centre to the action
-      TMP.set(this.dramaX * f, 2, this.dramaZ * f);
-      this.controls.target.lerp(TMP, 0.012);
+    if (followed) {
+      this.controls.autoRotate = false;
+      this.followCreature(followed);
       this.controls.update();
       return;
     }
-    if (!sel) { this.setSelected(null); this.controls.update(); return; }
-    TMP.set(sel.x, this.biome.height(sel.x, sel.z) + sel.radius + 0.5, sel.z);
-    this.controls.target.lerp(TMP, 0.12);
-    const desired = 5 + sel.genome.size * 3;
+
+    // free roam: a gentle cinematic orbit that drifts toward a fresh kill, then eases back to centre
+    this.controls.autoRotate = true;
+    if (world.killFlash > 0.001 && this.dramaTimer <= 0) {
+      this.dramaTimer = 6; this.dramaX = world.lastKillX; this.dramaZ = world.lastKillZ;
+    }
+    this.dramaTimer = Math.max(0, this.dramaTimer - this.lastDt);
+    const f = this.dramaTimer > 0 ? 0.35 : 0; // fraction of the way from centre to the action
+    TMP.set(this.dramaX * f, 2, this.dramaZ * f);
+    this.controls.target.lerp(TMP, 0.012);
+    this.controls.update();
+  }
+
+  /**
+   * Cinematic director. With no creature manually selected, the camera spends most of its time
+   * gliding from one critter to another — a "random follow" — broken up by short orbit interludes,
+   * so the view is never just spinning in place. Returns the creature currently being auto-followed,
+   * or undefined while orbiting between subjects.
+   */
+  private updateDirector(world: World): Creature | undefined {
+    this.autoTimer -= this.lastDt;
+    let cur = this.autoFollowId != null ? world.creatures.find((c) => c.id === this.autoFollowId && c.alive) : undefined;
+    if (this.autoTimer <= 0 || (this.autoMode === 'follow' && !cur)) {
+      if (this.autoMode === 'follow') {
+        this.autoMode = 'orbit'; this.autoFollowId = null; cur = undefined;
+        this.autoTimer = 5 + Math.random() * 5; // a brief orbit between subjects
+      } else {
+        const next = this.pickAutoTarget(world);
+        if (next) { this.autoMode = 'follow'; this.autoFollowId = next.id; cur = next; this.autoTimer = 11 + Math.random() * 8; }
+        else { this.autoTimer = 3; } // nobody to follow yet — keep orbiting
+      }
+    }
+    return this.autoMode === 'follow' ? cur : undefined;
+  }
+
+  /** Pick the next critter for the director to spotlight — sometimes a hunting predator, else random. */
+  private pickAutoTarget(world: World): Creature | undefined {
+    const alive = world.creatures.filter((c) => c.alive);
+    if (!alive.length) return undefined;
+    const preds = alive.filter((c) => c.isPredator);
+    const pool = preds.length && Math.random() < 0.4 ? preds : alive;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  /** Ease the orbit target onto a creature and pull the camera in to a comfortable follow distance. */
+  private followCreature(c: Creature): void {
+    const manual = this.selectedId != null;
+    TMP.set(c.x, this.biome.height(c.x, c.z) + c.radius + 0.5, c.z);
+    this.controls.target.lerp(TMP, manual ? 0.12 : 0.07); // a touch smoother for the auto glide
+    const desired = 5 + c.genome.size * 3;
     if (this.camera.position.distanceTo(this.controls.target) > desired * 1.6) {
       const dir = this.camera.position.clone().sub(this.controls.target).normalize();
-      this.camera.position.lerp(this.controls.target.clone().add(dir.multiplyScalar(desired)), 0.08);
+      this.camera.position.lerp(this.controls.target.clone().add(dir.multiplyScalar(desired)), manual ? 0.08 : 0.05);
     }
-    this.controls.update();
   }
 
   setSelected(id: number | null): void { this.selectedId = id; this.onSelect(id); }

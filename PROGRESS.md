@@ -298,6 +298,19 @@ foliage material, so trees stay cheap and still drift green↔autumn together, a
 the whole tree now **sways from its base** on the wind (trunk, branches and canopy
 moving as one) instead of the canopy floating free of the trunk.
 
+### v0.68.0 — Cinematic director + narration that finishes (fixes)
+Two fixes from watching it live. **The camera** no longer just spins in place when
+you aren't following anyone: a **cinematic director** now glides from critter to
+critter — a gentle "random follow" with a floating name tag over the current
+subject and short orbit interludes between them, sometimes spotlighting a hunting
+predator. Clicking a creature still takes manual control (and is easier now that
+the camera centres on critters); the kill-drift orbit remains for the interludes.
+**The narration voice** no longer breaks off mid-sentence. The Web-Speech path used
+to `cancel()` on every new line, so during fast events (a hunt, or any fast-forward
+where sim-seconds fly by in real time) each line cut off the last. Now it finishes
+the current sentence and then jumps to the **latest** queued line — with a watchdog
+so it can never lock up silent — so you always hear complete lines.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
