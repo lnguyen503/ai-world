@@ -345,6 +345,8 @@ export class Scene3D {
   private flowerCount = 420;
   private leaves!: THREE.Points;
   private leafSpeed!: Float32Array;
+  private petals!: THREE.Points; // spring blossom petals (the counterpart to autumn leaves)
+  private petalSpeed!: Float32Array;
   private bursts = new BurstField();
   private lastT = 0;
 
@@ -423,6 +425,7 @@ export class Scene3D {
     this.makeMist();
     this.makeFlowers();
     this.makeLeaves();
+    this.makePetals();
     this.makeDragonflies();
     this.makeSunShafts();
     this.scene.add(this.bursts.mesh);
@@ -737,6 +740,7 @@ export class Scene3D {
     this.updateMist(dt, this.lastSky ? this.lastSky.dayFactor : 1);
     this.updateBirds(t, dt, this.lastSky ? this.lastSky.dayFactor : 1);
     this.updateLeaves(t, dt, this.lastSky ? this.lastSky.dayFactor : 1, world.age);
+    this.updatePetals(t, dt, this.lastSky ? this.lastSky.dayFactor : 1, world.age);
     this.updateTrees(t);
     this.updateNight(t);
 
@@ -1469,6 +1473,52 @@ export class Scene3D {
     }));
     this.leaves.frustumCulled = false;
     this.scene.add(this.leaves);
+  }
+
+  /** Pink blossom petals that drift down in spring — the bright counterpart to the autumn leaves. */
+  private makePetals(): void {
+    const n = 140;
+    const pos = new Float32Array(n * 3);
+    const col = new Float32Array(n * 3);
+    this.petalSpeed = new Float32Array(n);
+    const c = new THREE.Color();
+    const H = WORLD.half - 3;
+    for (let i = 0; i < n; i++) {
+      const x = (Math.random() * 2 - 1) * H, z = (Math.random() * 2 - 1) * H;
+      pos[i * 3] = x; pos[i * 3 + 1] = this.biome.height(x, z) + 1 + Math.random() * 9; pos[i * 3 + 2] = z;
+      this.petalSpeed[i] = 1.2 + Math.random() * 1.6; // gentler than leaves
+      c.setHSL(0.93 + Math.random() * 0.05, 0.45 + Math.random() * 0.2, 0.82); // soft pink / blossom-white
+      col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    this.petals = new THREE.Points(geo, new THREE.PointsMaterial({
+      map: this.leafTexture(), size: 0.6, vertexColors: true, transparent: true, opacity: 0, depthWrite: false,
+    }));
+    this.petals.frustumCulled = false;
+    this.scene.add(this.petals);
+  }
+
+  /** Drift the petals; visible in spring (when the trees are in blossom). */
+  private updatePetals(t: number, dt: number, day: number, age: number): void {
+    const bloom = Math.max(0, Math.cos((age / Math.max(1, params.seasonLengthSec)) % 1 * Math.PI * 2)); // peaks in spring
+    const op = bloom * day * 0.7;
+    this.petals.visible = op > 0.02;
+    (this.petals.material as THREE.PointsMaterial).opacity = op;
+    if (!this.petals.visible) return;
+    const pos = this.petals.geometry.getAttribute('position') as THREE.BufferAttribute;
+    const H = WORLD.half - 3;
+    for (let i = 0; i < pos.count; i++) {
+      let x = pos.getX(i) + Math.sin(t * 1.2 + i) * 0.08; // a lazy flutter
+      const z = pos.getZ(i) + Math.cos(t * 0.9 + i * 0.7) * 0.06;
+      let y = pos.getY(i) - this.petalSpeed[i]! * dt;
+      if (y < this.biome.height(x, z) + 0.2) {
+        x = (Math.random() * 2 - 1) * H; y = this.biome.height(x, z) + 7 + Math.random() * 5;
+      }
+      pos.setXYZ(i, x, y, z);
+    }
+    pos.needsUpdate = true;
   }
 
   /** Fall + flutter the leaves, recycling them to the canopy; visible only deep in autumn. */

@@ -494,6 +494,13 @@ world and spot where the action is; drawn every other frame so it's cheap. (Narr
 slightly to keep the corner clear.) Verified live: the map showed ponds, scattered prey, red
 predators and the view wedge.
 
+### v0.86.0 — Spring blossom petals
+The seasons gained their bright counterpart to the autumn leaves: in **spring** (when the trees are
+in blossom), soft **pink petals** now drift and flutter down across the meadow (`src/render/scene.ts`,
+mirroring the leaf system but gentler and tied to the same bloom factor that drives the tree
+blossoms). So the year now reads visibly at both ends — pink petals falling as the world greens,
+amber leaves falling as it turns.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
