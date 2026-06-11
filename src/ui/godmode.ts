@@ -11,6 +11,8 @@ const TOOLS: Tool[] = [
   { id: 'predator', label: '🐺 Predator' },
   { id: 'bloom', label: '🌸 Bloom' },
   { id: 'drought', label: '🌵 Drought' },
+  { id: 'raise', label: '⛰ Raise' },
+  { id: 'dig', label: '🕳 Dig' },
 ];
 
 export class GodMode {

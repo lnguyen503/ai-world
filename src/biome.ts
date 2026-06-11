@@ -82,6 +82,7 @@ export class Biome {
   seed = 0;
   snowy = false; // true in cold biomes → snow instead of rain
   camoHue = 0; // the ground's dominant hue; prey colour evolves toward it under predation
+  private edits: { x: number; z: number; r: number; h: number }[] = []; // god-mode terraform bumps
   private terrainSeed = 1;
   private fertSeed = 2;
   private terrainFreq = 0.02;
@@ -103,6 +104,13 @@ export class Biome {
     this.fertSeed = Math.floor(rng() * 1e6);
     this.terrainFreq = 0.012 + rng() * 0.02;
     this.amplitude = 4 + rng() * 6;
+    this.edits = []; // a fresh biome starts un-sculpted
+  }
+
+  /** Terraform: add a gaussian bump (raise) or dip (dig) to the terrain at a spot. */
+  addEdit(x: number, z: number, h: number): void {
+    this.edits.push({ x, z, r: 13, h });
+    if (this.edits.length > 200) this.edits.shift();
   }
 
   /** Terrain height at a world (x,z). Edges sink slightly so the arena reads as an island. */
@@ -110,7 +118,9 @@ export class Biome {
     const n = fbm(x * this.terrainFreq, z * this.terrainFreq, this.terrainSeed, 4);
     const edge = Math.max(Math.abs(x), Math.abs(z)) / WORLD.half;
     const falloff = 1 - smooth(Math.min(1, Math.max(0, (edge - 0.7) / 0.3)));
-    return (n - 0.35) * this.amplitude * falloff;
+    let h = (n - 0.35) * this.amplitude * falloff;
+    for (const e of this.edits) h += e.h * Math.exp(-((x - e.x) ** 2 + (z - e.z) ** 2) / (e.r * e.r)); // sculpted bumps
+    return h;
   }
 
   /** 0..1 fertility used to bias where food grows. Patches drift slowly over time. */

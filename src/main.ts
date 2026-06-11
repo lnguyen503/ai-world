@@ -52,6 +52,10 @@ function applyGodTool(x: number, z: number, tool: string): void {
   else if (tool === 'predator') world.spawnAt(x, z, true);
   else if (tool === 'bloom') world.addZone(x, z, false);
   else if (tool === 'drought') world.addZone(x, z, true);
+  else if (tool === 'raise' || tool === 'dig') {
+    biome.addEdit(x, z, tool === 'raise' ? 7 : -7); // sculpt a hill or a basin
+    scene.buildTerrain(); scene.buildTrees(); world.placePonds(); scene.setPonds(world.ponds);
+  }
 }
 const chatter = new Chatter(); // critters start talking once evolved enough
 narrator.onLine = (text) => speaker.speak(text);

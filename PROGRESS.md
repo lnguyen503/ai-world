@@ -628,6 +628,14 @@ while). `World.addZone` tracks the painted zones and `step` keeps feeding bloom 
 drought zones until they expire. Starve one half of the map and watch the herd migrate and adapt — you
 shape where life can thrive. Verified: both tools in the toolbar; zone processing builds clean.
 
+### v1.4.0 — Terraform
+Reshape the land itself: **⛰ Raise** sculpts a hill where you click and **🕳 Dig** carves a basin (which
+the **ponds re-settle into** — instant lakes). The biome now carries a list of **terraform edits**
+(gaussian bumps added into `biome.height`), so creatures, terrain, trees and water all follow the new
+shape; each edit rebuilds the terrain + trees + ponds. Dam a valley, raise a refuge, carve a moat —
+the world is clay. Verified: both tools in the toolbar; height-edit + rebuild build clean. (A fresh
+biome starts un-sculpted; edits clear on reseed.)
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
