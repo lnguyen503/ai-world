@@ -720,6 +720,19 @@ the bottom of the stats panel and **hiding the "Flyers" row** — it's been push
 13-row stat list, and the bottom-left stack (Discoveries → Hall of Fame → camera toolbar) was re-spaced into
 an even, non-overlapping column. Verified visually in-browser at the working resolution.
 
+### v2.3.0 — Livelier, scenario-aware critter chatter
+The talking was gated hard ("deliberately sparse"): it only began at generation 4, only the smartest
+species spoke, and a single bubble fired every 5–10s with **fully random** lines. This pass makes the
+critters **talk more and talk about what's happening**. Speech now starts at **gen 2** and includes more
+species (`SMART_ENOUGH` 0.95 → 0.85; only the dim Beetlebug stays mute), the cadence roughly doubled
+(cooldown 5–10s → ~2–5s, up to 6 bubbles) while still paced so it never spams. The core change is a
+`sceneTag(world, c)` that reads the moment — sick (plague), fleeing, volcano, freeze, radiation/new era,
+dark (asteroid pall), a hunt on the prowl, storm, drinking, eating, night, predator, hungry — and pulls a
+short, funny, **on-topic** one-liner from a scenario-keyed pool (and a matching pair-exchange pool, so two
+critters bicker about the actual event). The local-LLM prompts (both the lone musing and the two-way
+exchange) now include a one-sentence scene description and ask the critter to react to it. Verified: tsc +
+build clean; a triggered plague greens the herd and the discovery/era state the chatter reads is live.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

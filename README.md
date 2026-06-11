@@ -162,6 +162,8 @@ src/
 - v1.9 ✓ — **🌟 Radiations & Eras**: the recovery payoff — a **Radiation** burst (on demand, or **auto after a crash**) opens a **new era** with cranked mutation + eased breeding → explosive diversification. The world counts its **eras** — **punctuated equilibrium**: die-off → radiation → "🌟 Era N".
 - v2.0 ✓ — **🔊 Spatial audio**: a Web Audio **listener that rides your camera** — critter voices (and the kill thud) emit from each critter's **world position** through 3D panners, so the soundscape **pans and fades as you fly and zoom**, swelling into lively chatter up close and thinning to a murmur from on high. *(Turn on Nature or Nature + Music in the panel.)*
 - v2.1 ✓ — **💧 Positional surroundings**: each **pond** carries a soft **looping water bed parked in 3D** — fly past and you hear the water on the correct side, fading with distance.
+- v2.2 ✓ — **🧭 Panel alignment pass**: the HUD panels unified to one width + edge so the left and right columns line up, the hidden "Flyers" stat row is back, and the bottom-left is an even, non-overlapping stack.
+- v2.3 ✓ — **💬 Livelier, on-topic chatter**: critters talk sooner (gen 2), more often, and about **what's actually happening** — a volcano, the freeze, a plague (sick ones say sick things), a hunt, a new era — with short, funny, scenario-specific lines (and matching pair banter).
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

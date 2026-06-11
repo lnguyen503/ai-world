@@ -4,27 +4,43 @@
 // LLM writes the lines when AI narration is enabled; otherwise cute canned lines/exchanges are used.
 // Deliberately sparse + brief so it stays charming, never spammy.
 
-import { LIFE, SPECIES } from '../config';
+import { LIFE, SPECIES, params } from '../config';
 import type { World } from '../sim/world';
 import type { Creature } from '../sim/creature';
 
-const TALK_GEN = 4;        // a lineage must be this many generations deep before any talking begins
-const SMART_ENOUGH = 0.95; // only the brighter species (Foxling / Hopkin / Slink) develop speech
-const BUBBLE_LIFE = 4.5;   // seconds a bubble lingers
-const MAX_BUBBLES = 4;     // never more than this on screen at once
-const PARTNER_RADIUS = 11; // how close another critter must be to strike up a conversation
-const LINE_GAP = 1.5;      // seconds between the back-and-forth replies
+const TALK_GEN = 2;        // a lineage must be this many generations deep before any talking begins
+const SMART_ENOUGH = 0.85; // most species develop speech now (only the dim Beetlebug stays mute)
+const BUBBLE_LIFE = 4.2;   // seconds a bubble lingers
+const MAX_BUBBLES = 6;     // never more than this on screen at once
+const PARTNER_RADIUS = 12; // how close another critter must be to strike up a conversation
+const LINE_GAP = 1.2;      // seconds between the back-and-forth replies
 
-const CANNED = {
-  eat: ['yum!', 'nom nom', 'tasty!', 'snack time', 'munch munch'],
-  flee: ['RUN!', 'not today!', 'yikes!', 'nope nope nope', 'too slow!'],
-  night: ['sleepy…', 'goodnight', 'stars are pretty', 'yaaawn'],
-  drink: ['*sip*', 'ahh, refreshing', 'good water'],
-  social: ['hi friend!', 'hey pal!', 'nice to see ya', 'we are many'],
-  idle: ['nice day!', 'wheee!', 'zoomies!', 'i think… therefore i am?', 'big brain', 'evolution rocks', 'is this… life?', 'what a world', 'so many flowers', 'feeling fast today'],
+// What's happening to a critter right now, most urgent/dramatic first. Drives which lines it says, so the
+// chatter is always about the moment on screen — a plague, a volcano, a hunt — not a random non-sequitur.
+type Scene = 'sick' | 'flee' | 'volcano' | 'freeze' | 'radiate' | 'dark' | 'hunted'
+  | 'storm' | 'drink' | 'eat' | 'night' | 'predator' | 'hungry' | 'social' | 'idle';
+
+// Short (≤6 words), in-the-moment one-liners, keyed by scenario. Comedy first, relevance always.
+const LINES: Record<Scene, string[]> = {
+  sick: ['*cough* …i\'m fine', 'is this catching?', 'i feel gross', 'send soup', 'who sneezed on me', 'not my best era'],
+  flee: ['RUN!', 'not today!', 'yikes!', 'nope nope nope', 'too slow, sucker!', 'every critter for itself!'],
+  volcano: ['hot hot HOT', 'the floor is lava?!', 'i blame the gods', 'who lit the ground?', 'too spicy!', 'medium rare, please'],
+  freeze: ['s-s-so cold', 'who turned off the sun?', 'group huddle?', 'i regret everything', 'my little toes!', 'summer was a lie'],
+  radiate: ['i feel… different', 'is my tail glowing?', 'evolution, baby!', 'new me, who dis', 'i contain multitudes', 'mutation just dropped'],
+  dark: ['why\'s it so dark?', 'did something hit us?', 'ominous…', 'i want my mom', 'this is fine', 'who ordered the apocalypse'],
+  hunted: ['something\'s watching…', 'i don\'t like this', 'stay sharp', 'act natural', 'was that a wolf?', 'be cool, be cool'],
+  storm: ['weather\'s grim', 'great, rain', 'who ordered thunder?', 'i hate this', 'umbrella? anyone?'],
+  drink: ['*sip*', 'ahh, refreshing', 'good water', 'hydrate or diedrate'],
+  eat: ['yum!', 'nom nom', 'tasty!', 'snack time', 'munch munch', 'best grass ever'],
+  night: ['sleepy…', 'stars are pretty', 'yaaawn', 'goodnight, world', 'five more minutes'],
+  predator: ['mmm, lunch', 'here, prey prey prey', 'i\'m not scary, promise', 'just a lil nibble', 'you look delicious'],
+  hungry: ['so hungry', 'where\'s the snacks?', 'i could eat a tree', 'food. now.', 'my tummy evolved a growl'],
+  social: ['hi friend!', 'hey pal!', 'nice to see ya', 'we are many', 'cousin!', 'squad goals'],
+  idle: ['nice day!', 'wheee!', 'zoomies!', 'i think therefore i am?', 'big brain moment', 'is this… life?', 'what a world', 'so many flowers', 'feeling fast today', 'small legs, big dreams'],
 };
 
-// Short, lightly-funny two- and three-line exchanges between a pair of critters.
+// Short, lightly-funny exchanges for a pair — a general pool, plus scenario-specific ones so two critters
+// will bicker about whatever's actually happening.
 const EXCHANGES: string[][] = [
   ['race you to the food!', 'you always lose'],
   ['is this… life?', 'deep, for a tiny brain'],
@@ -35,20 +51,26 @@ const EXCHANGES: string[][] = [
   ['we are many!', 'and yet, so alone'],
   ['watch this!', 'please do not'],
   ['i love this meadow', 'you say that daily'],
-  ['was that a predator?!', 'run now, ask later'],
   ['hi! do i know you?', 'we are literally cousins'],
-  ['evolution is wild', 'tell my tiny legs'],
   ['zoomies?', 'zoomies.'],
   ["what's for dinner?", 'grass. always grass.'],
   ['i had a strange dream', "critters can't dream", 'this one did'],
   ['do i look smart?', 'you look hungry'],
   ['after you', 'no, after YOU'],
-  ['i feel fast today', 'famous last words'],
-  ['are we being watched?', 'by who?', '…a giant, maybe'],
-  ['one day i shall fly', 'one day you shall fall'],
   ['my genes are perfect', 'your tail says otherwise'],
   ['life is short', 'so are you'],
 ];
+
+// Pair exchanges tied to a scenario — picked when that scene is active so the back-and-forth is on-topic.
+const SCENE_EXCHANGES: Partial<Record<Scene, string[][]>> = {
+  volcano: [['is that LAVA?', 'walk, don\'t run', 'RUN'], ['hot out, huh?', 'understatement of the era']],
+  freeze: [['c-cold enough for ya?', 'cuddle for science?'], ['where\'d summer go?', 'evolution forgot a coat']],
+  dark: [['did you see that?', 'pretending i didn\'t'], ['the sky looks angry', 'what did we DO?']],
+  hunted: [['predator?', 'run now, ask later'], ['be cool', 'i am the opposite of cool']],
+  radiate: [['i feel funny', 'you look funny too'], ['new mutation just dropped', 'flex later, run now']],
+  sick: [['you don\'t look good', 'thanks, neither do you'], ['*cough*', 'stand downwind, please']],
+  flee: [['was that a predator?!', 'run now, ask later'], ['why are we running?', 'no idea, keep going']],
+};
 
 // Quick group reactions: when a predator spooks the herd or someone finds food, a few nearby critters
 // blurt at once in a little wave.
@@ -77,7 +99,7 @@ interface Queued { id: number; text: string; delay: number; }
 export class Chatter {
   private active = new Map<number, Dialog>();
   private queue: Queued[] = []; // upcoming conversation lines, fired as their delay elapses
-  private cooldown = 6;
+  private cooldown = 3;
   private busy = false;
   private llmOn = document.getElementById('llm-on') as HTMLInputElement | null;
   private llmUrl = document.getElementById('llm-url') as HTMLInputElement | null;
@@ -103,7 +125,7 @@ export class Chatter {
     if (world.generation < TALK_GEN) return;
     this.cooldown -= dt;
     if (this.cooldown > 0 || this.queue.length || this.active.size >= MAX_BUBBLES) return;
-    this.cooldown = 5 + Math.random() * 5;
+    this.cooldown = 2.2 + Math.random() * 2.8; // livelier than before, but still paced so it never spams
 
     // a group reaction takes priority when something is happening to the herd
     const trig = this.findReactionTrigger(world);
@@ -114,9 +136,13 @@ export class Chatter {
     const partner = this.pickPartner(world, speaker);
 
     if (partner) {
-      // a conversation between the two
-      if (this.llmReady() && !this.busy) this.askExchange(speaker, partner);
-      else this.startConvo(speaker.id, partner.id, [...pick(EXCHANGES)]);
+      // a conversation between the two — about whatever's happening to them right now
+      if (this.llmReady() && !this.busy) this.askExchange(speaker, partner, world);
+      else {
+        const scene = this.sceneTag(world, speaker);
+        const pool = SCENE_EXCHANGES[scene];
+        this.startConvo(speaker.id, partner.id, [...pick(pool ?? EXCHANGES)]);
+      }
     } else if (this.llmReady() && !this.busy) {
       // a lone musing
       this.busy = true;
@@ -191,30 +217,60 @@ export class Chatter {
     return c.alive && !c.asleep && c.age >= LIFE.matureAge && (SPECIES[c.genome.species]?.smarts ?? 0) >= SMART_ENOUGH;
   }
 
+  /** The dominant thing happening to this critter right now — drives what it talks about. */
+  private sceneTag(world: World, c: Creature): Scene {
+    if (c.infected > 0) return 'sick';
+    if (c.startleTimer > 0) return 'flee';
+    if (world.volcanoGlow > 0.05) return 'volcano';
+    if (world.cold > 0.05) return 'freeze';
+    if (world.radiationT > 0) return 'radiate';
+    if (world.gloom > 0.05) return 'dark'; // asteroid pall / generic darkening
+    if (world.plagueActive && Math.random() < 0.6) return 'sick'; // gossip about the outbreak even if healthy
+    if (world.prowling > 0 && !c.isPredator) return 'hunted';
+    if (params.weather > 0.6) return 'storm';
+    if (c.drinkTimer > 0) return 'drink';
+    if (c.signalTimer > 0) return 'eat';
+    if (world.dayFactor < 0.28) return 'night';
+    if (c.isPredator) return 'predator';
+    if (c.energy < 0.35 * c.maxEnergy) return 'hungry';
+    if (Math.random() < 0.28) return 'social';
+    return 'idle';
+  }
+
   private canned(c: Creature, world: World): string {
-    if (c.startleTimer > 0) return pick(CANNED.flee);
-    if (c.drinkTimer > 0) return pick(CANNED.drink);
-    if (world.dayFactor < 0.28) return pick(CANNED.night);
-    if (c.signalTimer > 0) return pick(CANNED.eat);
-    if (Math.random() < 0.3) return pick(CANNED.social);
-    return pick(CANNED.idle);
+    return pick(LINES[this.sceneTag(world, c)]);
   }
 
   private llmReady(): boolean { return !!this.llmOn?.checked && !!this.llmUrl?.value.trim(); }
 
+  /** A one-sentence description of what's happening around a critter, so the LLM lines stay on-topic. */
+  private sceneDescription(world: World, c: Creature): string {
+    if (c.infected > 0 || world.plagueActive) return 'A plague is spreading and some of you feel sick.';
+    if (world.volcanoGlow > 0.05) return 'A volcano is erupting nearby — the ground glows with lava.';
+    if (world.cold > 0.05) return 'An ice age has frozen the whole world white.';
+    if (world.radiationT > 0) return 'A surge of evolution is rippling through everyone — bodies are changing.';
+    if (world.gloom > 0.05) return 'The sky has gone dark and ashen after a disaster struck.';
+    if (world.prowling > 0) return 'A predator is on the prowl close by.';
+    if (params.weather > 0.6) return 'A storm is raging with rain and thunder.';
+    if (world.dayFactor < 0.28) return 'It is night and most of the world is asleep.';
+    return '';
+  }
+
   /** Ask the local LLM for a short, witty two-line exchange between two named critters. */
-  private askExchange(a: Creature, b: Creature): void {
+  private askExchange(a: Creature, b: Creature, world: World): void {
     this.busy = true;
     const url = this.llmUrl!.value.trim();
     const model = this.llmModel?.value.trim() || 'llama3.2';
     const aSp = SPECIES[a.genome.species]?.name ?? 'creature';
     const bSp = SPECIES[b.genome.species]?.name ?? 'creature';
+    const scene = this.sceneDescription(world, a);
     const prompt = [
       `Two tiny cute creatures in a little evolving world are chatting.`,
       `${a.name} is a ${aSp}; ${b.name} is a ${bSp}.`,
+      scene ? `What's happening right now: ${scene} React to it.` : '',
       `Write a SHORT, funny back-and-forth: exactly two lines, format "Name: words", max 6 words per line.`,
       `Playful and a touch witty. No quotation marks.`,
-    ].join(' ');
+    ].filter(Boolean).join(' ');
     fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model, prompt, stream: false }) })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('llm'))))
       .then((d: unknown) => {
@@ -246,20 +302,23 @@ export class Chatter {
       : 'a simple, goofy little soul';
     const time = world.dayFactor < 0.28 ? 'night' : 'daytime';
     const hungry = c.energy < 0.35 * c.maxEnergy;
-    const doing = c.startleTimer > 0 ? 'fleeing for your life from a predator'
+    const doing = c.infected > 0 ? 'sick with a plague and feeling awful'
+      : c.startleTimer > 0 ? 'fleeing for your life from a predator'
       : c.drinkTimer > 0 ? 'drinking at a pond'
       : c.signalTimer > 0 ? 'happily eating'
       : c.isPredator ? 'stalking your prey'
       : hungry ? 'wandering, hungry, hunting for food'
       : 'wandering the meadow';
+    const scene = this.sceneDescription(world, c);
     const style = smarts >= 1.2 ? 'up to 8 words, and a touch witty or curious'
       : 'max 5 words, simple and playful';
     const prompt = [
       `You are ${c.name}, a small cute ${sp} in a tiny evolving world.`,
       `You are ${wit} — let that come through in how you speak.`,
       `It is ${time}. Right now you are ${doing}.`,
-      `Say ONE short, spontaneous, in-character line (${style}). Cute. No quotation marks.`,
-    ].join(' ');
+      scene ? `What's happening around you: ${scene} React to it.` : '',
+      `Say ONE short, spontaneous, in-character line (${style}). Funny and cute. No quotation marks.`,
+    ].filter(Boolean).join(' ');
     return fetch(url, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ model, prompt, stream: false }),
