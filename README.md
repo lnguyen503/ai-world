@@ -132,6 +132,7 @@ src/
 - v0.81 ✓ — **milestone title cards**: a cinematic banner fades in for the big moments — **first flight**, first predator, **generation milestones**, a lineage coming to **rule**, a thriving peak.
 - v0.82 ✓ — **Hall of Fame**: a little panel tracks the world's standout critters — the **eldest**, the **most prolific** parent, and the **biggest** alive — named characters to root for as records change hands.
 - v0.83 ✓ — **meteor showers & comets**: rare night-sky spectacles — a **meteor shower** radiating from one point, and an occasional slow **comet** with a long glowing tail.
+- v0.84 ✓ — **the herd reacts together**: a predator scare or a food find sets off a quick **wave** of reaction bubbles across nearby critters ("run!" / "behind you!", "free food!" / "dibs!").
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

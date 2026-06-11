@@ -478,6 +478,14 @@ meteor pool grew from 4 to 14 so a shower reads as a real flurry. And once in a 
 **comet** drifts across the dome, a bright bluish head trailing a long glowing tail that fades in and
 out over a minute or two. Both only appear in proper darkness.
 
+### v0.84.0 — The herd reacts together
+Building on the critter conversations, the chatter (`src/ui/chatter.ts`) now does **group reactions**:
+when a predator spooks a critter or someone finds food, a few nearby evolved critters blurt at once in
+a quick staggered **wave** — "run!" / "behind you!" / "scatter!" to a threat, "free food!" / "where?!"
+/ "dibs!" to a find. Predator reactions take priority and fire more often than food ones; otherwise
+the normal conversations/musings carry on. Reuses the same bubble queue, so it stays brief and
+cooldowned.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

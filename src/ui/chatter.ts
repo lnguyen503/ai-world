@@ -50,6 +50,13 @@ const EXCHANGES: string[][] = [
   ['life is short', 'so are you'],
 ];
 
+// Quick group reactions: when a predator spooks the herd or someone finds food, a few nearby critters
+// blurt at once in a little wave.
+const REACT = {
+  predator: ['run!', 'behind you!', 'predator!', 'go go go!', 'not me, not me', 'scatter!', 'yikes!'],
+  food: ['free food!', 'where?!', 'mine!', 'share?', 'dibs!', 'ooh, snacks', 'over here!'],
+};
+
 const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)]!;
 
 /** Pull text out of a local-LLM response (Ollama / OpenAI shapes). */
@@ -97,6 +104,10 @@ export class Chatter {
     this.cooldown -= dt;
     if (this.cooldown > 0 || this.queue.length || this.active.size >= MAX_BUBBLES) return;
     this.cooldown = 5 + Math.random() * 5;
+
+    // a group reaction takes priority when something is happening to the herd
+    const trig = this.findReactionTrigger(world);
+    if (trig && Math.random() < (trig.kind === 'predator' ? 0.7 : 0.3)) { this.herdReact(world, trig.c, trig.kind); return; }
 
     const speaker = this.pickSpeaker(world);
     if (!speaker) return;
@@ -149,6 +160,31 @@ export class Chatter {
       if (d < bestD) { bestD = d; best = c; }
     }
     return best;
+  }
+
+  /** Find a critter the herd would react to: one startled by a predator, or one calling about food. */
+  private findReactionTrigger(world: World): { c: Creature; kind: 'predator' | 'food' } | null {
+    let food: Creature | null = null;
+    for (const c of world.creatures) {
+      if (!this.eligible(c)) continue;
+      if (c.startleTimer > 0) return { c, kind: 'predator' };
+      if (!food && c.signalTimer > 0) food = c;
+    }
+    return food ? { c: food, kind: 'food' } : null;
+  }
+
+  /** A few nearby critters blurt a quick reaction in a staggered wave. */
+  private herdReact(world: World, center: Creature, kind: 'predator' | 'food'): void {
+    const pool = kind === 'predator' ? REACT.predator : REACT.food;
+    const near = world.creatures
+      .filter((c) => this.eligible(c) && (c.x - center.x) ** 2 + (c.z - center.z) ** 2 < 14 * 14)
+      .slice(0, 4);
+    let t = 0;
+    for (const c of near) {
+      this.queue.push({ id: c.id, text: pick(pool), delay: t });
+      t += 0.25 + Math.random() * 0.4;
+    }
+    this.cooldown = Math.max(this.cooldown, t + 5);
   }
 
   private eligible(c: Creature): boolean {
