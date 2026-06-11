@@ -12,6 +12,21 @@ const KILL_LINES = [
   'The ambush works perfectly. The driven prey runs straight into the jaws that waited.',
 ];
 
+/** A little character for each biome so narration reflects WHERE we are, not just its name. */
+const BIOME_FLAVOR: Record<string, { adj: string; place: string }> = {
+  'Verdant Meadow': { adj: 'lush', place: 'green meadow' },
+  'Amber Savanna': { adj: 'sun-baked', place: 'amber grassland' },
+  'Frost Tundra': { adj: 'frozen', place: 'frostbound tundra' },
+  'Crimson Mesa': { adj: 'parched', place: 'red mesa' },
+  'Alien Cyan': { adj: 'strange', place: 'cyan wilds' },
+  'Violet Heath': { adj: 'twilit', place: 'violet heath' },
+};
+const flavorOf = (biome: string): { adj: string; place: string } => BIOME_FLAVOR[biome] ?? { adj: 'wild', place: 'land' };
+
+// Real-time floor between spoken lines. The narrator's other timers are in SIM-seconds, so without
+// this a fast-forwarded world would narrate many times a second; this paces it to the listener.
+const MIN_GAP_MS = 3500;
+
 /** Pull narration text out of a few common local-LLM response shapes (Ollama / OpenAI-style). */
 function extractText(d: unknown): string {
   if (typeof d === 'string') return d;
@@ -44,9 +59,10 @@ export class Narrator {
   private prevNight = false;
   private prevProwl = false;
   private lastLightning = -999;
-  private lastKill = -999;
-  private lastNoveltyAt = -999;
-  private lastText = '';
+  private lastKillMs = -99999; // wall-clock gate on kill / surprise callouts, so events can't flood
+  private lastNoveltyMs = -99999;
+  private recent: string[] = []; // the last several spoken lines, so none repeats too soon
+  private lastShownMs = -99999; // wall-clock of the last line, for the real-time pacing floor
   private llmOn: HTMLInputElement | null;
   private llmUrl: HTMLInputElement | null;
   private llmModel: HTMLInputElement | null;
@@ -75,9 +91,14 @@ export class Narrator {
     const night = dayFactor < 0.28;
     if (this.prevPop < 0) { this.prevPop = s.population; this.prevBiome = biome; this.prevNight = night; }
 
-    // an evolutionary surprise gets its own delighted callout
-    if (novelty && s.age - this.lastNoveltyAt > 9) {
-      this.lastNoveltyAt = s.age;
+    // real-time floor: never narrate faster than MIN_GAP_MS, however fast the sim is running
+    const nowMs = performance.now();
+    if (nowMs - this.lastShownMs < MIN_GAP_MS) return;
+
+    // an evolutionary surprise gets its own callout — but rarely (else, with constant mutation, every
+    // line would be "something was born"). Gated in WALL-CLOCK so it leaves room for ambient lines.
+    if (novelty && nowMs - this.lastNoveltyMs > 14000) {
+      this.lastNoveltyMs = nowMs;
       this.show(pick([
         `Now here is something — ${novelty}. Evolution, quietly experimenting.`,
         `Look closely: ${novelty} has just been born. A roll of the genetic dice.`,
@@ -87,11 +108,11 @@ export class Narrator {
       return;
     }
 
-    // a kill interjects a quick play-by-play line, bypassing the slow ambient cadence
-    if (hunt === 'kill' && s.age - this.lastKill > 5) {
-      this.lastKill = s.age;
+    // a kill interjects a quick play-by-play line (also wall-clock gated so hunts don't flood)
+    if (hunt === 'kill' && nowMs - this.lastKillMs > 9000) {
+      this.lastKillMs = nowMs;
       let line = pick(KILL_LINES);
-      for (let i = 0; i < 4 && line === this.lastText; i++) line = pick(KILL_LINES);
+      for (let i = 0; i < 5 && this.recent.includes(line); i++) line = pick(KILL_LINES);
       this.show(line);
       this.nextAt = Math.max(this.nextAt, s.age + 6); // let it breathe before the next ambient line
       return;
@@ -100,9 +121,9 @@ export class Narrator {
     if (s.age < this.nextAt) return;
     this.nextAt = s.age + 11 + Math.random() * 8;
 
-    // a template line is always ready as the fallback (and the non-LLM path)
+    // a template line is always ready as the fallback (and the non-LLM path) — recompose until fresh
     let fallback = this.compose(s, biome, weather, night, prowling);
-    for (let i = 0; i < 4 && fallback === this.lastText; i++) fallback = this.compose(s, biome, weather, night, prowling);
+    for (let i = 0; i < 8 && this.recent.includes(fallback); i++) fallback = this.compose(s, biome, weather, night, prowling);
 
     if (this.llmReady() && !this.busy) {
       this.busy = true;
@@ -131,27 +152,36 @@ export class Narrator {
   }
 
   private buildPrompt(s: WorldStats, biome: string, weather: number, night: boolean, prowling: boolean): string {
+    const fv = flavorOf(biome);
     const w = weather < 0.18 ? 'calm and clear' : weather < 0.5 ? 'light rain' : weather < 0.8 ? 'a gathering storm' : 'a violent storm';
     const time = night ? 'night — most prey are asleep' : 'daytime';
+    const avoid = this.recent.slice(-4);
     return [
       'You are Sir David Attenborough narrating a tiny artificial-life world of evolving creatures.',
       'Write ONE short, vivid, present-tense sentence of narration (max ~25 words). No preamble, no quotation marks.',
-      `Biome: ${biome}. Time: ${time}. Weather: ${w}.`,
+      `Setting: ${biome} — a ${fv.adj} ${fv.place}. Let the character of this place (its look and mood) colour the line.`,
+      `Time: ${time}. Weather: ${w}.`,
       `There are ${s.population} creatures (${s.predators} predators, ${s.flyers} can fly), in generation ${s.generation}.`,
       prowling ? 'Right now, a predator is stalking nearby prey.' : '',
       `Their average sociability is ${(s.avgSocial * 100) | 0}% and they have lived an average of ${s.avgAge | 0} seconds.`,
+      avoid.length ? `Avoid repeating these recent lines: ${avoid.map((l) => `"${l}"`).join('; ')}.` : '',
     ].filter(Boolean).join('\n');
   }
 
+  /** Emit a line, unless we've used it too recently (which kept the narration from feeling looped). */
   private show(text: string): void {
-    if (!text || text === this.lastText) return;
+    if (!text || this.recent.includes(text)) return;
     this.emit(text);
-    this.lastText = text;
+    this.lastShownMs = performance.now();
+    this.recent.push(text);
+    if (this.recent.length > 7) this.recent.shift();
   }
 
   private compose(s: WorldStats, biome: string, weather: number, night: boolean, prowling: boolean): string {
+    const fv = flavorOf(biome);
     const fill = (t: string): string => t
-      .replace('{biome}', biome).replace('{pop}', String(s.population)).replace('{gen}', String(s.generation));
+      .replace(/{biome}/g, biome).replace(/{pop}/g, String(s.population)).replace(/{gen}/g, String(s.generation))
+      .replace(/{adj}/g, fv.adj).replace(/{place}/g, fv.place);
 
     // --- transitions, in priority order (these mirror what just changed) ---
     if (biome !== this.prevBiome) return fill(pick([
@@ -193,24 +223,32 @@ export class Narrator {
       '{gen} generations deep — every instinct here was earned the hard way.',
     ]));
 
-    // --- ambient, chosen to mirror the present mood (so it never reads as a loop) ---
+    // --- ambient, chosen to mirror the present mood + the character of THIS biome ---
     if (night) return fill(pick([
-      'Under the stars, the {biome} lies still — only breathing, and the patience of the dark.',
-      'They sleep in scattered clusters, drawing what safety they can from one another.',
+      'Under the stars, the {place} lies still — only breathing, and the patience of the dark.',
+      'Across the {adj} {place}, they sleep in scattered clusters, trusting the night to pass.',
+      'Darkness settles on the {place}. The small ones dream; only the hunters keep their eyes open.',
+      'A cold hush over the {place}. Somewhere out there, the night is doing its quiet work.',
     ]));
     if (weather > 0.5) return fill(pick([
-      'Rain hammers the {biome}. Every creature is reduced to a single question: where is it dry?',
-      'The wind howls, and the small ones huddle. To endure the storm is, today, to win.',
+      'Rain hammers the {place}. Every creature is reduced to a single question: where is it dry?',
+      'The wind tears across the {adj} {place}, and the small ones huddle. To endure is, today, to win.',
+      'The {place} turns against them. In weather like this, shelter is the whole of survival.',
     ]));
     if (prowling || s.predators > s.population * 0.3) return fill(pick([
-      'An uneasy calm. The prey graze with one eye always on the horizon.',
-      'Predator and prey share this ground — and both know exactly what that means.',
+      'An uneasy calm on the {place}. The prey graze with one eye always on the horizon.',
+      'Predator and prey share the {place} — and both know exactly what that means.',
+      'The {place} holds its breath. Somewhere in the herd, the hunted can feel the hunter.',
     ]));
     return fill(pick([
-      'Across the {biome}, {pop} small lives go quietly about the business of staying alive.',
-      'To us, coloured shapes. To them, the whole of existence.',
-      'They feed, they gather, they drift apart — the oldest rhythm there is.',
-      'Notice how deliberately they move now; their small minds have learned this world.',
+      'Across the {adj} {place}, {pop} small lives go quietly about the business of staying alive.',
+      'On the {place}, to us they are coloured shapes; to them, this is the whole of existence.',
+      'They feed, they gather, they drift apart — the oldest rhythm on the {place}.',
+      'Notice how deliberately they move now; over {gen} generations their small minds have learned this {place}.',
+      'Generation by generation the {adj} {place} shapes them — and they, a little, shape it back.',
+      'Here, every small choice on the {place} is a wager placed against tomorrow.',
+      'The {place} asks the same question of each of them: feed, breed, endure — or be forgotten.',
+      'Watch them a while. On the {adj} {place}, even the smallest life is busy with the work of staying one.',
     ]));
   }
 

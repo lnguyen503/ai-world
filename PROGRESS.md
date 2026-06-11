@@ -386,6 +386,20 @@ and overtake the rest (in testing, Hopkin surged then Slink overtook the field),
 only reading the current head-count. (`src/ui/hud.ts` keeps a rolling per-species history and
 draws all the lines scaled to the total, so each species reads as its share of the world.)
 
+### v0.75.0 — Narration that doesn't loop (and knows where it is)
+The narrator (`src/ui/narrator.ts`) felt repetitive and generic; three things were wrong and are
+now fixed. **(1) Repetition** — it only avoided repeating the *immediately previous* line, so the
+small ambient pools cycled; now it remembers the **last several lines** and won't reuse any of them
+(the local-LLM prompt is told to avoid them too). **(2) Event flood** — its timers were in
+*sim*-seconds, so at fast-forward it narrated many times a second, and birth/kill callouts (constant
+with 150 creatures mutating) drowned out everything else; now there's a **wall-clock floor** between
+any two lines (~3.5s) and **wall-clock gates** on the surprise/kill callouts, so events stay
+occasional and ambient lines get their turn. **(3) Biome blindness** — lines only ever used the
+biome *name*; each of the six biomes now has a **character** (a lush meadow, a frozen tundra, a
+parched mesa, strange cyan wilds…) woven through the ambient narration and the LLM prompt, so the
+voiceover reflects *where* you are. Measured at 20×: ~10/11 lines unique, birth callouts down from
+~9 to ~3 per ½-minute, with biome character throughout.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

@@ -123,6 +123,7 @@ src/
 - v0.72 ✓ — **a food chain that doesn't crash**: gave prey an **innate foraging drive** and added a **carrying-capacity** brake, so the population now holds a **stable ~150 for generations** instead of booming and busting to extinction — and you can finally watch natural selection play out (the clever lineages win).
 - v0.73 ✓ — **a calmer camera**: the auto-follow now hangs back, eases gently, dwells far longer on **calm** critters, and can be switched off entirely with a **🎥 Auto-cam** button (or the **C** key) — much less motion, your choice.
 - v0.74 ✓ — **watch the species race**: the population graph now draws a **colored line per species** (with a matching tinted legend), so you can see one lineage climb and overtake the rest over time — evolution as a live chart.
+- v0.75 ✓ — **better narration**: the documentary voice no longer **repeats itself** (it remembers its recent lines), no longer **floods** at fast-forward (real-time pacing), and now reflects the **biome's character** (a frozen tundra and strange cyan wilds narrate differently), not just its name.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.

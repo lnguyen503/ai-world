@@ -18,6 +18,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.72: **food-chain balance** — innate prey foraging + carrying-capacity brake; population now holds a stable ~150 for generations instead of crashing to extinction.
 - v0.73: **calmer camera** (from feedback) — gentler/farther auto-follow, calm subjects, longer dwells, + a 🎥 Auto-cam on/off toggle (C key).
 - v0.74: **species race graph** — per-species colored lines over time on the population chart (legend tinted to match).
+- v0.75: **narration fixes** (from feedback) — no repeats (recent-line memory), real-time pacing (no fast-forward flood), and per-biome character woven into the lines + LLM prompt.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).
