@@ -329,6 +329,7 @@ export class Scene3D {
   private prevNightForAurora = false;
   private gloom = 0; // cataclysm darkening, read from world each frame
   private volcano = 0; // 0..1 eruption glow: reddens the sky + casts a lava light
+  private cold = 0; // 0..1 ice-age whiteout: pales the sky + forces snow
   private bloodMoon = false; // a rare red-moon night
   onBloodMoon: () => void = () => {}; // fired when a blood moon rises
   private lastSky!: SkyState;
@@ -811,6 +812,7 @@ export class Scene3D {
     this.syncSocial(world);
     this.gloom = world.gloom; // cataclysm darkening (impact winter / ash / freeze)
     this.volcano = world.volcanoGlow; // eruption red-glow (reddens sky, lava light)
+    this.cold = world.cold; // ice-age whiteout
     this.updateSky(world.age);
     this.syncWeather(world);
     this.updateRainbow(dt);
@@ -988,11 +990,14 @@ export class Scene3D {
     const fog = this.scene.fog as THREE.Fog;
     this.cosmos.setCalm(1 - Math.min(1, w)); // storms wash out the aurora
 
-    const snow = this.biome.snowy; // cold biomes get snow instead of rain
-    const showPrecip = w > WEATHER.startAt;
+    // an ice age forces a heavy white-out snow even in fair weather; otherwise cold biomes snow, others rain
+    const iceWhiteout = this.cold > 0.05;
+    const snow = this.biome.snowy || iceWhiteout;
+    const ew = Math.max(w, this.cold); // effective precip intensity (the freeze drives its own blizzard)
+    const showPrecip = w > WEATHER.startAt || iceWhiteout;
     this.rain.visible = showPrecip;
     if (showPrecip) {
-      const fall = snow ? 0.16 + w * 0.45 : 0.7 + w * 1.8; // snow drifts down slowly
+      const fall = snow ? 0.16 + ew * 0.45 : 0.7 + ew * 1.8; // snow drifts down slowly
       const pos = this.rainPos;
       for (let i = 1; i < pos.length; i += 3) {
         pos[i] -= fall;
@@ -1004,8 +1009,8 @@ export class Scene3D {
       (this.rain.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
       const rm = this.rain.material as THREE.PointsMaterial;
       rm.color.set(snow ? 0xffffff : 0xaecbe6);
-      rm.opacity = snow ? 0.5 + w * 0.4 : 0.25 + w * 0.5;
-      rm.size = snow ? 0.5 + w * 0.3 : 0.22 + w * 0.2;
+      rm.opacity = snow ? 0.5 + ew * 0.4 : 0.25 + ew * 0.5;
+      rm.size = snow ? 0.5 + ew * 0.3 : 0.22 + ew * 0.2;
     }
 
     // seasonal foliage colour drifts green -> autumn -> green
@@ -1413,6 +1418,14 @@ export class Scene3D {
       (this.skyMat.uniforms.uTop!.value as THREE.Color).lerp(new THREE.Color(0.25, 0.05, 0.02), k * 0.55);
       this.sun.color.lerp(ember, k * 0.5);
       this.sun.intensity = Math.max(this.sun.intensity, s.sunIntensity * 0.4 * k); // lava casts its own light
+    }
+    if (this.cold > 0.01) { // an ice age washes the world to a pale, frozen white-blue
+      const k = this.cold;
+      const ice = new THREE.Color(0.82, 0.88, 0.96);
+      (this.scene.fog as THREE.Fog).color.lerp(ice, k * 0.75);
+      (this.skyMat.uniforms.uTop!.value as THREE.Color).lerp(new THREE.Color(0.6, 0.7, 0.85), k * 0.6);
+      (this.skyMat.uniforms.uBottom!.value as THREE.Color).lerp(ice, k * 0.7);
+      this.hemi.intensity *= 1 + k * 0.25; // flat, cold, snow-bounced light
     }
     this.cosmos.setNight(s.starAlpha);
     // roll a fresh aurora each nightfall — most nights none/faint, occasionally a real show

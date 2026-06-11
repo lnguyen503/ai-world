@@ -157,6 +157,7 @@ src/
 - v1.4 ✓ — **⛰ Raise / 🕳 Dig**: reshape the terrain — sculpt hills or carve basins that flood into instant lakes.
 - v1.5 ✓ — **☄️ Asteroid**: the first **cataclysm** — one click slams a fireball into the world: mass death in a wide radius, then a lingering **impact winter** that darkens the sky and crashes food before it slowly lifts.
 - v1.6 ✓ — **🌋 Volcano**: an eruption that blasts the area then keeps a **lava field** roasting the vent for ~18s, spitting embers while **ashfall reddens and darkens the sky**.
+- v1.7 ✓ — **❄️ Ice Age**: a slow global freeze — a **white-out blizzard**, the meadow ices over (food crash), the cold saps the herd and culls the weak, then it **thaws and life rebounds**.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

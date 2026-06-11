@@ -19,6 +19,7 @@ const TOOLS: Tool[] = [
 const ACTIONS: Tool[] = [
   { id: 'asteroid', label: '☄️ Asteroid' },
   { id: 'volcano', label: '🌋 Volcano' },
+  { id: 'iceage', label: '❄️ Ice Age' },
 ];
 
 export class GodMode {

@@ -657,6 +657,16 @@ the sky, fog and sunlight** (a lava light) on top of the cataclysm darkening. Ba
 stinger + a camera swoop to the vent. Verified: button renders, click fires the "🌋 Eruption!" banner
 and logs it; sustained-lava + red-sky tint build clean.
 
+### v1.7.0 — Ice age cataclysm
+The third cataclysm, and the first **global, slow** one. A **❄️ Ice Age** button fires `World.iceAge`:
+`coldT` counts down over ~38s (a deep freeze that **thaws over the final 8s**). While it's cold, the
+**meadow ices over** (existing food freezes away + regrowth is crushed) and the **chill saps every
+creature's energy**, so the weakest starve — a real selection cull — and the herd rebounds once it thaws.
+The renderer reads `world.cold` and **forces a heavy white-out blizzard** (the snow particles, even in
+fair weather) and **washes the sky, fog and light to a pale frozen white-blue**. Banner + discovery-log
++ a milestone stinger. Verified: button renders, click fires the "❄️ Ice Age" banner and logs it; the
+food-crash + cold-drain + whiteout build clean.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

@@ -120,6 +120,10 @@ export class World implements CreatureContext {
   /** 0..1 eruption glow for the renderer (reddens the sky, lava light), ramps down as it ends. */
   get volcanoGlow(): number { return Math.min(1, this.volcanoT / 4); }
   private lavaDebt = 0; // paces the sustained lava kills near the vent
+  coldT = 0; // an ice age: seconds of deep cold remaining (a slow global cataclysm)
+  /** 0..1 freeze intensity for the renderer (whiteout) + the sim (food crash, cold drain). */
+  get cold(): number { return Math.min(1, this.coldT / 8); } // holds at 1, then thaws over the last 8s
+  private freezeDebt = 0; // paces the meadow icing over
   crowding = 1; // ≥1; rises as the population passes the soft cap (brakes reproduction + raises metabolism)
   get camoHue(): number { return this.biome.camoHue; } // the ground hue prey camouflage toward
   prowling = 0; // # of predators currently stalking nearby prey (ominous audio + narration)
@@ -235,6 +239,9 @@ export class World implements CreatureContext {
     this.gloom = Math.max(this.gloom, 0.7); // ashfall
     return { x: cx, z: cz };
   }
+
+  /** Cataclysm — a global ice age: a white-out that crashes food and saps the herd, then thaws. */
+  iceAge(): void { this.coldT = 38; } // ~30s of deep freeze + an 8s thaw
 
   /** Paint a drought (clears food + suppresses growth) or a bloom (a lush flush) over a spot. */
   addZone(x: number, z: number, drought: boolean): void {
@@ -361,13 +368,21 @@ export class World implements CreatureContext {
         this.lavaDebt -= 1;
       }
     }
+    // an ice age: the cold saps every creature and the meadow ices over, until it slowly thaws
+    if (this.coldT > 0) {
+      this.coldT = Math.max(0, this.coldT - dt);
+      const cold = this.cold;
+      for (const c of this.creatures) if (c.alive) c.energy -= 0.8 * cold * dt; // the chill drains the herd
+      this.freezeDebt += this.food.length * 0.05 * cold * dt; // existing food freezes over
+      while (this.freezeDebt >= 1 && this.food.length) { this.food.pop(); this.freezeDebt -= 1; }
+    }
     // crowding brake: ≥1, climbing as the population passes the soft cap (self-limits before overshoot)
     this.crowding = 1 + Math.max(0, (this.creatures.length - ECO.softCap) / ECO.softCap) * ECO.crowdingK;
     // food regrows toward an abundance- and season-scaled cap, faster when the meadow is grazed bare,
     // and barely at all under a cataclysm pall (impact winter / ash / freeze)
     const targetCap = Math.min(WORLD.foodMax, Math.round(WORLD.initialFood * params.foodAbundance));
     const scarcity = 1 - Math.min(1, this.food.length / Math.max(1, targetCap));
-    this.foodDebt += WORLD.foodRegrowPerSec * params.foodAbundance * (1 + scarcity * (ECO.recoveryBoost - 1)) * this.biome.seasonFood(this.age) * (1 - this.gloom * 0.9) * dt;
+    this.foodDebt += WORLD.foodRegrowPerSec * params.foodAbundance * (1 + scarcity * (ECO.recoveryBoost - 1)) * this.biome.seasonFood(this.age) * (1 - this.gloom * 0.9) * (1 - this.cold * 0.92) * dt;
     while (this.foodDebt >= 1 && this.food.length < targetCap) {
       this.food.push(this.growFood());
       this.foodDebt -= 1;

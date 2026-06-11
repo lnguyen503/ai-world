@@ -59,6 +59,11 @@ function triggerCataclysm(id: string): void {
     discovery.add('🌋 a volcano erupted — ash blots the sun', world.age);
     sound.stinger('kill');
     scene.highlightPoint(p.x, p.z); // swoop the camera to the vent
+  } else if (id === 'iceage') {
+    world.iceAge();
+    banner.flash('❄️ Ice Age', 'a great cold descends — the world freezes over');
+    discovery.add('❄️ an ice age set in — the meadow froze', world.age);
+    sound.stinger('milestone');
   }
 }
 function applyGodTool(x: number, z: number, tool: string): void {
