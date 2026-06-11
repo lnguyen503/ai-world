@@ -510,6 +510,14 @@ the biome's palette over generations — a population slowly disappearing into i
 still work regardless, so it only shades pursuit, not the whole hunt. Verified at 20×: population stayed
 rock-stable (~149) with predators persisting (1–8) — the new pressure doesn't destabilise the balance.
 
+### v0.88.0 — Highlight reel
+The cinematic director now plays a **highlight reel**: every so often (≥16s apart) it breaks from
+gliding between critters to **gently swoop the camera onto a fresh dramatic event** — a kill or a
+striking birth — holding it for ~5s before resuming (`scene.ts`, using the kill / novelty positions;
+the world now records `lastNoveltyX/Z`). Kept deliberately gentle (slow target + camera lerps) so it
+reads as a smooth cut-away, not a jarring snap, and it only runs when auto-cam is on and you're not
+manually following.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

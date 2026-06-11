@@ -122,6 +122,7 @@ export class World implements CreatureContext {
   lastKillX = 0; lastKillZ = 0; // where the most recent kill happened (cinematic camera drifts there)
   noveltyFlash = 0; // >0 briefly after a striking mutant is born
   lastNovelty: string | null = null; // what the surprise was (for the narrator)
+  lastNoveltyX = 0; lastNoveltyZ = 0; // where it was born (camera can swoop there)
   events: { t: 0 | 1 | 2 | 3; x: number; z: number }[] = []; // birth(0)/death(1)/kill(2)/novelty(3) events
   private lightningTimer = 0;
 
@@ -206,6 +207,7 @@ export class World implements CreatureContext {
     if (novelty) {
       cr.novelKind = novelty; cr.novelTimer = 5;
       this.lastNovelty = novelty; this.noveltyFlash = 1.5;
+      this.lastNoveltyX = cx; this.lastNoveltyZ = cz;
       this.burst(3, cx, cz); // a bright sparkle marks the surprise
     }
     this.pendingChildren.push(cr);

@@ -357,6 +357,11 @@ export class Scene3D {
   private autoTimer = 0;
   private autoMode: 'follow' | 'orbit' = 'orbit';
   private autoCam = true; // when off, the camera just drifts in a slow gentle orbit (no auto-follow)
+  // highlight reel: occasionally swoop to a fresh dramatic event (a kill, a striking birth)
+  private highlightT = 0;
+  private highlightX = 0;
+  private highlightZ = 0;
+  private highlightCdMs = -99999;
 
   private lastDt = 0;
   private dramaTimer = 0;
@@ -1828,6 +1833,26 @@ export class Scene3D {
     const sel = this.selectedId != null ? world.creatures.find((x) => x.id === this.selectedId) : undefined;
     if (this.selectedId != null && !sel) this.setSelected(null); // the creature we followed died
 
+    // highlight reel: every so often, gently swoop the camera to a fresh kill or striking birth
+    this.highlightT = Math.max(0, this.highlightT - this.lastDt);
+    if (this.autoCam && !sel && this.highlightT <= 0 && performance.now() - this.highlightCdMs > 16000) {
+      if (world.killFlash > 0.9) this.startHighlight(world.lastKillX, world.lastKillZ);
+      else if (world.noveltyFlash > 1.2) this.startHighlight(world.lastNoveltyX, world.lastNoveltyZ);
+    }
+    if (this.highlightT > 0 && !sel) {
+      this.controls.autoRotate = false;
+      this.nameSprite.visible = false;
+      TMP.set(this.highlightX, this.biome.height(this.highlightX, this.highlightZ) + 1.2, this.highlightZ);
+      this.controls.target.lerp(TMP, 0.06); // gentle drift onto the action
+      const desired = 11;
+      if (this.camera.position.distanceTo(this.controls.target) > desired * 1.6) {
+        const dir = TMP2.copy(this.camera.position).sub(this.controls.target).normalize();
+        this.camera.position.lerp(TMP3.copy(this.controls.target).addScaledVector(dir, desired), 0.04);
+      }
+      this.controls.update();
+      return;
+    }
+
     // when nobody is manually selected (and auto-cam is on), let the director glide between critters
     const auto = this.selectedId == null && this.autoCam ? this.updateDirector(world) : undefined;
     const followed = sel ?? auto;
@@ -1903,6 +1928,12 @@ export class Scene3D {
       const goal = TMP3.copy(this.controls.target).addScaledVector(dir, desired);
       this.camera.position.lerp(goal, manual ? 0.08 : 0.025);
     }
+  }
+
+  private startHighlight(x: number, z: number): void {
+    this.highlightT = 4 + Math.random() * 1.5;
+    this.highlightX = x; this.highlightZ = z;
+    this.highlightCdMs = performance.now();
   }
 
   /** Turn the cinematic auto-follow on/off. Off → the camera just drifts in a slow, gentle orbit. */
