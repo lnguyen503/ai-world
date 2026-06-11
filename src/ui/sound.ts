@@ -1,28 +1,52 @@
-type Mode = 'off' | 'nature' | 'music';
+type Mode = 'off' | 'nature' | 'music' | 'both';
 
-// Pentatonic scales — any random pick of notes from these sounds pleasant (never dissonant).
+// Pentatonic / modal scales — any random pick of notes from these sounds pleasant (never dissonant).
 const SCALES = [
-  [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25], // C major pentatonic
-  [220.00, 261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 659.25], // A minor pentatonic
-  [196.00, 246.94, 293.66, 349.23, 392.00, 493.88, 587.33], // G-based
+  [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25], // C major pentatonic
+  [220.0, 261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 659.25], // A minor pentatonic
+  [196.0, 246.94, 293.66, 349.23, 392.0, 493.88, 587.33], // G-based
+  [293.66, 329.63, 369.99, 440.0, 493.88, 587.33, 659.25, 739.99], // D major pentatonic
+  [164.81, 196.0, 220.0, 246.94, 293.66, 329.63, 392.0, 440.0], // E minor pentatonic
+  [174.61, 220.0, 261.63, 329.63, 349.23, 440.0, 523.25], // F-based, airy
 ];
 const randItem = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)]!;
+const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
 /**
- * Procedural ambient audio (Web Audio, fully local). "Nature" = wind that swells with the weather
- * + random birdsong. "Music" = soft, randomized melodic notes from a pentatonic scale (gentle
- * attack/release, occasional harmony + bass) — a calm music-box feel, not a drone.
+ * Procedural ambient audio (Web Audio, fully local) that reacts to the time of day and the weather.
+ *
+ * "Nature" is a living soundscape: a wind bed that swells with the weather, daytime birdsong (several
+ * different call shapes), night-time crickets / owl hoots / frog croaks, and — as storms build — a
+ * rain hiss and distant rolling thunder. "Music" is a calm, randomized music-box: notes drawn from a
+ * pentatonic scale through a soft echo, whose tempo, loudness, octave and brightness shift with the
+ * mood of the world (bright by day, a slow lullaby at night, sparse and hushed in a storm), with the
+ * occasional gentle arpeggio and a warm pad swell. "Nature + Music" layers both.
  */
 export class SoundManager {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private mode: Mode = 'off';
+  private natureOn = false;
+  private musicOn = false;
+
+  // nature layers
+  private noise: AudioBuffer | null = null;
   private windSrc: AudioBufferSourceNode | null = null;
   private windGain: GainNode | null = null;
-  private musicMaster: GainNode | null = null;
-  private scale: number[] = SCALES[0]!;
+  private rainSrc: AudioBufferSourceNode | null = null;
+  private rainGain: GainNode | null = null;
+  private rainLp: BiquadFilterNode | null = null;
   private nextBird = 0;
+  private nextCricket = 0;
+  private nextNight = 0;
+  private nextThunder = 0;
+
+  // music layers
+  private musicMaster: GainNode | null = null;
+  private musicNodes: AudioNode[] = [];
+  private scale: number[] = SCALES[0]!;
   private nextNote = 0;
+  private nextPad = 0;
 
   constructor() {
     const sel = document.getElementById('c-sound') as HTMLSelectElement | null;
@@ -40,85 +64,253 @@ export class SoundManager {
     return this.ctx;
   }
 
+  /** A reusable 2-second white-noise buffer (shared by the wind and rain sources). */
+  private noiseBuf(ctx: AudioContext): AudioBuffer {
+    if (!this.noise) {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      this.noise = buf;
+    }
+    return this.noise;
+  }
+
   setMode(mode: Mode): void {
     if (mode === this.mode) return;
     this.stopAmbience();
     this.mode = mode;
+    this.natureOn = mode === 'nature' || mode === 'both';
+    this.musicOn = mode === 'music' || mode === 'both';
     if (mode === 'off') return;
     const ctx = this.ensureCtx();
-    if (mode === 'nature') this.startNature(ctx);
-    else this.startMusic(ctx);
+    if (this.natureOn) this.startNature(ctx);
+    if (this.musicOn) this.startMusic(ctx);
   }
 
   private stopAmbience(): void {
-    if (this.windSrc) { try { this.windSrc.stop(); } catch { /* already stopped */ } this.windSrc.disconnect(); this.windSrc = null; }
+    for (const s of [this.windSrc, this.rainSrc]) {
+      if (s) { try { s.stop(); } catch { /* already stopped */ } s.disconnect(); }
+    }
+    this.windSrc = this.rainSrc = null;
     this.windGain?.disconnect(); this.windGain = null;
+    this.rainGain?.disconnect(); this.rainGain = null;
+    this.rainLp?.disconnect(); this.rainLp = null;
+    for (const n of this.musicNodes) n.disconnect();
+    this.musicNodes = [];
     this.musicMaster?.disconnect(); this.musicMaster = null; // cuts any ringing note tails
   }
 
+  // ── Nature ───────────────────────────────────────────────────────────────
+
   private startNature(ctx: AudioContext): void {
-    const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-    const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 480 + Math.random() * 360;
-    const g = ctx.createGain(); g.gain.value = 0.12;
-    src.connect(lp).connect(g).connect(this.master!);
-    src.start();
-    this.windSrc = src; this.windGain = g;
-    this.nextBird = ctx.currentTime + 1.5;
+    const buf = this.noiseBuf(ctx);
+    // wind bed
+    const wsrc = ctx.createBufferSource(); wsrc.buffer = buf; wsrc.loop = true;
+    const wlp = ctx.createBiquadFilter(); wlp.type = 'lowpass'; wlp.frequency.value = 480 + Math.random() * 360;
+    const wg = ctx.createGain(); wg.gain.value = 0.12;
+    wsrc.connect(wlp).connect(wg).connect(this.master!);
+    wsrc.start();
+    this.windSrc = wsrc; this.windGain = wg;
+    // rain bed (starts silent; swells in only as the weather turns)
+    const rsrc = ctx.createBufferSource(); rsrc.buffer = buf; rsrc.loop = true;
+    const rlp = ctx.createBiquadFilter(); rlp.type = 'lowpass'; rlp.frequency.value = 1400;
+    const rg = ctx.createGain(); rg.gain.value = 0.0001;
+    rsrc.connect(rlp).connect(rg).connect(this.master!);
+    rsrc.start();
+    this.rainSrc = rsrc; this.rainGain = rg; this.rainLp = rlp;
+    const t = ctx.currentTime;
+    this.nextBird = t + 1.5; this.nextCricket = t + 1; this.nextNight = t + 4; this.nextThunder = t + 3;
   }
 
+  private updateNature(ctx: AudioContext, weather: number, dayFactor: number): void {
+    const t = ctx.currentTime;
+    const day = dayFactor > 0.55;
+    const night = dayFactor < 0.3;
+    const calm = weather < 0.4;
+
+    // wind rises with the weather; rain hiss fades in past a threshold and brightens with intensity
+    if (this.windGain) this.windGain.gain.value = lerp(this.windGain.gain.value, 0.1 + weather * 0.5, 0.05);
+    if (this.rainGain) {
+      const target = weather > 0.45 ? (weather - 0.45) * 0.6 : 0.0001;
+      this.rainGain.gain.value = lerp(this.rainGain.gain.value, target, 0.04);
+      if (this.rainLp) this.rainLp.frequency.value = 1400 + weather * 2600;
+    }
+
+    if (weather > 0.7 && t >= this.nextThunder) {
+      if (Math.random() < 0.5) this.thunder(ctx, weather);
+      this.nextThunder = t + 5 + Math.random() * 13;
+    }
+    if (t >= this.nextBird) {
+      if (day && calm && Math.random() < 0.6) this.birdCall(ctx);
+      this.nextBird = t + 1.8 + Math.random() * 4.5;
+    }
+    if (t >= this.nextCricket) {
+      if (dayFactor < 0.4 && weather < 0.5) this.cricket(ctx);
+      this.nextCricket = t + 0.5 + Math.random() * 1.1;
+    }
+    if (t >= this.nextNight) {
+      if (night) (Math.random() < 0.5 ? this.owl(ctx) : this.frog(ctx));
+      this.nextNight = t + 9 + Math.random() * 15;
+    }
+  }
+
+  /** A randomly-chosen birdsong: a single chirp, a two-note call, or a quick warble. */
+  private birdCall(ctx: AudioContext): void {
+    const kind = Math.floor(Math.random() * 3);
+    const base = 1900 + Math.random() * 2300;
+    if (kind === 0) {
+      this.blip(ctx, base, base * (0.5 + Math.random() * 0.3), 0.14, 0.1);
+    } else if (kind === 1) {
+      this.blip(ctx, base, base * 0.9, 0.1, 0.09);
+      this.blip(ctx, base * 0.8, base * 0.7, 0.1, 0.08, 0.16);
+    } else {
+      const o = ctx.createOscillator(); o.type = 'sine';
+      const g = ctx.createGain(); const t = ctx.currentTime;
+      o.frequency.setValueAtTime(base, t);
+      for (let i = 1; i <= 5; i++) o.frequency.setValueAtTime(base * (i % 2 ? 1.12 : 0.9), t + i * 0.05);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.08, t + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+      o.connect(g).connect(this.master!); o.start(t); o.stop(t + 0.32);
+    }
+  }
+
+  /** One swept sine "blip" (the building block for bird calls). */
+  private blip(ctx: AudioContext, from: number, to: number, dur: number, vel: number, delay = 0): void {
+    const o = ctx.createOscillator(); o.type = 'sine';
+    const g = ctx.createGain(); const t = ctx.currentTime + delay;
+    o.frequency.setValueAtTime(from, t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(60, to), t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vel, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.04);
+    o.connect(g).connect(this.master!); o.start(t); o.stop(t + dur + 0.06);
+  }
+
+  /** A soft rhythmic cricket trill — a few fast band-passed pulses, kept quiet. */
+  private cricket(ctx: AudioContext): void {
+    const t = ctx.currentTime; const freq = 4200 + Math.random() * 900;
+    for (let i = 0; i < 3 + Math.floor(Math.random() * 3); i++) {
+      const o = ctx.createOscillator(); o.type = 'square';
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 14;
+      const g = ctx.createGain(); const w = t + i * 0.05;
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, w);
+      g.gain.exponentialRampToValueAtTime(0.03, w + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, w + 0.03);
+      o.connect(bp).connect(g).connect(this.master!); o.start(w); o.stop(w + 0.04);
+    }
+  }
+
+  /** A low two-note owl hoot. */
+  private owl(ctx: AudioContext): void {
+    const t = ctx.currentTime; const f = 360 + Math.random() * 80;
+    for (const d of [0, 0.42]) {
+      const o = ctx.createOscillator(); o.type = 'sine';
+      const g = ctx.createGain(); const w = t + d;
+      o.frequency.setValueAtTime(f * 1.08, w);
+      o.frequency.exponentialRampToValueAtTime(f, w + 0.18);
+      g.gain.setValueAtTime(0.0001, w);
+      g.gain.exponentialRampToValueAtTime(0.07, w + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, w + 0.32);
+      o.connect(g).connect(this.master!); o.start(w); o.stop(w + 0.34);
+    }
+  }
+
+  /** A short frog croak — a buzzy low tone. */
+  private frog(ctx: AudioContext): void {
+    const o = ctx.createOscillator(); o.type = 'sawtooth';
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500;
+    const g = ctx.createGain(); const t = ctx.currentTime;
+    o.frequency.setValueAtTime(150, t);
+    o.frequency.linearRampToValueAtTime(110, t + 0.18);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.08, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    o.connect(lp).connect(g).connect(this.master!); o.start(t); o.stop(t + 0.24);
+  }
+
+  /** Distant rolling thunder — a long, filtered noise rumble that grows with the storm. */
+  private thunder(ctx: AudioContext, weather: number): void {
+    const src = ctx.createBufferSource(); src.buffer = this.noiseBuf(ctx); src.loop = true;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 130;
+    const g = ctx.createGain(); const t = ctx.currentTime;
+    const peak = 0.12 + weather * 0.18;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.3);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
+    src.connect(lp).connect(g).connect(this.master!); src.start(t); src.stop(t + 2.6);
+  }
+
+  // ── Music ────────────────────────────────────────────────────────────────
+
   private startMusic(ctx: AudioContext): void {
-    this.musicMaster = ctx.createGain();
-    this.musicMaster.gain.value = 0.5;
-    this.musicMaster.connect(this.master!);
-    this.scale = randItem(SCALES); // a random key each time
-    this.nextNote = ctx.currentTime + 0.3;
+    const m = ctx.createGain(); m.gain.value = 0.5;
+    m.connect(this.master!);
+    // a subtle feedback-delay "echo" gives the notes a little space (gentle reverb feel)
+    const delay = ctx.createDelay(); delay.delayTime.value = 0.19;
+    const fb = ctx.createGain(); fb.gain.value = 0.24;
+    const wet = ctx.createGain(); wet.gain.value = 0.25;
+    m.connect(delay); delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(this.master!);
+    this.musicMaster = m;
+    this.musicNodes = [delay, fb, wet];
+    this.scale = randItem(SCALES); // a fresh key each time the mode starts
+    const t = ctx.currentTime;
+    this.nextNote = t + 0.3; this.nextPad = t + 4;
+  }
+
+  private updateMusic(ctx: AudioContext, weather: number, dayFactor: number): void {
+    const t = ctx.currentTime;
+    const night = dayFactor < 0.3;
+    const storm = weather > 0.6;
+    // mood shapes tempo, loudness and register without changing key (which would jar)
+    const vel = storm ? 0.09 : night ? 0.11 : 0.16;
+    const gap = (0.55 + Math.random() * 0.95) * (night ? 1.5 : 1) * (storm ? 1.4 : 1);
+    const oct = night ? 0.5 : 1; // an octave lower at night for a lullaby warmth
+
+    if (t >= this.nextNote) {
+      if (!storm && Math.random() < 0.12) {
+        this.arpeggio(ctx, t, vel, oct);
+      } else {
+        this.playNote(ctx, randItem(this.scale) * oct, t, 1.7, vel, 'triangle'); // melody
+        if (Math.random() < 0.4) this.playNote(ctx, randItem(this.scale) * oct, t + 0.02, 1.9, vel * 0.55, 'sine'); // harmony
+        if (Math.random() < 0.3) this.playNote(ctx, this.scale[0]! * 0.5 * oct, t, 2.6, vel * 0.8, 'sine'); // bass
+      }
+      this.nextNote = t + gap;
+    }
+    // an occasional slow pad swell underneath for warmth (not during storms)
+    if (t >= this.nextPad) {
+      if (!storm) this.playNote(ctx, this.scale[0]! * oct, t, 3.4, vel * 0.5, 'sine', 0.5);
+      this.nextPad = t + 7 + Math.random() * 9;
+    }
+  }
+
+  /** A gentle ascending run of 3–4 scale notes. */
+  private arpeggio(ctx: AudioContext, t: number, vel: number, oct: number): void {
+    const n = 3 + Math.floor(Math.random() * 2);
+    const start = Math.floor(Math.random() * (this.scale.length - n));
+    for (let i = 0; i < n; i++) {
+      this.playNote(ctx, this.scale[start + i]! * oct, t + i * 0.13, 1.2, vel * 0.85, 'triangle');
+    }
   }
 
   /** One soft note with a gentle attack and a long release — a music-box / soft-bell sound. */
-  private playNote(ctx: AudioContext, freq: number, when: number, dur: number, vel: number): void {
+  private playNote(ctx: AudioContext, freq: number, when: number, dur: number, vel: number, type: OscillatorType, attack = 0.04): void {
     if (!this.musicMaster) return;
-    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = freq;
+    const o = ctx.createOscillator(); o.type = type; o.frequency.value = freq;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, when);
-    g.gain.exponentialRampToValueAtTime(vel, when + 0.04);
+    g.gain.exponentialRampToValueAtTime(vel, when + attack);
     g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
     o.connect(g).connect(this.musicMaster);
     o.start(when); o.stop(when + dur + 0.05);
   }
 
-  /** Per-frame: wind/birds for nature, the note sequencer for music. */
-  update(weather: number): void {
+  /** Per-frame driver — runs whichever layers are active, reacting to weather + time of day. */
+  update(weather: number, dayFactor: number): void {
     const ctx = this.ctx;
     if (!ctx) return;
-    if (this.mode === 'nature') {
-      if (this.windGain) this.windGain.gain.value = 0.1 + weather * 0.5;
-      if (ctx.currentTime >= this.nextBird) {
-        if (weather < 0.4 && Math.random() < 0.6) this.chirp(ctx);
-        this.nextBird = ctx.currentTime + 2 + Math.random() * 5;
-      }
-    } else if (this.mode === 'music' && ctx.currentTime >= this.nextNote) {
-      const t = ctx.currentTime;
-      this.playNote(ctx, randItem(this.scale), t, 1.7, 0.16); // melody
-      if (Math.random() < 0.4) this.playNote(ctx, randItem(this.scale), t + 0.02, 1.9, 0.09); // soft harmony
-      if (Math.random() < 0.3) this.playNote(ctx, this.scale[0]! / 2, t, 2.6, 0.13); // gentle bass
-      this.nextNote = t + 0.55 + Math.random() * 0.95; // relaxed, slightly irregular tempo
-    }
-  }
-
-  private chirp(ctx: AudioContext): void {
-    const o = ctx.createOscillator(); o.type = 'sine';
-    const g = ctx.createGain();
-    const t = ctx.currentTime;
-    const base = 2000 + Math.random() * 2200;
-    o.frequency.setValueAtTime(base, t);
-    o.frequency.exponentialRampToValueAtTime(base * (0.5 + Math.random() * 0.3), t + 0.12);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.1, t + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
-    o.connect(g).connect(this.master!);
-    o.start(t); o.stop(t + 0.2);
+    if (this.natureOn) this.updateNature(ctx, weather, dayFactor);
+    if (this.musicOn) this.updateMusic(ctx, weather, dayFactor);
   }
 }

@@ -137,7 +137,7 @@ function frame(now: number): void {
   const hunt = world.killFlash > 0 ? 'kill' : world.prowling > 0 ? 'chase' : 'none';
   const novelty = world.noveltyFlash > 0 ? world.lastNovelty : null;
   narrator.update(stats, biome.name, params.weather, world.lightningFlash > 0, world.dayFactor, world.prowling > 0, hunt, novelty);
-  sound.update(params.weather);
+  sound.update(params.weather, world.dayFactor);
 
   scene.render();
   requestAnimationFrame(frame);

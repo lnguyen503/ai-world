@@ -272,6 +272,20 @@ eating", "wandering, hungry, hunting for food"). Witty critters earn a slightly
 longer line (up to ~8 words vs ~5), and the trim cap was raised to fit. The canned
 fallback pool is unchanged, so it still reads well with AI narration off.
 
+### v0.66.0 — A living soundscape
+The ambience (`src/ui/sound.ts`) was rebuilt to **react to the world** instead of
+looping the same bed. **Nature** is now time-of-day and weather aware: daytime
+**birdsong** with three different call shapes (a single chirp, a two-note call, a
+quick warble), **crickets** trilling in the evening, **owl hoots** and **frog
+croaks** in the deep night, a **wind** bed that swells with the weather, and — as
+storms build — a **rain hiss** that brightens with intensity plus **distant rolling
+thunder**. **Music** gained more keys (six scales) and a **mood**: it shifts tempo,
+loudness and register with the world — bright and lilting by day, a slow octave-lower
+**lullaby** at night, sparse and hushed in a storm — with the occasional gentle
+**arpeggio**, a warm **pad swell** underneath, and a subtle feedback-delay **echo**
+for space. A new **"Nature + Music"** Ambience option layers both. The soundscape
+is driven from the frame loop with the live weather and `dayFactor`.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
