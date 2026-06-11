@@ -994,6 +994,7 @@ export class Scene3D {
     const w = params.weather;
     const fog = this.scene.fog as THREE.Fog;
     this.cosmos.setCalm(1 - Math.min(1, w)); // storms wash out the aurora
+    this.cosmos.setClarity(Math.max(0, 1 - w * 1.4)); // clouds thin the starfield (fewer stars when overcast)
 
     // an ice age forces a heavy white-out snow even in fair weather; otherwise cold biomes snow, others rain
     const iceWhiteout = this.cold > 0.05;
@@ -1436,6 +1437,7 @@ export class Scene3D {
     // roll a fresh aurora each nightfall — most nights none/faint, occasionally a real show
     const isNight = s.starAlpha > 0.5;
     if (isNight && !this.prevNightForAurora) {
+      this.cosmos.newNight(); // fresh constellations + deep-space objects each nightfall
       const r = Math.random();
       const strength = r < 0.45 ? 0 : r < 0.8 ? 0.2 + Math.random() * 0.25 : 0.55 + Math.random() * 0.45;
       this.cosmos.setAuroraStrength(strength);

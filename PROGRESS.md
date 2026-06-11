@@ -733,6 +733,19 @@ critters bicker about the actual event). The local-LLM prompts (both the lone mu
 exchange) now include a one-sentence scene description and ask the critter to react to it. Verified: tsc +
 build clean; a triggered plague greens the herd and the discovery/era state the chatter reads is live.
 
+### v2.4.0 — Night-sky polish (de-pixelated galaxies + a different sky every night)
+A polish pass on the deep sky. The **galaxies were pixelated** — hard 1px square `PointsMaterial` dots —
+so they now use **soft round point-sprites** (a `softDot` map) sized to the galaxy, **denser** (5.2k → 7.2k
+points), with a big faint **halo sprite** filling the gaps; the spiral now reads as a smooth glowing cloud.
+The whole deep sky is also **re-rolled at every nightfall** (`Cosmos.newNight()`, called from the scene's
+nightfall hook + once at startup): the constellation library grew to **10 patterns**, baked around the
+zenith so a random **3–4 of them** are rotated out to random spots each night (the rest hidden); the two
+galaxies get a fresh position, tilt and gentle tint, and the **companion galaxy is gone on ~40% of
+nights**; the nebulae are repositioned, recoloured, and **~3 of 5 shown**. Finally the starfield is
+**cloud-aware**: a new `uClear` uniform (fed from the weather via `setClarity`) keeps the full field on
+clear nights but **fades the faint stars out first as it clouds over**, leaving the bright giants. Verified
+in-browser: a forced nightfall shows a smooth spiral galaxy + constellation lines with zero WebGL errors.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

@@ -43,13 +43,14 @@ export class Cosmos {
     this.starMat = this.stars.material as THREE.ShaderMaterial;
     this.group.add(this.stars);
     this.makeNebulae();
-    this.makeGalaxy(DOME * 0.95, 0.9, 1.0, 0xfff0d8);   // a big golden spiral overhead
-    this.makeGalaxy(DOME * 0.9, 2.7, 0.42, 0xcfe0ff);   // a small bluish companion, off to the side
+    this.makeGalaxy(DOME * 0.95, 1.0, 0xfff0d8, true);   // a big spiral, always present
+    this.makeGalaxy(DOME * 0.9, 0.42, 0xcfe0ff, false);  // a smaller companion (some nights it's gone)
     this.makeConstellations();
     this.makeMeteors();
     this.makeComet();
     this.makeAurora();
     this.group.renderOrder = -1; // behind everything
+    this.newNight(); // roll the first night's sky (positions, tints, which patterns are out)
   }
 
   /** A dense field of stars with varied size, colour temperature and a slow individual twinkle. */
@@ -92,27 +93,30 @@ export class Cosmos {
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
-      uniforms: { uTime: { value: 0 }, uNight: { value: 0 } },
+      uniforms: { uTime: { value: 0 }, uNight: { value: 0 }, uClear: { value: 1 } },
       vertexShader: `
         attribute vec3 aColor; attribute float aSize; attribute float aPhase;
-        uniform float uTime; varying vec3 vColor; varying float vTw;
+        uniform float uTime; varying vec3 vColor; varying float vTw; varying float vB;
         void main() {
           vColor = aColor;
           float tw = 0.65 + 0.35 * sin(uTime * 1.6 + aPhase);
           vTw = tw;
+          vB = clamp((aSize - 0.8) / 3.2, 0.0, 1.0); // 0 = faint star … 1 = bright giant
           vec4 mv = modelViewMatrix * vec4(position, 1.0);
           gl_PointSize = aSize * tw * (300.0 / -mv.z);
           gl_Position = projectionMatrix * mv;
         }`,
       fragmentShader: `
-        uniform float uNight; varying vec3 vColor; varying float vTw;
+        uniform float uNight; uniform float uClear; varying vec3 vColor; varying float vTw; varying float vB;
         void main() {
           vec2 d = gl_PointCoord - 0.5;
           float r = length(d);
           if (r > 0.5) discard;
           float core = smoothstep(0.5, 0.0, r);
           float glow = core * core;
-          gl_FragColor = vec4(vColor, glow * vTw * uNight);
+          // a clear sky shows the whole field; under cloud the faint stars fade out first, leaving the giants
+          float vis = clamp(uClear + vB * 0.7, 0.0, 1.0);
+          gl_FragColor = vec4(vColor, glow * vTw * uNight * vis);
         }`,
     });
     const p = new THREE.Points(geo, mat);
@@ -166,6 +170,7 @@ export class Cosmos {
       sp.scale.set(sc, sc, 1);
       sp.userData.baseOpacity = 0.16 + (i % 2) * 0.08;
       sp.userData.phase = i * 1.3;
+      sp.userData.nightVis = 1; // newNight() decides which clouds are out + repositions/recolours them
       this.nebulae.push(sp);
       this.group.add(sp);
     }
@@ -183,14 +188,15 @@ export class Cosmos {
     const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t;
   }
 
-  /** A log-spiral galaxy of points with a glowing core, tilted and parked far up in the dome. */
-  private makeGalaxy(dist: number, around: number, scaleMul: number, coreHex: number): void {
-    const arms = 3, n = 5200;
+  /** A log-spiral galaxy of soft points with a glowing core + halo, tilted and parked far up in the dome.
+   *  Position, tilt and tint are re-rolled each night by newNight(); only the disk geometry is fixed. */
+  private makeGalaxy(dist: number, scaleMul: number, coreHex: number, primary: boolean): void {
+    const arms = 3, n = 7200;
     const pos = new Float32Array(n * 3);
     const col = new Float32Array(n * 3);
     const c = new THREE.Color();
     const radius = DOME * 0.42 * scaleMul;
-    let s = (around * 1000 + dist) % 233280;
+    let s = (scaleMul * 1000 + dist) % 233280;
     const rnd = (): number => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
     for (let i = 0; i < n; i++) {
       const r = Math.pow(rnd(), 0.6);                 // denser toward the core
@@ -210,8 +216,9 @@ export class Cosmos {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    // soft round point sprites (not hard squares) blend into a smooth glow instead of looking pixelated
     const mat = new THREE.PointsMaterial({
-      size: 1.1, vertexColors: true, transparent: true, opacity: 0,
+      size: radius * 0.05, map: this.softDot(), vertexColors: true, transparent: true, opacity: 0,
       depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true, fog: false,
     });
     const disk = new THREE.Points(geo, mat);
@@ -221,16 +228,25 @@ export class Cosmos {
       map: this.softDot(), color: coreHex, transparent: true, opacity: 0,
       depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
     }));
-    core.scale.setScalar(radius * 0.5);
+    core.scale.setScalar(radius * 0.55);
+    // a big faint halo fills the gaps between arm points so the whole disk reads as a soft cloud
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: this.softDot(), color: coreHex, transparent: true, opacity: 0,
+      depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+    }));
+    halo.scale.setScalar(radius * 2.4);
 
     const g = new THREE.Group();
-    g.add(disk, core);
-    // place on the dome and tilt the disk so we see the spiral at an angle
-    const el = 0.55 + (scaleMul < 0.6 ? 0.18 : 0);
-    const ring = Math.sqrt(Math.max(0, 1 - el * el));
-    g.position.set(Math.cos(around) * ring * dist, el * dist, Math.sin(around) * ring * dist);
-    g.rotation.set(Math.PI * 0.32, around, Math.PI * 0.1);
-    g.userData = { disk: mat, core: core.material as THREE.SpriteMaterial, baseOpacity: scaleMul < 0.6 ? 0.7 : 0.9, spin: scaleMul < 0.6 ? 0.012 : 0.006 };
+    g.add(disk, halo, core);
+    const baseOpacity = primary ? 0.9 : 0.7;
+    g.userData = {
+      dist, primary, baseOpacity, spin: primary ? 0.006 : 0.012, nightVis: 1,
+      mats: [
+        { m: mat, f: 1 },
+        { m: halo.material as THREE.SpriteMaterial, f: 0.16 },
+        { m: core.material as THREE.SpriteMaterial, f: 0.6 },
+      ],
+    };
     this.galaxies.push(g);
     this.group.add(g);
   }
@@ -392,25 +408,37 @@ export class Cosmos {
     return sp;
   }
 
-  /** A few named star patterns: bright marker stars joined by faint lines, with a label. */
+  /** A library of named star patterns. Each is baked centred on the zenith; newNight() then rotates a
+   *  random subset out to random spots on the dome, so different constellations show on different nights. */
   private makeConstellations(): void {
-    // each pattern: vertices in a local [-1,1] plane + edges (index pairs) + name + placement
-    const patterns: { name: string; v: [number, number][]; e: [number, number][]; az: number; el: number; scale: number }[] = [
+    const patterns: { name: string; v: [number, number][]; e: [number, number][]; scale: number }[] = [
       { name: 'The Critter', v: [[-0.8, 0.3], [-0.3, 0.6], [0.2, 0.5], [0.6, 0.2], [0.3, -0.4], [-0.2, -0.3], [-0.6, -0.5]],
-        e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [5, 1]], az: 0.7, el: 0.62, scale: 0.5 },
+        e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [5, 1]], scale: 0.5 },
       { name: 'The Wing', v: [[-0.9, 0], [-0.4, 0.4], [0, 0.1], [0.4, 0.4], [0.9, 0], [0, -0.3]],
-        e: [[0, 1], [1, 2], [2, 3], [3, 4], [2, 5]], az: 2.3, el: 0.5, scale: 0.46 },
+        e: [[0, 1], [1, 2], [2, 3], [3, 4], [2, 5]], scale: 0.46 },
       { name: 'The Drop', v: [[0, 0.7], [-0.4, 0], [0, -0.6], [0.4, 0]],
-        e: [[0, 1], [1, 2], [2, 3], [3, 0]], az: 4.0, el: 0.7, scale: 0.34 },
+        e: [[0, 1], [1, 2], [2, 3], [3, 0]], scale: 0.34 },
       { name: 'The Hunter', v: [[-0.6, 0.5], [-0.2, 0.2], [0.2, 0.4], [0.5, 0.1], [0.1, -0.2], [-0.3, -0.5], [0.4, -0.6]],
-        e: [[0, 1], [1, 2], [2, 3], [1, 4], [4, 5], [4, 6]], az: 5.2, el: 0.45, scale: 0.5 },
+        e: [[0, 1], [1, 2], [2, 3], [1, 4], [4, 5], [4, 6]], scale: 0.5 },
+      { name: 'The Serpent', v: [[-0.9, -0.2], [-0.5, 0.2], [-0.1, -0.1], [0.3, 0.25], [0.7, -0.05], [0.95, 0.35]],
+        e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]], scale: 0.5 },
+      { name: 'The Crown', v: [[-0.8, -0.3], [-0.5, 0.3], [-0.1, 0.0], [0.2, 0.45], [0.5, 0.0], [0.8, 0.3]],
+        e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]], scale: 0.46 },
+      { name: 'The Twins', v: [[-0.5, 0.6], [-0.5, -0.5], [0.5, 0.6], [0.5, -0.5], [-0.5, 0.05], [0.5, 0.05]],
+        e: [[0, 1], [2, 3], [4, 5]], scale: 0.44 },
+      { name: 'The Anchor', v: [[0, 0.7], [0, -0.1], [0, -0.6], [-0.5, -0.35], [0.5, -0.35], [-0.3, 0.45], [0.3, 0.45]],
+        e: [[0, 1], [1, 2], [2, 3], [2, 4], [0, 5], [0, 6]], scale: 0.46 },
+      { name: 'The Lantern', v: [[-0.35, 0.6], [0.35, 0.6], [-0.45, -0.1], [0.45, -0.1], [-0.3, -0.6], [0.3, -0.6]],
+        e: [[0, 1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 5]], scale: 0.42 },
+      { name: 'The Spark', v: [[0, 0.7], [0.5, 0.2], [0.3, -0.5], [-0.3, -0.5], [-0.5, 0.2]],
+        e: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0]], scale: 0.4 },
     ];
-    const up = new THREE.Vector3(0, 1, 0);
+    // bake every pattern around the zenith (0,1,0); a per-night quaternion sends it to its place
+    const center = new THREE.Vector3(0, 1, 0);
+    const right = new THREE.Vector3(1, 0, 0);
+    const top = new THREE.Vector3(0, 0, 1);
     for (const p of patterns) {
       const g = new THREE.Group();
-      const center = new THREE.Vector3(Math.cos(p.az) * Math.sqrt(1 - p.el * p.el), p.el, Math.sin(p.az) * Math.sqrt(1 - p.el * p.el));
-      const right = new THREE.Vector3().crossVectors(up, center).normalize();
-      const top = new THREE.Vector3().crossVectors(center, right).normalize();
       const pts3: THREE.Vector3[] = p.v.map(([u, w]) =>
         center.clone().add(right.clone().multiplyScalar(u * p.scale)).add(top.clone().multiplyScalar(w * p.scale)).normalize().multiplyScalar(DOME * 0.97));
 
@@ -419,7 +447,7 @@ export class Cosmos {
       pts3.forEach((v, i) => { starPos[i * 3] = v.x; starPos[i * 3 + 1] = v.y; starPos[i * 3 + 2] = v.z; });
       const sgeo = new THREE.BufferGeometry();
       sgeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-      const smat = new THREE.PointsMaterial({ color: 0xeaf2ff, size: 4.5, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+      const smat = new THREE.PointsMaterial({ color: 0xeaf2ff, map: this.softDot(), size: 6, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true, fog: false });
       const stars = new THREE.Points(sgeo, smat);
       stars.frustumCulled = false;
 
@@ -439,9 +467,54 @@ export class Cosmos {
       label.position.copy(lowest).multiplyScalar(0.98);
 
       g.add(stars, lines, label);
-      g.userData = { star: smat, line: lines.material as THREE.LineBasicMaterial, label: label.material as THREE.SpriteMaterial };
+      g.userData = { star: smat, line: lines.material as THREE.LineBasicMaterial, label: label.material as THREE.SpriteMaterial, nightVis: 0 };
       this.constellations.push(g);
       this.group.add(g);
+    }
+  }
+
+  /** Roll a fresh sky for a new night: scatter a random subset of constellations across the dome, move +
+   *  re-tint the galaxies and nebulae, and decide which of the dimmer deep-space objects are out tonight. */
+  newNight(): void {
+    const up = new THREE.Vector3(0, 1, 0);
+    const dirAt = (az: number, el: number): THREE.Vector3 => {
+      const ring = Math.sqrt(Math.max(0, 1 - el * el));
+      return new THREE.Vector3(Math.cos(az) * ring, el, Math.sin(az) * ring);
+    };
+
+    // constellations: shuffle, show 3–4 of them at random orientations, hide the rest
+    const idx = this.constellations.map((_, i) => i);
+    for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idx[i], idx[j]] = [idx[j]!, idx[i]!]; }
+    const shown = 3 + Math.floor(Math.random() * 2);
+    this.constellations.forEach((g) => { g.userData.nightVis = 0; });
+    for (let i = 0; i < shown && i < idx.length; i++) {
+      const g = this.constellations[idx[i]!]!;
+      g.quaternion.setFromUnitVectors(up, dirAt(Math.random() * Math.PI * 2, 0.4 + Math.random() * 0.45));
+      g.userData.nightVis = 1;
+    }
+
+    // galaxies: a new place, tilt and gentle tint each night; the companion is gone on some nights
+    const tints = [0xfff0d8, 0xcfe0ff, 0xe8d8ff, 0xd8ffe8, 0xffe0ea, 0xfff7e0];
+    for (const g of this.galaxies) {
+      const dist = g.userData.dist as number;
+      const el = 0.45 + Math.random() * 0.4;
+      const d = dirAt(Math.random() * Math.PI * 2, el).multiplyScalar(dist);
+      g.position.copy(d);
+      g.rotation.set(Math.PI * (0.18 + Math.random() * 0.3), Math.random() * Math.PI * 2, Math.PI * (Math.random() * 0.5 - 0.25));
+      const tint = new THREE.Color(tints[Math.floor(Math.random() * tints.length)]!);
+      for (const { m } of g.userData.mats as { m: THREE.Material & { color: THREE.Color } }[]) m.color.copy(tint);
+      g.userData.nightVis = (g.userData.primary as boolean) ? 1 : (Math.random() < 0.6 ? 1 : 0);
+    }
+
+    // nebulae: reposition, recolour, and show ~3 of the 5 each night
+    for (const sp of this.nebulae) {
+      const el = 0.28 + Math.random() * 0.5;
+      sp.position.copy(dirAt(Math.random() * Math.PI * 2, el).multiplyScalar(DOME * 0.92));
+      const sc = DOME * (0.45 + Math.random() * 0.4);
+      sp.scale.set(sc, sc, 1);
+      (sp.material as THREE.SpriteMaterial).color.setHSL(Math.random(), 0.55 + Math.random() * 0.2, 0.55);
+      sp.userData.baseOpacity = 0.13 + Math.random() * 0.1;
+      sp.userData.nightVis = Math.random() < 0.62 ? 1 : 0;
     }
   }
 
@@ -486,25 +559,31 @@ export class Cosmos {
     if (this.auroraMat) this.auroraMat.uniforms.uStrength!.value = v;
   }
 
+  /** Clear sky (0 = thick cloud .. 1 = crystal clear) — fades out the faint stars when it clouds over. */
+  setClarity(clear: number): void {
+    this.starMat.uniforms.uClear!.value = Math.max(0, Math.min(1, clear));
+  }
+
   /** 0 = full daylight (sky hidden) .. 1 = deep night (sky at full brightness). */
   setNight(night: number): void {
     this.starMat.uniforms.uNight!.value = night;
     if (this.auroraMat) this.auroraMat.uniforms.uNight!.value = night;
     this.group.visible = night > 0.02;
     for (const n of this.nebulae) {
-      (n.material as THREE.SpriteMaterial).opacity = (n.userData.baseOpacity as number) * night;
+      (n.material as THREE.SpriteMaterial).opacity = (n.userData.baseOpacity as number) * night * (n.userData.nightVis as number);
     }
     for (const g of this.galaxies) {
       const base = g.userData.baseOpacity as number;
-      (g.userData.disk as THREE.PointsMaterial).opacity = base * night;
-      (g.userData.core as THREE.SpriteMaterial).opacity = base * 0.6 * night;
+      const vis = g.userData.nightVis as number;
+      for (const { m, f } of g.userData.mats as { m: THREE.Material; f: number }[]) m.opacity = base * f * night * vis;
     }
-    // constellations only emerge in proper darkness (and stay subtle)
+    // constellations only emerge in proper darkness (and stay subtle), and only those out tonight
     const cn = Math.max(0, (night - 0.45) / 0.55);
     for (const g of this.constellations) {
-      (g.userData.star as THREE.PointsMaterial).opacity = cn;
-      (g.userData.line as THREE.LineBasicMaterial).opacity = cn * 0.32;
-      (g.userData.label as THREE.SpriteMaterial).opacity = cn * 0.6;
+      const vis = g.userData.nightVis as number;
+      (g.userData.star as THREE.PointsMaterial).opacity = cn * vis;
+      (g.userData.line as THREE.LineBasicMaterial).opacity = cn * 0.32 * vis;
+      (g.userData.label as THREE.SpriteMaterial).opacity = cn * 0.6 * vis;
     }
   }
 
@@ -524,7 +603,7 @@ export class Cosmos {
       // gentle breathing so the clouds feel alive
       const mat = n.material as THREE.SpriteMaterial;
       const breathe = 0.8 + 0.2 * Math.sin(t * 0.07 + ph);
-      mat.opacity = base * breathe * this.starMat.uniforms.uNight!.value;
+      mat.opacity = base * breathe * this.starMat.uniforms.uNight!.value * (n.userData.nightVis as number);
     }
   }
 }

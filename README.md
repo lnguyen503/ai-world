@@ -164,6 +164,7 @@ src/
 - v2.1 ✓ — **💧 Positional surroundings**: each **pond** carries a soft **looping water bed parked in 3D** — fly past and you hear the water on the correct side, fading with distance.
 - v2.2 ✓ — **🧭 Panel alignment pass**: the HUD panels unified to one width + edge so the left and right columns line up, the hidden "Flyers" stat row is back, and the bottom-left is an even, non-overlapping stack.
 - v2.3 ✓ — **💬 Livelier, on-topic chatter**: critters talk sooner (gen 2), more often, and about **what's actually happening** — a volcano, the freeze, a plague (sick ones say sick things), a hunt, a new era — with short, funny, scenario-specific lines (and matching pair banter).
+- v2.4 ✓ — **🌌 Night-sky polish**: **de-pixelated galaxies** (soft glowing spirals, not hard dots) and a **different deep sky every night** — a random handful of constellations scattered to new spots, galaxies/nebulae repositioned and re-tinted (some absent on a given night), and **more stars on clear nights, fewer when it clouds over**.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama
