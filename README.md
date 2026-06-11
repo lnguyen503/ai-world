@@ -144,6 +144,7 @@ src/
 - v0.93 ✓ — **trading cards**: the follow panel can **save a PNG trading card** of any critter (portrait + genome + badges) — share your favourites.
 - v0.94 ✓ — **shareable worlds**: a **🔗 Share** button copies a link encoding the **seed + levers**; open it and the exact world comes back.
 - v0.95 ✓ — **event stingers**: musical cues tied to the drama — a low **thud** on a kill, a bright **chime** on a striking birth, a **shimmer** on a milestone (with ambience on).
+- v0.96 ✓ — **discovery log**: a scrollable **📜 Discoveries** panel chronicles the world's striking births and milestones, each stamped with the in-world time.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

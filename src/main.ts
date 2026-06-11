@@ -15,6 +15,7 @@ import { HallOfFame } from './ui/hof';
 import { MiniMap } from './ui/minimap';
 import { TimeLapse } from './ui/timelapse';
 import { applyPermalink, setupShare } from './ui/permalink';
+import { DiscoveryLog } from './ui/discovery';
 
 const container = document.getElementById('app');
 if (!container) throw new Error('missing #app');
@@ -31,7 +32,8 @@ const sound = new SoundManager();
 new Tips(); // gentle "did you know" nudges
 new ModelPicker(); // narration model dropdown (auto-detects installed Ollama models)
 const banner = new EventBanner(); // cinematic title cards for milestone moments
-banner.onShow = () => sound.stinger('milestone'); // a shimmer when a milestone card appears
+const discovery = new DiscoveryLog(); // running log of the world's notable moments
+banner.onShow = (title) => { sound.stinger('milestone'); discovery.add(title, world.age); };
 const hof = new HallOfFame(); // the world's standout individuals
 const minimap = new MiniMap(); // corner overview map
 new TimeLapse(); // ⏩ fast-forward montage with chapter cards
@@ -167,6 +169,7 @@ function frame(now: number): void {
   hud.updateStats(stats);
   banner.update(stats); // milestone title cards
   hof.update(world); // current standout individuals
+  discovery.update(world); // log striking births
   minimap.update(world, scene.cameraInfo()); // corner overview
   const sel = scene.getSelected();
   hud.showSelected(sel != null ? (world.creatures.find((c) => c.id === sel) ?? null) : null);

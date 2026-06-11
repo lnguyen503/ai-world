@@ -8,7 +8,7 @@ import type { WorldStats } from '../sim/world';
  * Gated so they stay rare and special, and reset when the world reseeds.
  */
 export class EventBanner {
-  onShow: () => void = () => {}; // fired when a banner appears (e.g. to play a milestone stinger)
+  onShow: (title: string) => void = () => {}; // fired when a banner appears (stinger + discovery log)
   private el = document.getElementById('event-banner');
   private titleEl = document.querySelector('#event-banner .eb-title') as HTMLElement | null;
   private subEl = document.querySelector('#event-banner .eb-sub') as HTMLElement | null;
@@ -77,6 +77,6 @@ export class EventBanner {
     if (this.subEl) this.subEl.textContent = sub;
     this.el.classList.add('show');
     this.shownAt = performance.now();
-    this.onShow();
+    this.onShow(title);
   }
 }

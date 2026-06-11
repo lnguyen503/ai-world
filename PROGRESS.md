@@ -569,6 +569,14 @@ when a milestone banner appears — wired from the frame loop (kill / novelty fl
 from `EventBanner.onShow`. Verified: ran with Nature ambience at 20× while kills and births fired — the
 stinger code path ran with no console errors.
 
+### v0.96.0 — Discovery log
+A scrollable **📜 Discoveries** panel (`src/ui/discovery.ts`, bottom-left above the Hall of Fame) keeps
+a running history of the world's notable moments — **striking births** (a giant, a new predator, the
+gift of flight…) and **milestones** (pushed in from the banner) — each stamped with the in-world time,
+newest on top. A little chronicle to scroll back through on a long watch. Verified live: it filled with
+timestamped entries like "8:30 🕊 The Age of Flight" and "a curious little dwarf", stacking cleanly
+with no overlap.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
