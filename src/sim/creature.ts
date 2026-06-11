@@ -35,6 +35,7 @@ export interface CreatureContext {
   burst(type: number, x: number, z: number): void; // queue a particle burst (2 = kill impact)
   dayFactor: number; // 0 = deep night, 1 = midday
   crowding: number; // ≥1; population-pressure brake on reproduction + metabolism
+  camoHue: number; // the ground's dominant hue (prey near it are camouflaged from predators)
 }
 
 let nextCreatureId = 1;
@@ -172,7 +173,15 @@ export class Creature {
 
     // --- predators hunt prey & pack with other predators; prey flee & raise the alarm ---
     if (predator) {
-      if (ni.hasPrey) {
+      // camouflage: a prey whose colour blends with the ground is only spotted at shorter range,
+      // so over generations prey colour drifts toward the biome's palette under predation
+      let seesPrey = ni.hasPrey;
+      if (ni.hasPrey && ni.preyRef) {
+        let dh = Math.abs(ni.preyRef.genome.hue - ctx.camoHue);
+        dh = Math.min(dh, 1 - dh); // circular hue distance, 0..0.5
+        if (Math.hypot(ni.preyX - this.x, ni.preyZ - this.z) > SOCIAL.radius * (0.35 + 1.3 * dh)) seesPrey = false;
+      }
+      if (seesPrey) {
         const toPrey = Math.atan2(ni.preyZ - this.z, ni.preyX - this.x);
         const dPrey = Math.hypot(ni.preyX - this.x, ni.preyZ - this.z);
         // in range, rested AND with stamina to spare → commit to a dart

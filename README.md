@@ -135,6 +135,7 @@ src/
 - v0.84 ✓ — **the herd reacts together**: a predator scare or a food find sets off a quick **wave** of reaction bubbles across nearby critters ("run!" / "behind you!", "free food!" / "dibs!").
 - v0.85 ✓ — **mini-map**: a corner overview of the **herd**, **predators** (red), **ponds** and **trees**, with a wedge showing where you're looking — keep your bearings and spot the action.
 - v0.86 ✓ — **spring blossom petals**: soft pink petals drift down when the trees blossom — the bright counterpart to the autumn leaf-fall, so the year reads at both ends.
+- v0.87 ✓ — **camouflage evolves**: predators spot **brightly-coloured** prey from farther off, so under predation prey colour drifts toward the **biome's palette** over generations — watch a population vanish into its world.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

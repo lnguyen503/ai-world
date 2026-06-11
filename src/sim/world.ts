@@ -116,6 +116,7 @@ export class World implements CreatureContext {
   lightningZ = 0;
   dayFactor = 1; // 0 = night, 1 = midday (creatures read this to sleep)
   crowding = 1; // ≥1; rises as the population passes the soft cap (brakes reproduction + raises metabolism)
+  get camoHue(): number { return this.biome.camoHue; } // the ground hue prey camouflage toward
   prowling = 0; // # of predators currently stalking nearby prey (ominous audio + narration)
   killFlash = 0; // >0 briefly after a kill — lets the narrator call the play-by-play
   lastKillX = 0; lastKillZ = 0; // where the most recent kill happened (cinematic camera drifts there)

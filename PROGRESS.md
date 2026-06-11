@@ -501,6 +501,15 @@ mirroring the leaf system but gentler and tied to the same bloom factor that dri
 blossoms). So the year now reads visibly at both ends — pink petals falling as the world greens,
 amber leaves falling as it turns.
 
+### v0.87.0 — Camouflage evolves
+A new selection pressure you can (eventually) see. Each biome now has a **camouflage hue** (the ground's
+dominant colour). A predator spots a prey at a range scaled by how much the prey's colour **contrasts**
+with that ground hue — a well-blended prey is only seen up close, while a bright one is spotted from
+far off (`creature.ts` predator branch, `biome.camoHue`). So under predation, prey colour drifts toward
+the biome's palette over generations — a population slowly disappearing into its world. Contact kills
+still work regardless, so it only shades pursuit, not the whole hunt. Verified at 20×: population stayed
+rock-stable (~149) with predators persisting (1–8) — the new pressure doesn't destabilise the balance.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

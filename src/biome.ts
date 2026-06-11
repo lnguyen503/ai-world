@@ -35,6 +35,18 @@ function fbm(x: number, z: number, seed: number, oct = 4): number {
 // ---- color helpers ----------------------------------------------------------
 export type RGB = [number, number, number];
 const hexToRgb = (h: number): RGB => [(h >> 16) & 255, (h >> 8) & 255, h & 255];
+/** Hue (0..1 around the colour wheel) of a packed RGB hex — used as the biome's camouflage target. */
+function rgbToHue(hex: number): number {
+  const r = ((hex >> 16) & 255) / 255, g = ((hex >> 8) & 255) / 255, b = (hex & 255) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  if (d === 0) return 0;
+  let h: number;
+  if (max === r) h = ((g - b) / d) % 6;
+  else if (max === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  h /= 6;
+  return h < 0 ? h + 1 : h;
+}
 const mix = (a: RGB, b: RGB, t: number): RGB => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
 interface Preset {
@@ -69,6 +81,7 @@ export class Biome {
   name = '';
   seed = 0;
   snowy = false; // true in cold biomes → snow instead of rain
+  camoHue = 0; // the ground's dominant hue; prey colour evolves toward it under predation
   private terrainSeed = 1;
   private fertSeed = 2;
   private terrainFreq = 0.02;
@@ -85,6 +98,7 @@ export class Biome {
     this.preset = PRESETS[Math.floor(rng() * PRESETS.length)]!;
     this.name = this.preset.name;
     this.snowy = !!this.preset.snowy;
+    this.camoHue = rgbToHue(this.preset.groundHigh);
     this.terrainSeed = Math.floor(rng() * 1e6);
     this.fertSeed = Math.floor(rng() * 1e6);
     this.terrainFreq = 0.012 + rng() * 0.02;
