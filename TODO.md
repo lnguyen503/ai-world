@@ -26,6 +26,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.80: **trait-over-time graph** — avg size/speed/sense normalised + plotted under the species race.
 - v0.81: **milestone banners** — cinematic title cards (first flight, first predator, generation/dominance/peak milestones).
 - v0.82: **Hall of Fame** — eldest / most-prolific / biggest living critters (offspring counter added).
+- v0.83: **meteor showers & comets** — radiant meteor-shower bursts (pool 4→14) + a rare slow comet.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).

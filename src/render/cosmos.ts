@@ -19,13 +19,24 @@ export class Cosmos {
   private meteorCol!: Float32Array;
   private meteorState: { x: number; y: number; z: number; vx: number; vy: number; vz: number; life: number; max: number }[] = [];
   private meteorTimer = 4;
+  // meteor-shower bursts (radiating from a common point) + a rare slow comet
+  private showerTimer = 50;
+  private shower = 0;
+  private radiantA = 0;
+  private radiantEl = 0.6;
+  private comet!: THREE.Points;
+  private cometPos!: Float32Array;
+  private cometCol!: Float32Array;
+  private cometState = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, life: 0, max: 1 };
+  private cometTimer = 25;
   private lastT = 0;
   private aurora!: THREE.Mesh;
   private auroraMat!: THREE.ShaderMaterial;
   private constellations: THREE.Group[] = [];
 
-  private static readonly METEORS = 4;
+  private static readonly METEORS = 14;
   private static readonly TRAIL = 10;
+  private static readonly COMET_TRAIL = 30;
 
   constructor() {
     this.stars = this.makeStars();
@@ -36,6 +47,7 @@ export class Cosmos {
     this.makeGalaxy(DOME * 0.9, 2.7, 0.42, 0xcfe0ff);   // a small bluish companion, off to the side
     this.makeConstellations();
     this.makeMeteors();
+    this.makeComet();
     this.makeAurora();
     this.group.renderOrder = -1; // behind everything
   }
@@ -242,8 +254,21 @@ export class Cosmos {
     this.group.add(this.meteors);
   }
 
-  private launchMeteor(m: number): void {
+  private launchMeteor(m: number, shower = false): void {
     const st = this.meteorState[m]!;
+    if (shower) {
+      // a random start, with velocity directed AWAY from the radiant, so trails point back to it
+      const a = Math.random() * Math.PI * 2, el = 0.3 + Math.random() * 0.55;
+      const ring = Math.sqrt(Math.max(0, 1 - el * el));
+      st.x = Math.cos(a) * ring * DOME; st.y = el * DOME; st.z = Math.sin(a) * ring * DOME;
+      const rr = Math.sqrt(Math.max(0, 1 - this.radiantEl * this.radiantEl));
+      const rx = Math.cos(this.radiantA) * rr * DOME, ry = this.radiantEl * DOME, rz = Math.sin(this.radiantA) * rr * DOME;
+      const dx = st.x - rx, dy = st.y - ry, dz = st.z - rz, dl = Math.hypot(dx, dy, dz) || 1;
+      const sp = DOME * (1.0 + Math.random() * 0.8);
+      st.vx = (dx / dl) * sp; st.vy = (dy / dl) * sp; st.vz = (dz / dl) * sp;
+      st.max = 0.6 + Math.random() * 0.5; st.life = st.max;
+      return;
+    }
     const a = Math.random() * Math.PI * 2;
     const el = 0.45 + Math.random() * 0.4;
     const ring = Math.sqrt(Math.max(0, 1 - el * el));
@@ -256,11 +281,22 @@ export class Cosmos {
   }
 
   private updateMeteors(dt: number, night: number): void {
+    // occasionally a whole SHOWER: a burst of fast meteors radiating from one point in the sky
+    this.showerTimer -= dt;
+    if (this.shower > 0) this.shower -= dt;
+    if (this.showerTimer <= 0 && night > 0.5) {
+      if (this.shower <= 0 && Math.random() < 0.5) {
+        this.shower = 14 + Math.random() * 22;
+        this.radiantA = Math.random() * Math.PI * 2;
+        this.radiantEl = 0.55 + Math.random() * 0.35;
+      }
+      this.showerTimer = 70 + Math.random() * 150;
+    }
     this.meteorTimer -= dt;
     if (this.meteorTimer <= 0 && night > 0.5) {
       const free = this.meteorState.findIndex((s) => s.life <= 0);
-      if (free >= 0) this.launchMeteor(free);
-      this.meteorTimer = 2.5 + Math.random() * 7;
+      if (free >= 0) this.launchMeteor(free, this.shower > 0);
+      this.meteorTimer = this.shower > 0 ? 0.16 + Math.random() * 0.35 : 2.5 + Math.random() * 7;
     }
     const T = Cosmos.TRAIL;
     for (let m = 0; m < Cosmos.METEORS; m++) {
@@ -288,6 +324,57 @@ export class Cosmos {
     }
     (this.meteors.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
     (this.meteors.geometry.getAttribute('color') as THREE.BufferAttribute).needsUpdate = true;
+  }
+
+  /** A rare, slow comet with a long glowing tail that drifts across the night sky. */
+  private makeComet(): void {
+    const T = Cosmos.COMET_TRAIL;
+    this.cometPos = new Float32Array(T * 3);
+    this.cometCol = new Float32Array(T * 3);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(this.cometPos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(this.cometCol, 3));
+    this.comet = new THREE.Points(geo, new THREE.PointsMaterial({
+      size: 3.4, vertexColors: true, transparent: true, opacity: 1,
+      depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+    }));
+    this.comet.frustumCulled = false;
+    this.group.add(this.comet);
+  }
+
+  private updateComet(dt: number, night: number): void {
+    const T = Cosmos.COMET_TRAIL;
+    const st = this.cometState;
+    this.cometTimer -= dt;
+    if (st.life <= 0 && this.cometTimer <= 0 && night > 0.5) {
+      const a = Math.random() * Math.PI * 2, el = 0.5 + Math.random() * 0.35;
+      const ring = Math.sqrt(Math.max(0, 1 - el * el));
+      st.x = Math.cos(a) * ring * DOME; st.y = el * DOME; st.z = Math.sin(a) * ring * DOME;
+      const dir = a + Math.PI / 2 + (Math.random() - 0.5) * 0.6;
+      const sp = DOME * 0.07; // slow drift
+      st.vx = Math.cos(dir) * sp; st.vz = Math.sin(dir) * sp; st.vy = -DOME * 0.012;
+      st.max = 55 + Math.random() * 45; st.life = st.max;
+      this.cometTimer = 90 + Math.random() * 170; // and rare
+    }
+    if (st.life > 0) {
+      st.life -= dt;
+      st.x += st.vx * dt; st.y += st.vy * dt; st.z += st.vz * dt;
+      const fade = Math.min(1, (st.max - st.life) / 4, st.life / 5) * night;
+      const vlen = Math.hypot(st.vx, st.vy, st.vz) || 1;
+      const ux = st.vx / vlen, uy = st.vy / vlen, uz = st.vz / vlen;
+      const tailLen = DOME * 0.32;
+      for (let i = 0; i < T; i++) {
+        const d = (i / T) * tailLen;
+        const o = i * 3;
+        this.cometPos[o] = st.x - ux * d; this.cometPos[o + 1] = st.y - uy * d; this.cometPos[o + 2] = st.z - uz * d;
+        const tail = (1 - i / T) * fade;
+        this.cometCol[o] = tail * 0.8; this.cometCol[o + 1] = tail * 0.95; this.cometCol[o + 2] = tail; // bluish-white
+      }
+    } else {
+      this.cometCol.fill(0);
+    }
+    (this.comet.geometry.getAttribute('position') as THREE.BufferAttribute).needsUpdate = true;
+    (this.comet.geometry.getAttribute('color') as THREE.BufferAttribute).needsUpdate = true;
   }
 
   /** A faint label drawn under each constellation. */
@@ -426,6 +513,7 @@ export class Cosmos {
     this.lastT = t;
     const night = this.starMat.uniforms.uNight!.value as number;
     this.updateMeteors(dt, night);
+    this.updateComet(dt, night);
     if (!this.group.visible) return;
     this.starMat.uniforms.uTime!.value = t;
     this.auroraMat.uniforms.uTime!.value = t;

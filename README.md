@@ -131,6 +131,7 @@ src/
 - v0.80 ✓ — **watch the traits evolve**: a second graph plots average **size / speed / sense over time**, so you can see the herd drift smaller/faster/sharper as selection works.
 - v0.81 ✓ — **milestone title cards**: a cinematic banner fades in for the big moments — **first flight**, first predator, **generation milestones**, a lineage coming to **rule**, a thriving peak.
 - v0.82 ✓ — **Hall of Fame**: a little panel tracks the world's standout critters — the **eldest**, the **most prolific** parent, and the **biggest** alive — named characters to root for as records change hands.
+- v0.83 ✓ — **meteor showers & comets**: rare night-sky spectacles — a **meteor shower** radiating from one point, and an occasional slow **comet** with a long glowing tail.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

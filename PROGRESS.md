@@ -470,6 +470,14 @@ watch has named characters to root for: the **eldest** soul (name + age), the **
 second, it changes hands as records are beaten and elders pass. Verified live: showed "Dralaa · 113s"
 eldest, "Zinaix · 6" most young, "Sudonwyn · 2.20×" biggest.
 
+### v0.83.0 — Meteor showers & comets
+The night sky got rarer spectacles (`src/render/cosmos.ts`). Every so often a proper **meteor
+shower** breaks out — a burst of fast meteors all radiating from one point in the sky (each starts at
+random but flies *away* from a shared radiant, so the trails point back to it), for ~15–35s. The
+meteor pool grew from 4 to 14 so a shower reads as a real flurry. And once in a long while a slow
+**comet** drifts across the dome, a bright bluish head trailing a long glowing tail that fades in and
+out over a minute or two. Both only appear in proper darkness.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
