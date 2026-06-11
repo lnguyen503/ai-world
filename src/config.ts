@@ -185,6 +185,15 @@ export const TREES = {
   shelterRadius: 6.5, // creatures within this of a tree are sheltered
 };
 
+export const PLAGUE = {
+  duration: 14, // seconds a creature stays sick before it clears (or dies)
+  drain: 2.2, // energy/sec sapped while sick, scaled by (1 - 0.85 * resistance)
+  radius: 6, // contagion range to neighbours
+  spreadPerSec: 0.9, // base infection chance/sec for a fully-susceptible neighbour
+  immunity: 20, // seconds of immunity after recovering (lets survivors breed)
+  seeds: 4, // how many random creatures patient-zero the outbreak
+};
+
 // Ponds: scenic pools that settle into terrain basins. Creatures walk AROUND them (steer away from
 // the water) rather than through, so you see them gather and path along the shoreline.
 export const PONDS = {

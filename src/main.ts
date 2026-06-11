@@ -64,6 +64,11 @@ function triggerCataclysm(id: string): void {
     banner.flash('❄️ Ice Age', 'a great cold descends — the world freezes over');
     discovery.add('❄️ an ice age set in — the meadow froze', world.age);
     sound.stinger('milestone');
+  } else if (id === 'plague') {
+    world.startPlague();
+    banner.flash('🦠 Plague', 'a contagion spreads — only the resistant will endure');
+    discovery.add('🦠 a plague broke out — disease swept the herd', world.age);
+    sound.stinger('kill');
   }
 }
 function applyGodTool(x: number, z: number, tool: string): void {

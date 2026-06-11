@@ -18,6 +18,7 @@ const STORM = new THREE.Color(0x2a2e36);
 const FLASH = new THREE.Color(0xe6f0ff);
 const FOLIAGE_SUMMER = new THREE.Color(0x3f8f4a);
 const FOLIAGE_AUTUMN = new THREE.Color(0xc8772e);
+const SICK_TINT = new THREE.Color(0.42, 0.74, 0.32); // a sickly green wash over plague-infected critters
 const BLOSSOM_PINK = new THREE.Color(0xffb7d5); // spring blossom on the broadleaf trees
 const FRUIT_RED = new THREE.Color(0xe2402c); // late-season fruit
 const toVec3 = (hex: number): THREE.Color => new THREE.Color(hex);
@@ -764,6 +765,10 @@ export class Scene3D {
         const shimmer = 0.55 + 0.25 * Math.sin(t * 2.5 + c.id);
         const ghue = pred && !params.colorByLineage ? 0.02 : params.colorByLineage ? lineageHue : c.genome.hue;
         rig.mat.emissive.setHSL(ghue, 0.85, Math.min(0.62, 0.14 * vigor + glowGene * night * 0.7 * shimmer));
+      }
+      if (c.infected > 0) { // the plague pales a critter to a clammy, sickly green
+        rig.mat.color.lerp(SICK_TINT, 0.55);
+        rig.mat.emissive.setHSL(0.28, 0.7, 0.16);
       }
 
       rig.earRound[0]!.visible = rig.earRound[1]!.visible = earType === 0;

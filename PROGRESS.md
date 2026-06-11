@@ -667,6 +667,17 @@ fair weather) and **washes the sky, fog and light to a pale frozen white-blue**.
 + a milestone stinger. Verified: button renders, click fires the "❄️ Ice Age" banner and logs it; the
 food-crash + cold-drain + whiteout build clean.
 
+### v1.8.0 — Plague cataclysm
+The most *evolutionary* cataclysm — it adds a brand-new **heritable gene**. A **🦠 Plague** button calls
+`World.startPlague`, infecting a few random patient-zeros. Each step (`stepPlague`) the sick **drain
+energy** — but **scaled by a new `resistance` gene** (added across `genome.ts`: random/crossover/mutate),
+so the resistant barely feel it — and **infect susceptible neighbours** within range (chance scaled by
+`1 - resistance`). Survivors clear the illness and gain brief **immunity** so they can breed. The upshot
+is real selection: every outbreak **ratchets the population's resistance upward** over generations. Sick
+critters are tinted a clammy, sickly green in the renderer. Banner + discovery-log + stinger, and
+`world.infectedCount` is exposed for the HUD. Verified: button renders, click fires the "🦠 Plague"
+banner and logs it; the contagion + resistance-gene + sick-tint build clean.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

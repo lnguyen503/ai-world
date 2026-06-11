@@ -1,4 +1,4 @@
-import { WORLD, SOCIAL, TREES, PONDS, WEATHER, SPECIES, LIFE, ECO, params } from '../config';
+import { WORLD, SOCIAL, TREES, PONDS, WEATHER, SPECIES, LIFE, ECO, PLAGUE, params } from '../config';
 import type { Biome } from '../biome';
 import { type Genome, randomGenome } from './genome';
 import { type Food, makeFood } from './food';
@@ -120,6 +120,8 @@ export class World implements CreatureContext {
   /** 0..1 eruption glow for the renderer (reddens the sky, lava light), ramps down as it ends. */
   get volcanoGlow(): number { return Math.min(1, this.volcanoT / 4); }
   private lavaDebt = 0; // paces the sustained lava kills near the vent
+  plagueActive = false; // a contagion is circulating (drives the narrator + HUD)
+  infectedCount = 0; // how many creatures are currently sick (for the HUD)
   coldT = 0; // an ice age: seconds of deep cold remaining (a slow global cataclysm)
   /** 0..1 freeze intensity for the renderer (whiteout) + the sim (food crash, cold drain). */
   get cold(): number { return Math.min(1, this.coldT / 8); } // holds at 1, then thaws over the last 8s
@@ -242,6 +244,47 @@ export class World implements CreatureContext {
 
   /** Cataclysm — a global ice age: a white-out that crashes food and saps the herd, then thaws. */
   iceAge(): void { this.coldT = 38; } // ~30s of deep freeze + an 8s thaw
+
+  /** Cataclysm — a plague: infect a few patient-zeros; it spreads, kills, and selects for resistance. */
+  startPlague(): void {
+    const alive = this.creatures.filter((c) => c.alive);
+    if (!alive.length) return;
+    for (let i = 0; i < Math.min(alive.length, PLAGUE.seeds); i++) {
+      const c = alive[Math.floor(Math.random() * alive.length)]!;
+      c.infected = PLAGUE.duration; c.immune = 0;
+    }
+    this.plagueActive = true;
+  }
+
+  /** Advance the contagion: sick creatures drain (less if resistant), recover into immunity, and infect
+   *  susceptible neighbours. Resistance is heritable, so each plague selects the survivors' genes upward. */
+  private stepPlague(dt: number): void {
+    let infected = 0;
+    for (const c of this.creatures) {
+      if (!c.alive) continue;
+      if (c.immune > 0) c.immune = Math.max(0, c.immune - dt);
+      if (c.infected > 0) {
+        infected++;
+        c.infected = Math.max(0, c.infected - dt);
+        const res = c.genome.resistance ?? 0;
+        c.energy -= PLAGUE.drain * (1 - 0.85 * res) * dt; // the resistant barely feel it
+        if (c.infected <= 0 && c.alive) c.immune = PLAGUE.immunity; // a survivor clears it + is briefly immune
+      }
+    }
+    this.infectedCount = infected;
+    this.plagueActive = infected > 0;
+    if (!infected) return;
+    const r2 = PLAGUE.radius * PLAGUE.radius;
+    for (const c of this.creatures) {
+      if (!c.alive || c.infected <= 0) continue;
+      this.creatureGrid.forEachNear(c.x, c.z, PLAGUE.radius, (o) => {
+        if (!o.alive || o.infected > 0 || o.immune > 0) return;
+        if ((o.x - c.x) ** 2 + (o.z - c.z) ** 2 > r2) return;
+        const res = o.genome.resistance ?? 0;
+        if (Math.random() < PLAGUE.spreadPerSec * (1 - res) * dt) o.infected = PLAGUE.duration;
+      });
+    }
+  }
 
   /** Paint a drought (clears food + suppresses growth) or a bloom (a lush flush) over a spot. */
   addZone(x: number, z: number, drought: boolean): void {
@@ -407,6 +450,8 @@ export class World implements CreatureContext {
     this.pendingChildren.length = 0;
 
     for (const c of this.creatures) if (c.alive) c.update(dt, this);
+
+    if (this.plagueActive || this.infectedCount > 0) this.stepPlague(dt); // contagion spreads + selects
 
     this.killFlash = Math.max(0, this.killFlash - dt);
     this.noveltyFlash = Math.max(0, this.noveltyFlash - dt);

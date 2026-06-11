@@ -69,6 +69,8 @@ export class Creature {
   drinkCd = 0; // cooldown before wanting another drink
   novelKind: string | null = null; // set if born a striking mutant (drives the narrator + shimmer)
   novelTimer = 0; // >0 = freshly-born novelty still shimmering
+  infected = 0; // >0 = sick with the plague (drains energy, spreads to neighbours); world.ts drives it
+  immune = 0; // >0 = recently recovered, briefly immune to re-infection
 
   constructor(genome: Genome, x: number, z: number, generation: number, energy: number) {
     this.id = nextCreatureId++;

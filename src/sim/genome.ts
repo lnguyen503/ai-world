@@ -20,6 +20,8 @@ export interface Genome {
   wings: number;
   /** 0..1 bioluminescence — high-glow critters shimmer at night. Heritable, cosmetic. */
   glow: number;
+  /** 0..1 innate disease resistance — selected upward by plagues (resistant survive + pass it on). */
+  resistance: number;
   /** Founding-lineage id. Inherited unchanged, so a clan = one extended family. Used for lineage coloring. */
   clan: number;
   /** Index into SPECIES — body archetype (look + motion + smartness). Inherited; rarely speciates. */
@@ -56,6 +58,8 @@ export function randomGenome(): Genome {
     wings: Math.random() < 0.1 ? 0.55 + Math.random() * 0.45 : Math.random() * 0.45,
     // ~15% start with a glow; it's heritable so glowing lineages can emerge.
     glow: Math.random() < 0.15 ? 0.5 + Math.random() * 0.5 : Math.random() * 0.3,
+    // most start with little disease resistance — a plague then selects the resistant upward.
+    resistance: Math.random() * 0.3,
     clan: nextClan++,
     species: Math.floor(Math.random() * SPECIES.length),
   };
@@ -67,7 +71,8 @@ export function crossover(a: Genome, b: Genome): Genome {
   return {
     size: p(a.size, b.size), speed: p(a.speed, b.speed), sense: p(a.sense, b.sense),
     hue: p(a.hue, b.hue), social: p(a.social, b.social), predator: p(a.predator, b.predator),
-    wings: p(a.wings, b.wings), glow: p(a.glow ?? 0, b.glow ?? 0), look: p(a.look, b.look), clan: p(a.clan, b.clan),
+    wings: p(a.wings, b.wings), glow: p(a.glow ?? 0, b.glow ?? 0), resistance: p(a.resistance ?? 0, b.resistance ?? 0),
+    look: p(a.look, b.look), clan: p(a.clan, b.clan),
     species: p(a.species ?? 0, b.species ?? 0),
     brain: crossoverBrain(a.brain, b.brain),
   };
@@ -93,6 +98,7 @@ export function mutate(g: Genome): Genome {
     predator: jitter(g.predator, [0, 1] as const),
     wings: jitter(g.wings, [0, 1] as const),
     glow: jitter(g.glow ?? 0, [0, 1] as const),
+    resistance: jitter(g.resistance ?? 0, [0, 1] as const),
     clan: g.clan, // lineage is inherited unchanged
     // species is inherited; very rarely a lineage speciates into a different archetype
     species: Math.random() < params.mutationRate * 0.08 ? Math.floor(Math.random() * SPECIES.length) : (g.species ?? 0),

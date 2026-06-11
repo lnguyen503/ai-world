@@ -51,6 +51,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v1.5: **☄️ Asteroid cataclysm** — a one-click world disaster: mass death in a wide radius, an impact "POW", and a lasting impact-winter pall that darkens the sky and crashes food before it slowly lifts.
 - v1.6: **🌋 Volcano cataclysm** — an eruption that blasts the area, then keeps a sustained lava field roasting anything near the vent for ~18s while ashfall reddens and darkens the sky, spitting embers the whole time.
 - v1.7: **❄️ Ice age cataclysm** — a slow global freeze: a forced white-out blizzard, the meadow ices over (food crash), the cold saps the whole herd, then it thaws and life rebounds.
+- v1.8: **🦠 Plague cataclysm** — a contagion with a new **heritable resistance gene**: a few patient-zeros infect neighbours, sickness saps energy (less if resistant), survivors gain immunity and breed — so each outbreak **selects the population's resistance upward**. Sick critters glow a clammy green.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).
