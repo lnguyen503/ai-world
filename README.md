@@ -137,6 +137,7 @@ src/
 - v0.86 ✓ — **spring blossom petals**: soft pink petals drift down when the trees blossom — the bright counterpart to the autumn leaf-fall, so the year reads at both ends.
 - v0.87 ✓ — **camouflage evolves**: predators spot **brightly-coloured** prey from farther off, so under predation prey colour drifts toward the **biome's palette** over generations — watch a population vanish into its world.
 - v0.88 ✓ — **highlight reel**: the camera occasionally **swoops to a fresh kill or striking birth** for a few cinematic seconds, then resumes — a gentle cut-away to wherever the drama is.
+- v0.89 ✓ — **time-lapse & chapter cards**: a **⏩ Time-lapse** button fast-forwards through generations with cinematic **chapter title cards** — a quick montage of the world's deep time.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

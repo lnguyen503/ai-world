@@ -24,13 +24,21 @@
       }
       /* photo mode: hide all UI for a clean cinematic frame (toggle with the button or the H key) */
       body.photo .panel, body.photo #hint { opacity: 0; pointer-events: none; }
-      #photo-btn, #gaze-btn, #autocam-btn { position: fixed; z-index: 20; bottom: 14px; font: inherit; font-size: 12px;
+      #photo-btn, #gaze-btn, #autocam-btn, #timelapse-btn { position: fixed; z-index: 20; bottom: 14px; font: inherit; font-size: 12px;
         font-weight: 600; color: #e6edf3; background: rgba(13,18,28,0.6); border: 1px solid rgba(255,255,255,0.14);
         border-radius: 8px; padding: 6px 10px; cursor: pointer; backdrop-filter: blur(8px); transition: opacity 0.3s; }
-      #photo-btn { left: 14px; } #gaze-btn { left: 112px; } #autocam-btn { left: 210px; }
-      #photo-btn:hover, #gaze-btn:hover, #autocam-btn:hover { background: rgba(255,255,255,0.16); }
-      #gaze-btn.on, #autocam-btn.on { background: #2563eb; border-color: #3b82f6; }
-      body.photo #photo-btn, body.photo #gaze-btn, body.photo #autocam-btn { opacity: 0.32; }
+      #photo-btn { left: 14px; } #gaze-btn { left: 112px; } #autocam-btn { left: 210px; } #timelapse-btn { left: 312px; }
+      #photo-btn:hover, #gaze-btn:hover, #autocam-btn:hover, #timelapse-btn:hover { background: rgba(255,255,255,0.16); }
+      #gaze-btn.on, #autocam-btn.on, #timelapse-btn.on { background: #2563eb; border-color: #3b82f6; }
+      body.photo #photo-btn, body.photo #gaze-btn, body.photo #autocam-btn, body.photo #timelapse-btn { opacity: 0.32; }
+      #chapter-card { position: fixed; left: 50%; top: 30%; transform: translate(-50%, -50%); z-index: 26;
+        text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.8s ease; }
+      #chapter-card.show { opacity: 1; }
+      #chapter-card .cc-title { font-family: Georgia, 'Times New Roman', serif; font-weight: 700; font-size: 40px;
+        letter-spacing: 2px; color: #fff; text-shadow: 0 2px 24px rgba(0,0,0,0.9), 0 0 50px rgba(150,190,255,0.35); }
+      #chapter-card .cc-sub { font-family: Georgia, serif; font-style: italic; font-size: 17px; color: #e6edf3;
+        margin-top: 10px; text-shadow: 0 2px 12px rgba(0,0,0,0.9); }
+      body.photo #chapter-card { display: none; }
       #hud-top { top: 14px; left: 14px; min-width: 240px; }
       #hud-top h1 { margin: 0 0 8px; font-size: 14px; letter-spacing: 0.4px; font-weight: 600; color: #9ad0ff; }
       .stat { display: flex; justify-content: space-between; gap: 18px; font-size: 12.5px; line-height: 1.7; }
@@ -203,6 +211,8 @@
     <button id="photo-btn" title="Photo mode — hide the UI (H)">📷 Photo</button>
     <button id="gaze-btn" title="Stargaze — look up at the night sky (G)">🔭 Stargaze</button>
     <button id="autocam-btn" class="on" title="Auto-camera — let the view glide between critters (C)">🎥 Auto-cam</button>
+    <button id="timelapse-btn" title="Time-lapse — fast-forward through generations with chapter cards">⏩ Time-lapse</button>
+    <div id="chapter-card"><div class="cc-title"></div><div class="cc-sub"></div></div>
     <div class="panel" id="hof">
       <h2>🏆 Hall of Fame</h2>
       <div class="stat"><span>👑 Eldest</span><span id="hof-eldest">—</span></div>

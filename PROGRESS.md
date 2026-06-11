@@ -518,6 +518,14 @@ the world now records `lastNoveltyX/Z`). Kept deliberately gentle (slow target +
 reads as a smooth cut-away, not a jarring snap, and it only runs when auto-cam is on and you're not
 manually following.
 
+### v0.89.0 — Time-lapse & chapter cards
+A new **⏩ Time-lapse** button (`src/ui/timelapse.ts`) cranks the clock to 40× and plays a sequence of
+cinematic **chapter title cards** ("Chapter I — the first fragile generations" … "Chapter V — they are
+no longer who they were") while generations fly by, then eases back to your previous speed with a
+closing "— and the world goes on —". Click again to stop early. A quick, epic montage of the world's
+deep time. Verified live: the button started the montage, "Chapter I" appeared, and the world ran at
+40× (120 sim-seconds in ~3 real seconds) before restoring.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

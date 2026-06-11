@@ -13,6 +13,7 @@ import { ModelPicker } from './ui/llm-models';
 import { EventBanner } from './ui/banner';
 import { HallOfFame } from './ui/hof';
 import { MiniMap } from './ui/minimap';
+import { TimeLapse } from './ui/timelapse';
 
 const container = document.getElementById('app');
 if (!container) throw new Error('missing #app');
@@ -30,6 +31,7 @@ new ModelPicker(); // narration model dropdown (auto-detects installed Ollama mo
 const banner = new EventBanner(); // cinematic title cards for milestone moments
 const hof = new HallOfFame(); // the world's standout individuals
 const minimap = new MiniMap(); // corner overview map
+new TimeLapse(); // ⏩ fast-forward montage with chapter cards
 const chatter = new Chatter(); // critters start talking once evolved enough
 narrator.onLine = (text) => speaker.speak(text);
 
