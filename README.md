@@ -118,6 +118,7 @@ src/
 - v0.67 ✓ — **trees with character**: every tree is now uniquely shaped — randomized trunk height/girth and lean, **real branches** forking out with leaf clumps, and two silhouettes (rounded **broadleaf** or stacked-cone **conifer**) — and each sways as a whole from its base in the wind.
 - v0.68 ✓ — **cinematic director + narration fixes**: when you're not following anyone the camera now **glides from critter to critter** (a random follow with a name tag) instead of just orbiting; and the narrator **voice finishes each line** instead of cutting itself off during fast events.
 - v0.69 ✓ — **understory & blossoms**: low **shrubs** fill the meadow between the trees, and the broadleaf trees flush with **seasonal blossom** (pink in spring) that ripens to **red fruit** toward autumn.
+- v0.70 ✓ — **the critters have voices**: little **stereo-panned** sounds — an **alarm squeak** when one bolts in fright, a **chirp** when one finds food, a contented **hum** while grazing (with the Nature ambience on).
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.

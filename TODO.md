@@ -13,6 +13,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.67: **trees with character** — per-tree randomized trunk/lean, real branches with leaf clumps, broadleaf vs conifer silhouettes, whole-tree sway.
 - v0.68: **cinematic director** (camera glides from critter to critter when idle) + **narration voice fix** (finishes each line instead of cutting off during fast events).
 - v0.69: **understory bushes** + **seasonal blossom/fruit** on the broadleaf trees.
+- v0.70: **per-creature vocalizations** — stereo-panned alarm/chirp/hum by what each critter is doing.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).
@@ -40,8 +41,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - [ ] **Smarter mating choice**: sexual selection on visible traits (bright colors, size).
 
 ## Audio
-- [ ] **Reverb / spatial audio** on music and nature so it feels like a place.
-- [ ] **Per-creature vocalizations** (chirps on alarm, contented hums while grazing).
+- [ ] **Fuller spatial audio / reverb** (a convolver room on the music + nature bed; v0.70 added a music echo and panned creature voices, but the bed is still mono).
 - [ ] Hook up a real **Piper / XTTS** server for higher-quality narration voices.
 
 ## Narration & AI

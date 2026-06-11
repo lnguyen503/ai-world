@@ -1,4 +1,4 @@
-import { SIM, params } from './config';
+import { SIM, WORLD, params } from './config';
 import { Biome } from './biome';
 import { World, type WorldSnapshot } from './sim/world';
 import { Scene3D } from './render/scene';
@@ -100,6 +100,7 @@ controls.onLoadFile = (text) => {
 let last = performance.now();
 let weatherTarget = 0;
 let weatherRetarget = 0; // sim-seconds until the next weather front rolls in
+let voiceCd = 0; // throttle between creature vocalizations
 
 function frame(now: number): void {
   const realDt = Math.min(0.1, (now - last) / 1000);
@@ -138,6 +139,18 @@ function frame(now: number): void {
   const novelty = world.noveltyFlash > 0 ? world.lastNovelty : null;
   narrator.update(stats, biome.name, params.weather, world.lightningFlash > 0, world.dayFactor, world.prowling > 0, hunt, novelty);
   sound.update(params.weather, world.dayFactor);
+
+  // give the critters a voice: sample one each tick and chirp/alarm/hum by what it's doing
+  voiceCd -= realDt;
+  if (simDt > 0 && voiceCd <= 0 && world.creatures.length > 0) {
+    const c = world.creatures[Math.floor(Math.random() * world.creatures.length)]!;
+    const kind = c.startleTimer > 0 ? 'alarm'
+      : c.signalTimer > 0 ? 'chirp'
+      : !c.asleep && c.energy > 0.5 * c.maxEnergy && Math.random() < 0.25 ? 'hum'
+      : null;
+    if (kind) { sound.voice(kind, Math.max(-1, Math.min(1, c.x / WORLD.half))); voiceCd = 0.25 + Math.random() * 0.55; }
+    else voiceCd = 0.12;
+  }
 
   scene.render();
   requestAnimationFrame(frame);

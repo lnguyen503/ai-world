@@ -322,6 +322,17 @@ summer and winter (and dimming at night). The accents share one material and one
 small dot sprite, and their per-tree point clouds are disposed on rebuild so
 hopping biomes doesn't leak.
 
+### v0.70.0 — The critters have voices
+The creatures now make little sounds of their own (when the **Nature** layer is on).
+Each frame the loop samples one critter and, by what it's doing, plays a short
+**stereo-panned** vocalization (panned by its world-x, so it comes from its side of
+the world): a sharp rising **alarm squeak** when it's startled and fleeing, a
+friendly **chirp** when it's just found food and calling, and an occasional
+contented **hum** while a well-fed one grazes. It's throttled (a quarter-second-plus
+between voices) so a panicking herd reads as a chorus of alarms without turning into
+noise, and it falls silent while the sim is paused. New `SoundManager.voice()` owns
+the timbres; `main.ts` picks who speaks.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

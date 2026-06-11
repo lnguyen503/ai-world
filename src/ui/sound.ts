@@ -313,4 +313,41 @@ export class SoundManager {
     if (this.natureOn) this.updateNature(ctx, weather, dayFactor);
     if (this.musicOn) this.updateMusic(ctx, weather, dayFactor);
   }
+
+  /**
+   * A short creature vocalization, panned by the speaker's world-x (-1 left … +1 right). Only sounds
+   * when the Nature layer is on (so it belongs to the soundscape). 'alarm' is a sharp rising squeak,
+   * 'chirp' a friendly call, 'hum' a soft contented graze.
+   */
+  voice(kind: 'alarm' | 'chirp' | 'hum', pan: number): void {
+    const ctx = this.ctx;
+    if (!ctx || !this.natureOn) return;
+    const t = ctx.currentTime;
+    const panner = ctx.createStereoPanner();
+    panner.pan.value = Math.max(-1, Math.min(1, pan));
+    panner.connect(this.master!);
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    if (kind === 'hum') {
+      o.type = 'sine';
+      const base = 200 + Math.random() * 80;
+      o.frequency.setValueAtTime(base, t);
+      o.frequency.linearRampToValueAtTime(base * 1.06, t + 0.25);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.045, t + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
+      o.connect(g).connect(panner); o.start(t); o.stop(t + 0.46);
+    } else {
+      o.type = 'triangle';
+      const base = kind === 'alarm' ? 1400 + Math.random() * 500 : 760 + Math.random() * 420;
+      o.frequency.setValueAtTime(base, t);
+      o.frequency.exponentialRampToValueAtTime(base * (kind === 'alarm' ? 1.5 : 0.7), t + 0.12);
+      const vel = kind === 'alarm' ? 0.085 : 0.055;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vel, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      o.connect(g).connect(panner); o.start(t); o.stop(t + 0.18);
+    }
+    o.onended = () => panner.disconnect();
+  }
 }
