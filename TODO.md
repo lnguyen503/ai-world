@@ -6,18 +6,18 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 ## Recently shipped
 - v0.18–v0.27: deep-space night sky (twinkling stars, nebulae, spiral galaxies, shooting stars, aurora), auto-weather, and a proper hunt (wolf-pack encircling, stalk→dart lunge, cartoon pounce + comic kill, prey panic).
 - v0.28–v0.37: constellations, moon phases, ponds, rainbows, butterflies, stamina, cooperative ambush, panic waves, hunt play-by-play narration, and photo mode.
+- v0.38–v0.49: planetary sky fix, occasional aurora, drone removal, follow-camera fix, stargaze mode, distinct species, calmer food, clouds + bird flocks, snow, swaying trees, cleaner motes.
+- v0.50–v0.58: wildflowers, autumn leaves, pond drinking, per-species HUD counts, kill-drift camera, feature tips, lily pads, drinking ripples.
+- v0.59–v0.65: visible macro-mutations, morning mist, dragonflies, glowing mushrooms, horizon hills, **critters talk** (emergent speech bubbles), and **smartness-aware dialogue**.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).
-- [ ] **Water reflections** in the ponds (mirror the sky / nearby creatures).
+- [ ] **Water reflections** in the ponds (mirror the sky / nearby creatures on the surface).
 - [ ] **Per-species lines on the population graph** (not just current counts).
 - [ ] **Fish** darting under the pond surface.
 - [ ] **Sun shafts / god rays** through the trees at dawn and dusk.
 - [ ] **A bigger "evolution event" banner** for the rarest surprises (first-ever flyer, a new apex predator).
-- [ ] **Drinking at the pond**: thirsty creatures path to the shoreline and pause to drink (gathering, not just avoiding).
-- [ ] **Reflections in the water**: mirror the sky / nearby creatures in the pond surface.
 - [ ] **Herd defense**: big prey turn and stand their ground instead of always fleeing.
-- [ ] **Migrating butterflies / flocks of birds** crossing the sky at dawn and dusk.
 - [ ] **Seasonal night sky**: constellations rotate / different stars rise across the in-world year.
 
 ## World & ecosystem
@@ -46,7 +46,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - [ ] Streaming LLM narration so lines appear word-by-word.
 
 ## UX & presentation
-- [ ] **Photo mode**: hide the UI, free camera, screenshot button.
+- [ ] **Screenshot/export button** (photo mode hides the UI — add a one-click capture).
 - [ ] **Mini-map** showing herds, predators, and where you're looking.
 - [ ] **Stat overlays**: heatmaps of food, population density, average traits.
 - [ ] **Timeline scrubber** with bookmarks for big events (extinctions, first flight, etc.).

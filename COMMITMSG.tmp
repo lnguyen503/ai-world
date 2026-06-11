@@ -1,5 +1,0 @@
-v0.65.0: smartness-aware critter dialogue
-
-- the LLM prompt now explicitly tells the model how clever the critter is (witty for Foxlings, plain for Hopkins, goofy/simple for Slinks) and shapes tone + length to match
-- richer situation: adds hunger, and sharper phrasing (fleeing for your life / stalking prey / happily eating)
-- witty critters get a slightly longer line; raised the trim cap to fit

@@ -261,6 +261,17 @@ drives it; the scene renders a small pool of bubble sprites. (Like everything
 sim-timed, the bubbles only appear in a foreground tab where the world actually
 evolves — a background tab throttles the loop and the world stays at age 0.)
 
+### v0.65.0 — Smartness-aware dialogue
+The spoken lines now fit the **mind that says them**. The local-LLM prompt is told
+how clever the speaker is — witty/curious for the bright species (Foxling), plain
+and cheerful for average wits (Hopkin), goofy and simple for the dim ones (Slink)
+— and that shapes both tone and length. The situation handed to the model is
+richer and sharper too: it now factors in **hunger** and phrases the moment
+vividly ("fleeing for your life from a predator", "stalking your prey", "happily
+eating", "wandering, hungry, hunting for food"). Witty critters earn a slightly
+longer line (up to ~8 words vs ~5), and the trim cap was raised to fit. The canned
+fallback pool is unchanged, so it still reads well with AI narration off.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
