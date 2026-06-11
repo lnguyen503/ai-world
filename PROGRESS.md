@@ -584,6 +584,13 @@ sprites in mossy greens) and ~150 **pebbles** (small greys) now scatter across t
 richer, more lived-in meadow underfoot. Verified live: grass tufts and pebbles scattered visibly
 across a Crimson Mesa.
 
+### v0.98.0 — Water reflections
+The pond shader got more mirror-like (`scene.ts`). A **fresnel** term now blends in more **sky colour
+toward the rim** (the grazing angle, like real water), and a broad **sun glint** streak — tinted to the
+current sun colour (warm at dawn/dusk) — drifts across the surface with the ripples. The water reads as
+a reflective sky-tinted surface rather than a flat disc. Verified: ponds rendered with the brighter
+sky reflection over a Frost Tundra, GLSL compiled with no console errors.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

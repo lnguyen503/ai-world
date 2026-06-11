@@ -146,6 +146,7 @@ src/
 - v0.95 ✓ — **event stingers**: musical cues tied to the drama — a low **thud** on a kill, a bright **chime** on a striking birth, a **shimmer** on a milestone (with ambience on).
 - v0.96 ✓ — **discovery log**: a scrollable **📜 Discoveries** panel chronicles the world's striking births and milestones, each stamped with the in-world time.
 - v0.97 ✓ — **ground detail**: **grass tufts** and **pebbles** scatter across the terrain for a richer, more lived-in meadow.
+- v0.98 ✓ — **water reflections**: the ponds reflect the **sky** (fresnel toward the rim) with a drifting **sun glint** — a more mirror-like surface.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

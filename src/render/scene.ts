@@ -1059,19 +1059,24 @@ export class Scene3D {
       uniforms: {
         uTime: { value: 0 }, uOpacity: { value: 0.85 },
         uDeep: { value: new THREE.Color(0x183b6e) }, uShallow: { value: new THREE.Color(0x4aa6d6) },
-        uSky: { value: new THREE.Color(0xbfe0ff) },
+        uSky: { value: new THREE.Color(0xbfe0ff) }, uSun: { value: new THREE.Color(0xfff2d0) },
       },
       vertexShader: `varying vec2 vUv; varying vec2 vW;
         void main(){ vUv = uv; vec4 wp = modelMatrix * vec4(position, 1.0); vW = wp.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: `
-        uniform float uTime; uniform float uOpacity; uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uSky;
+        uniform float uTime; uniform float uOpacity; uniform vec3 uDeep; uniform vec3 uShallow; uniform vec3 uSky; uniform vec3 uSun;
         varying vec2 vUv; varying vec2 vW;
         void main(){
           float d = distance(vUv, vec2(0.5)) * 2.0; // 0 centre .. 1 rim
           float r = sin(vW.x * 0.6 + uTime * 1.3) * 0.5 + sin(vW.y * 0.7 - uTime * 1.05) * 0.5;
           float spark = smoothstep(0.72, 1.0, r) * (1.0 - d);
           vec3 col = mix(uDeep, uShallow, d);
-          col = mix(col, uSky, 0.22) + spark * 0.45;
+          // sky reflection: stronger toward the rim (grazing angle), like a real water surface
+          float fres = mix(0.16, 0.72, pow(d, 1.5));
+          col = mix(col, uSky, fres);
+          // a broad sun glint streak drifting with the ripples
+          float glint = smoothstep(0.84, 1.0, sin(vW.y * 0.5 + uTime * 0.6) * 0.5 + r * 0.5) * (1.0 - d) * 0.85;
+          col += uSun * glint + spark * 0.4;
           float a = uOpacity * (1.0 - smoothstep(0.82, 1.0, d));
           gl_FragColor = vec4(col, a);
         }`,
@@ -1396,6 +1401,7 @@ export class Scene3D {
     this.prevNightForAurora = isNight;
     // water reflects the sky colour + dims at night
     (this.waterMat.uniforms.uSky!.value as THREE.Color).copy(toVec3(s.bottom));
+    (this.waterMat.uniforms.uSun!.value as THREE.Color).copy(toVec3(s.sunColor));
     this.waterMat.uniforms.uOpacity!.value = 0.5 + 0.4 * s.dayFactor;
     this.lastSky = s;
   }
