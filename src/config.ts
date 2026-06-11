@@ -211,8 +211,8 @@ export const PONDS = {
 // roam freely, but burn more energy and CANNOT shelter from weather — so storms favor the grounded.
 export const FLIGHT = {
   threshold: 0.5,
-  costMult: 1.5, // flyers burn this much more energy
-  speedMult: 1.25, // flyers move a bit faster
-  altitude: 3.2, // visual hover height above the terrain
+  costMult: 1.4, // flyers burn this much more energy (eased a little so flyers persist + stay a visible part of the world)
+  speedMult: 1.7, // flyers cruise noticeably faster, so they sweep right across the biome
+  altitude: 12, // visual soaring height — high above the tree canopy, so flyers clearly own the sky
 };
 

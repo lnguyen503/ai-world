@@ -847,6 +847,21 @@ per-species voice still seasons both. Verified live by tagging each bubble with 
 simple musings came from the dim species (Pebble ×5, Slink, young Hopkins), the witty/meta musings from the
 Foxling (the smartest) — so brightness is clearly steering the tone, and an old Hopkin drifts wittier with age.
 
+### v2.13.0 — Flyers actually fly
+The `wings` gene existed since v0.7, but flight was barely visible: winged critters hovered at ~3 units
+(below the tree canopy), bobbed in place, and flapped on the wrong axis. This makes flight a real,
+watchable behaviour. **They soar high** — visual altitude 3.2 → 12, well above the trees, so flyers own the
+sky. **Bigger wings** (cone 0.32×0.62 → 0.5×1.15) and a **correct wingbeat**: the flap was rotating the
+wings around `z` (a twist) — it now sweeps them up and down around the forward axis (`rotation.x = ±π/2 ±
+flap`), reading as real flapping. **They cruise across the biome** instead of orbiting food: a forced steady
+cruise throttle (≥0.9) + faster `speedMult` (1.3 → 1.7) + a slow gentle heading-wander gives long sweeping
+arcs, and they bounce off the arena edges (measured: flyers traversed 27–106 units of the 140-wide arena in
+one window). **They visibly feed**: foraging is horizontal (a flyer grazes whatever food it's over —
+altitude is purely visual), and now the render ties altitude to energy, so a hungry flyer **swoops down to
+graze and climbs back up once full**. Starting flyer fraction nudged 10% → 18% so there's always a flock
+aloft, and the flight energy cost eased (1.5 → 1.4) so they persist. Verified live: flyers soaring above the
+trees with flapping wings, and position sampling confirming they cross the map.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

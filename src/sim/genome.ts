@@ -54,8 +54,8 @@ export function randomGenome(): Genome {
     social: Math.random(),
     // ~9% of the starting population are predators; the rest are prey.
     predator: Math.random() < 0.09 ? 0.6 + Math.random() * 0.4 : Math.random() * 0.45,
-    // ~10% can already fly; flight spreads (or dies out) depending on the world's conditions.
-    wings: Math.random() < 0.1 ? 0.55 + Math.random() * 0.45 : Math.random() * 0.45,
+    // ~18% can already fly; flight spreads (or dies out) depending on the world's conditions.
+    wings: Math.random() < 0.18 ? 0.55 + Math.random() * 0.45 : Math.random() * 0.45,
     // ~15% start with a glow; it's heritable so glowing lineages can emerge.
     glow: Math.random() < 0.15 ? 0.5 + Math.random() * 0.5 : Math.random() * 0.3,
     // most start with little disease resistance — a plague then selects the resistant upward.

@@ -259,7 +259,7 @@ export class Scene3D {
   private antBallGeo = new THREE.SphereGeometry(0.08, 8, 8);
   private tailGeo = new THREE.SphereGeometry(0.14, 8, 8);
   private mouthGeo = new THREE.SphereGeometry(0.09, 8, 8);
-  private wingGeo = new THREE.ConeGeometry(0.32, 0.62, 4);
+  private wingGeo = new THREE.ConeGeometry(0.5, 1.15, 4); // bigger so a flyer's wings read clearly from afar
   private wingMat = new THREE.MeshToonMaterial({ color: 0xeaf2ff, gradientMap: this.toonGrad, transparent: true, opacity: 0.82 });
   private zzzMat = new THREE.SpriteMaterial({ map: zzzTexture(), transparent: true, depthWrite: false });
   private bangMat = new THREE.SpriteMaterial({ map: bangTexture(), transparent: true, depthWrite: false, depthTest: false });
@@ -726,9 +726,11 @@ export class Scene3D {
       let pitch = 0;
       let roll = asleep ? 0.42 : 0; // tip over to sleep
       if (flying) {
-        const swoop = Math.sin(t * 1.1 + c.id * 0.7); // slow, big elevation changes
-        gy = baseY + FLIGHT.altitude + swoop * 1.9 + Math.sin(t * 3.0 + c.id) * 0.25;
-        pitch = -Math.cos(t * 1.1 + c.id * 0.7) * 0.38; // nose up climbing, down diving
+        const fed = Math.max(0, Math.min(1, c.energy / c.maxEnergy)); // 0 starving … 1 well-fed
+        const alt = FLIGHT.altitude * (0.22 + 0.78 * fed); // soar high when full, drop low to graze when hungry
+        const swoop = Math.sin(t * 0.5 + c.id * 0.7); // slow, sweeping climbs and dives
+        gy = baseY + alt + swoop * 3.0 * (0.4 + 0.6 * fed) + Math.sin(t * 2.2 + c.id) * 0.4; // gentle rise + dive while cruising
+        pitch = -Math.cos(t * 0.55 + c.id * 0.7) * 0.5; // nose up climbing, down diving
         let dh = c.heading - rig.lastHeading; // bank into turns
         dh = ((dh + Math.PI) % (Math.PI * 2)) - Math.PI; if (dh < -Math.PI) dh += Math.PI * 2;
         roll = Math.max(-0.6, Math.min(0.6, dh * 9));
@@ -807,12 +809,13 @@ export class Scene3D {
       rig.mouth.scale.set(pred ? 1.1 : 0.7, pred ? 0.85 : 0.5, pred ? 1.9 : 1.4);
       rig.outline.material = pred ? this.redOutlineMat : this.outlineMat; // predators always red-rimmed
 
-      // wings: visible + flapping only for flyers
+      // wings: visible + flapping only for flyers. Sweep them UP and DOWN around the forward axis (a
+      // wingbeat), not a twist — both wings rise and fall together so it reads as real flapping.
       rig.wings[0]!.visible = rig.wings[1]!.visible = flying;
       if (flying) {
-        const flap = 0.35 + Math.sin(t * 16 + c.id) * 0.75; // bigger, faster wingbeats
-        rig.wings[0]!.rotation.z = flap;
-        rig.wings[1]!.rotation.z = -flap;
+        const flap = Math.sin(t * 13 + c.id) * 0.95; // a deep ~55° up/down wingbeat
+        rig.wings[0]!.rotation.set(Math.PI / 2 + flap, 0, 0);
+        rig.wings[1]!.rotation.set(-Math.PI / 2 - flap, 0, 0);
       }
 
       // big cute eyes that blink; closed when asleep; narrower for predators

@@ -210,6 +210,7 @@ What's in there after a long line of iterations:
 - v2.8 ✓ — **🪶 Pre-ship polish**: removed the aurora for a cleaner night sky, and refined the terrain — **rock on steep faces**, gentle valley shading, and a per-vertex grain so the ground looks natural instead of a flat gradient.
 - v2.9 ✓ — **🚀 Ship prep**: MIT license, filled-out package metadata, the narrator voice now defaults to the instant browser voice (neural stays one click away), and a cleaned-up README.
 - v2.10 ✓ — **😂 Funnier chatter**: each species has its own comedy voice (smug / anxious / chaotic / zen), a new vein of meta-humor (the critters know a "giant" is watching), bigger + sharper line pools, and anti-repeat.
+- v2.13 ✓ — **🦋 Flyers actually fly**: winged critters **soar high above the trees** with bigger wings and a proper up/down **wingbeat**, **cruise across the biome** in sweeping arcs, and **swoop down to graze when hungry**, climbing back up when full.
 
 </details>
 

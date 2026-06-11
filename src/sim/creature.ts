@@ -253,6 +253,13 @@ export class Creature {
       }
     }
 
+    // flyers cruise across the open sky in long, gentle sweeping arcs (not tight circles over the food
+    // below). A slow heading drift turns them slowly; a hungry one drifts less so it can steer to food.
+    if (flying && this.startleTimer <= 0) {
+      const wander = this.energy < 0.5 * this.maxEnergy ? 0.1 : 0.4;
+      turn += Math.sin(this.age * 0.2 + this.id * 1.7) * wander;
+    }
+
     turn = Math.max(-SOCIAL.maxTurn, Math.min(SOCIAL.maxTurn, turn));
     this.heading += turn * dt;
 
@@ -268,7 +275,9 @@ export class Creature {
     else if (predator && ni.hasPrey) speedMult = PRED.stalkSpeedMult;
     else if (!predator && this.startleTimer > 0) speedMult = 1 + (PRED.frightSpeedMult - 1) * this.stamina; // a tiring bolt slows
     else if (!predator && this.drinkTimer > 0) speedMult = 0.3; // slow right down to sip
-    const speed = g.speed * throttle * (flying ? FLIGHT.speedMult : 1) * speedMult;
+    // flyers keep a brisk, steady cruise so they actually traverse the biome instead of hovering over food
+    const cruise = flying ? Math.max(throttle, 0.9) : throttle;
+    const speed = g.speed * cruise * (flying ? FLIGHT.speedMult : 1) * speedMult;
     this.x += Math.cos(this.heading) * speed * dt;
     this.z += Math.sin(this.heading) * speed * dt;
     this.bounceOffEdges(ctx.half);
