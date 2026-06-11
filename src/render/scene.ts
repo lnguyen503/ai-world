@@ -358,6 +358,9 @@ export class Scene3D {
 
   private selectedId: number | null = null;
   onSelect: (id: number | null) => void = () => {};
+  // god mode: when a tool is active, ground clicks apply it instead of selecting a creature
+  private godTool: string | null = null;
+  onGround: (x: number, z: number, tool: string) => void = () => {};
   // cinematic director: when nobody is manually selected, the camera glides from critter to critter
   private autoFollowId: number | null = null;
   private autoTimer = 0;
@@ -2087,10 +2090,21 @@ export class Scene3D {
       if (Math.hypot(e.clientX - downX, e.clientY - downY) > 6) return;
       ndc.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
       ray.setFromCamera(ndc, this.camera);
+      if (this.godTool) { // wielding a god-mode tool: apply it at the clicked ground point
+        const hit = this.terrain ? ray.intersectObject(this.terrain, false)[0] : undefined;
+        if (hit) this.onGround(hit.point.x, hit.point.z, this.godTool);
+        return;
+      }
       const hits = ray.intersectObjects(this.pickables, false);
       const id = hits.length ? (hits[0]!.object.userData.creatureId as number | undefined) : undefined;
       this.setSelected(id ?? null);
     });
+  }
+
+  /** Activate a god-mode tool (or null to go back to selecting creatures). */
+  setGodTool(tool: string | null): void {
+    this.godTool = tool;
+    this.renderer.domElement.style.cursor = tool ? 'crosshair' : '';
   }
 
   private onResize(): void {

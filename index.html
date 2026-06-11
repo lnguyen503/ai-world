@@ -69,6 +69,17 @@
       #event-banner .eb-sub { font-family: Georgia, serif; font-style: italic; font-size: 15px; color: #dbe5f0;
         margin-top: 7px; text-shadow: 0 2px 12px rgba(0,0,0,0.85); }
       body.photo #event-banner { display: none; }
+      #godmode { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 22;
+        display: flex; gap: 6px; align-items: center; max-width: 70vw; flex-wrap: wrap; justify-content: center; }
+      #godmode .god-label { font-size: 11px; color: #9aa7b4; margin-right: 2px; }
+      #godmode-tools { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+      .god-btn { font: inherit; font-size: 12px; font-weight: 600; color: #e6edf3; background: rgba(13,18,28,0.6);
+        border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 6px 10px; cursor: pointer; backdrop-filter: blur(8px); }
+      .god-btn:hover { background: rgba(255,255,255,0.16); }
+      .god-btn.on { background: #b45309; border-color: #f59e0b; }
+      .god-btn.cataclysm { background: rgba(90,20,20,0.55); border-color: rgba(220,80,80,0.4); }
+      .god-btn.cataclysm:hover { background: rgba(150,40,40,0.7); }
+      body.photo #godmode { display: none; }
       #hof { left: 14px; bottom: 52px; width: 196px; }
       #hof h2 { margin: 0 0 6px; font-size: 12px; color: #8b98a8; font-weight: 600; }
       body.photo #hof { opacity: 0; pointer-events: none; }
@@ -213,6 +224,7 @@
 
     <div id="hint" class="">Drag to look · scroll to zoom · click a creature to follow it</div>
     <div id="event-banner"><div class="eb-title"></div><div class="eb-sub"></div></div>
+    <div id="godmode"><span class="god-label">⚡</span><div id="godmode-tools"></div></div>
     <button id="photo-btn" title="Photo mode — hide the UI (H)">📷 Photo</button>
     <button id="gaze-btn" title="Stargaze — look up at the night sky (G)">🔭 Stargaze</button>
     <button id="autocam-btn" class="on" title="Auto-camera — let the view glide between critters (C)">🎥 Auto-cam</button>

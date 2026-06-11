@@ -599,6 +599,16 @@ which in turn fires the milestone stinger and drops a line in the discovery log.
 sight to reward a long watch. Verified: the moon shader compiled with no console errors and the trigger
 reuses the proven banner/stinger/log path.
 
+### v1.0.0 — God Mode (foundation + Feed)
+The big turn: you can now **wield the world**. A toolbar across the top (`src/ui/godmode.ts`) holds
+god-mode tools; selecting one puts the cursor in "apply" mode and a click on the **ground** applies it
+at that world point — the scene raycasts the terrain and reports the spot (`Scene3D.setGodTool` /
+`onGround`, wired in `main.ts`). The first tool is **🌾 Feed**: it rains a cluster of food where you
+click (`World.addFoodAt`), so you can grow the herd, bait it somewhere, or relieve a famine — you're a
+selection pressure now. This is the framework every other tool and cataclysm builds on. Verified via an
+instrumented click: handler fired, terrain hit, `onGround` → `addFoodAt` ran (the on-screen food count
+only refreshes in a foreground tab, per the rAF-throttle caveat).
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

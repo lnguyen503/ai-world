@@ -192,6 +192,18 @@ export class World implements CreatureContext {
     return this.grid.nearest(x, z, radius);
   }
 
+  /** Rain a cluster of food onto a spot (the god-mode Feed tool). */
+  addFoodAt(x: number, z: number, n: number, spread = 5): void {
+    const h = this.half - 1;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, r = Math.random() * spread;
+      const fx = Math.max(-h, Math.min(h, x + Math.cos(a) * r));
+      const fz = Math.max(-h, Math.min(h, z + Math.sin(a) * r));
+      this.food.push(makeFood(fx, fz));
+      if (this.events.length < 300) this.events.push({ t: 0, x: fx, z: fz }); // a little sparkle
+    }
+  }
+
   eatFood(food: Food): void { food.alive = false; }
 
   burst(type: number, x: number, z: number): void {

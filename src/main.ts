@@ -16,6 +16,7 @@ import { MiniMap } from './ui/minimap';
 import { TimeLapse } from './ui/timelapse';
 import { applyPermalink, setupShare } from './ui/permalink';
 import { DiscoveryLog } from './ui/discovery';
+import { GodMode } from './ui/godmode';
 
 const container = document.getElementById('app');
 if (!container) throw new Error('missing #app');
@@ -39,6 +40,14 @@ const hof = new HallOfFame(); // the world's standout individuals
 const minimap = new MiniMap(); // corner overview map
 new TimeLapse(); // ⏩ fast-forward montage with chapter cards
 setupShare(biome); // 🔗 copy a link that recreates this exact world
+
+// god mode — wield tools directly on the world
+const godmode = new GodMode();
+godmode.onTool = (tool) => scene.setGodTool(tool);
+scene.onGround = (x, z, tool) => applyGodTool(x, z, tool);
+function applyGodTool(x: number, z: number, tool: string): void {
+  if (tool === 'feed') world.addFoodAt(x, z, 14);
+}
 const chatter = new Chatter(); // critters start talking once evolved enough
 narrator.onLine = (text) => speaker.speak(text);
 

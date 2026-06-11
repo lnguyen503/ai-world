@@ -43,6 +43,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.97: **ground detail** — grass tufts + pebbles scattered on the terrain (per biome, dim at night).
 - v0.98: **water reflections** — fresnel sky reflection + drifting sun glint in the pond shader.
 - v0.99: **blood moon** — rare red-moon night (moon-shader tint) with a banner + discovery-log entry.
+- v1.0: **God Mode foundation** — top toolbar + ground-click raycast; 🌾 Feed tool rains food where you click.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).

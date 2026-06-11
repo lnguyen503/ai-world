@@ -149,6 +149,9 @@ src/
 - v0.98 ✓ — **water reflections**: the ponds reflect the **sky** (fresnel toward the rim) with a drifting **sun glint** — a more mirror-like surface.
 - v0.99 ✓ — **blood moon**: on a rare night the **moon runs deep red**, announced with a banner (and a discovery-log entry) — an uncommon sight to reward a long watch.
 
+### Force of Nature (v1.x) — you wield the world
+- v1.0 ✓ — **God Mode**: a toolbar of tools you apply by **clicking the ground**. First tool: **🌾 Feed** rains food where you click — grow the herd, bait it, or end a famine. The framework for every tool + cataclysm.
+
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama
 (`http://localhost:11434/api/generate`), and the **model dropdown auto-detects whatever models you've
