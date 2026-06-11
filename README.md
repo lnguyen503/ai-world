@@ -159,6 +159,7 @@ src/
 - v1.6 ✓ — **🌋 Volcano**: an eruption that blasts the area then keeps a **lava field** roasting the vent for ~18s, spitting embers while **ashfall reddens and darkens the sky**.
 - v1.7 ✓ — **❄️ Ice Age**: a slow global freeze — a **white-out blizzard**, the meadow ices over (food crash), the cold saps the herd and culls the weak, then it **thaws and life rebounds**.
 - v1.8 ✓ — **🦠 Plague**: a contagion with a new **heritable resistance gene** — it spreads creature-to-creature, saps the sick (less if resistant), and survivors breed, so each outbreak **selects the herd's resistance upward**. Sick critters glow a clammy green.
+- v1.9 ✓ — **🌟 Radiations & Eras**: the recovery payoff — a **Radiation** burst (on demand, or **auto after a crash**) opens a **new era** with cranked mutation + eased breeding → explosive diversification. The world counts its **eras** — **punctuated equilibrium**: die-off → radiation → "🌟 Era N".
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

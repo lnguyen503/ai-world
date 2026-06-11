@@ -1,4 +1,4 @@
-import { GENE_RANGES, SPECIES, params } from '../config';
+import { GENE_RANGES, SPECIES, params, evo } from '../config';
 import { type Brain, randomBrain, mutateBrain, crossoverBrain } from './brain';
 
 let nextClan = 1;
@@ -80,20 +80,23 @@ export function crossover(a: Genome, b: Genome): Genome {
 
 /** Produce a mutated copy of a genome. Each gene mutates with MUTATION.rate probability. */
 export function mutate(g: Genome): Genome {
+  // an adaptive radiation (evo.mutationScale > 1) cranks both how often genes mutate and how far they leap
+  const rate = params.mutationRate * evo.mutationScale;
+  const step = params.mutationStep * evo.mutationScale;
   const jitter = (value: number, range: Range): number => {
-    if (Math.random() > params.mutationRate) return value;
+    if (Math.random() > rate) return value;
     const span = range[1] - range[0];
-    return clamp(value + gaussian() * params.mutationStep * span, range);
+    return clamp(value + gaussian() * step * span, range);
   };
   const child: Genome = {
     size: jitter(g.size, GENE_RANGES.size),
     speed: jitter(g.speed, GENE_RANGES.speed),
     sense: jitter(g.sense, GENE_RANGES.sense),
     // hue wraps around the color wheel and drifts slowly.
-    hue: ((g.hue + (Math.random() > params.mutationRate ? 0 : gaussian() * 0.06)) % 1 + 1) % 1,
+    hue: ((g.hue + (Math.random() > rate ? 0 : gaussian() * 0.06)) % 1 + 1) % 1,
     brain: mutateBrain(g.brain),
     // appearance is mostly inherited (lineages look alike) and rarely rerolls into a new "species" look.
-    look: Math.random() < params.mutationRate * 0.25 ? Math.floor(Math.random() * 0x7fffffff) : g.look,
+    look: Math.random() < rate * 0.25 ? Math.floor(Math.random() * 0x7fffffff) : g.look,
     social: jitter(g.social, [0, 1] as const),
     predator: jitter(g.predator, [0, 1] as const),
     wings: jitter(g.wings, [0, 1] as const),
@@ -101,10 +104,10 @@ export function mutate(g: Genome): Genome {
     resistance: jitter(g.resistance ?? 0, [0, 1] as const),
     clan: g.clan, // lineage is inherited unchanged
     // species is inherited; very rarely a lineage speciates into a different archetype
-    species: Math.random() < params.mutationRate * 0.08 ? Math.floor(Math.random() * SPECIES.length) : (g.species ?? 0),
+    species: Math.random() < rate * 0.08 ? Math.floor(Math.random() * SPECIES.length) : (g.species ?? 0),
   };
-  // a rare "macro-mutation" — a bold genetic leap producing a visibly striking individual
-  if (Math.random() < 0.03) macroMutate(child);
+  // a rare "macro-mutation" — a bold genetic leap producing a visibly striking individual (commoner mid-radiation)
+  if (Math.random() < 0.03 * evo.mutationScale) macroMutate(child);
   return child;
 }
 

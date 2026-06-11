@@ -137,6 +137,10 @@ export const params = {
   colorByLineage: false, // color creatures by family/clan instead of their own hue
 };
 
+// Transient evolutionary modifiers set by cataclysm radiations (1 = normal). The world resets these
+// each step from its radiation state, so they ramp up during an adaptive radiation and fade back to 1.
+export const evo = { mutationScale: 1 };
+
 // Predators hunt prey; prey flee. A creature is a carnivore when its `predator` gene > threshold.
 export const PRED = {
   threshold: 0.5,

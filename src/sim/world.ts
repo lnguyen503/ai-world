@@ -1,4 +1,4 @@
-import { WORLD, SOCIAL, TREES, PONDS, WEATHER, SPECIES, LIFE, ECO, PLAGUE, params } from '../config';
+import { WORLD, SOCIAL, TREES, PONDS, WEATHER, SPECIES, LIFE, ECO, PLAGUE, params, evo } from '../config';
 import type { Biome } from '../biome';
 import { type Genome, randomGenome } from './genome';
 import { type Food, makeFood } from './food';
@@ -122,6 +122,14 @@ export class World implements CreatureContext {
   private lavaDebt = 0; // paces the sustained lava kills near the vent
   plagueActive = false; // a contagion is circulating (drives the narrator + HUD)
   infectedCount = 0; // how many creatures are currently sick (for the HUD)
+  era = 1; // the world's geological era — bumps after a mass die-off + radiation (punctuated equilibrium)
+  radiationT = 0; // seconds of an adaptive-radiation surge remaining (boosted mutation + breeding)
+  /** Fired when a new era dawns (a radiation begins) — the UI shows the banner + logs it. */
+  onNewEra: (era: number, label: string) => void = () => {};
+  /** 0..1 radiation surge for the sim (eases breeding, cranks mutation) + the narrator. */
+  get radiationBoost(): number { return Math.min(1, this.radiationT / 8); }
+  private popHigh = 0; // a slowly-decaying recent population high-water mark (detects a crash)
+  private eraCd = 0; // cooldown so one die-off triggers one era, not a flurry
   coldT = 0; // an ice age: seconds of deep cold remaining (a slow global cataclysm)
   /** 0..1 freeze intensity for the renderer (whiteout) + the sim (food crash, cold drain). */
   get cold(): number { return Math.min(1, this.coldT / 8); } // holds at 1, then thaws over the last 8s
@@ -244,6 +252,15 @@ export class World implements CreatureContext {
 
   /** Cataclysm — a global ice age: a white-out that crashes food and saps the herd, then thaws. */
   iceAge(): void { this.coldT = 38; } // ~30s of deep freeze + an 8s thaw
+
+  /** Begin a new era with an adaptive radiation — a burst of mutation + breeding (the recovery payoff).
+   *  Called on demand (the 🌟 Radiation tool) or automatically when the population rebounds from a crash. */
+  radiate(label: string): void {
+    this.radiationT = 28; // ~20s of surge + an 8s fade
+    this.eraCd = 30; // don't immediately re-trigger
+    this.era++;
+    this.onNewEra(this.era, label);
+  }
 
   /** Cataclysm — a plague: infect a few patient-zeros; it spreads, kills, and selects for resistance. */
   startPlague(): void {
@@ -398,6 +415,18 @@ export class World implements CreatureContext {
   step(dt: number): void {
     this.dayFactor = this.biome.dayFactor(this.age);
     this.gloom = Math.max(0, this.gloom - dt * 0.022); // a cataclysm pall lifts over ~45s
+    // adaptive radiation: while it lasts, evolution runs hot (mutation scaled globally via `evo`)
+    this.radiationT = Math.max(0, this.radiationT - dt);
+    evo.mutationScale = 1 + this.radiationBoost * 2.2;
+    // punctuated equilibrium: track a decaying population high-water mark; a hard crash that then
+    // has survivors left triggers a fresh era + radiation — the explosive recovery after a die-off
+    const pop = this.creatures.length;
+    this.popHigh = Math.max(pop, this.popHigh - dt * 0.6);
+    this.eraCd = Math.max(0, this.eraCd - dt);
+    if (this.eraCd <= 0 && this.radiationT <= 0 && this.popHigh >= 50 && pop > 4 && pop < this.popHigh * 0.4) {
+      this.radiate('life rebounds from the brink');
+      this.popHigh = pop; // reset the mark to the new baseline
+    }
     // an active volcano keeps ash in the sky, spits embers, and roasts anything near the vent
     if (this.volcanoT > 0) {
       this.volcanoT = Math.max(0, this.volcanoT - dt);

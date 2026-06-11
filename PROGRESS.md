@@ -678,6 +678,18 @@ critters are tinted a clammy, sickly green in the renderer. Banner + discovery-l
 `world.infectedCount` is exposed for the HUD. Verified: button renders, click fires the "🦠 Plague"
 banner and logs it; the contagion + resistance-gene + sick-tint build clean.
 
+### v1.9.0 — Radiations & Eras
+The payoff that ties the whole cataclysm batch together: the **recovery**. A **🌟 Radiation** button (and
+an **automatic trigger** when the population rebounds from a hard crash) calls `World.radiate`, opening a
+**new era** with an **adaptive-radiation surge** — for ~28s `evo.mutationScale` cranks **mutation rate +
+step + macro-mutation odds** globally (via a new transient `evo` holder read by `genome.mutate`) and
+`radiationBoost` **eases the energy bar to breed**, so life explosively diversifies and repopulates. The
+world tracks a decaying population high-water mark and, on a die-off that leaves survivors, fires a fresh
+era automatically — **punctuated equilibrium**: cataclysm → die-off → radiation → "🌟 Era N" banner +
+discovery-log + milestone stinger (`World.onNewEra`). This closes the loop the asteroid/volcano/ice
+age/plague open. Verified: button renders (13 god-mode tools total), click fires the "🌟 Era 2" banner,
+logs it, and bumps the era counter; the radiation surge + auto-detect build clean.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

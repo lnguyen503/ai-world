@@ -21,6 +21,7 @@ const ACTIONS: Tool[] = [
   { id: 'volcano', label: '🌋 Volcano' },
   { id: 'iceage', label: '❄️ Ice Age' },
   { id: 'plague', label: '🦠 Plague' },
+  { id: 'radiate', label: '🌟 Radiation' },
 ];
 
 export class GodMode {

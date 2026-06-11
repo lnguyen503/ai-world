@@ -69,8 +69,16 @@ function triggerCataclysm(id: string): void {
     banner.flash('🦠 Plague', 'a contagion spreads — only the resistant will endure');
     discovery.add('🦠 a plague broke out — disease swept the herd', world.age);
     sound.stinger('kill');
+  } else if (id === 'radiate') {
+    world.radiate('a willed awakening'); // fires world.onNewEra → banner + log below
   }
 }
+// a new era dawns (an adaptive radiation, on demand or auto after a die-off) — punctuated equilibrium
+world.onNewEra = (era, label) => {
+  banner.flash(`🌟 Era ${era}`, `a new era dawns — ${label}`);
+  discovery.add(`🌟 Era ${era} began — ${label} (life diversifies)`, world.age);
+  sound.stinger('milestone');
+};
 function applyGodTool(x: number, z: number, tool: string): void {
   if (tool === 'feed') world.addFoodAt(x, z, 14);
   else if (tool === 'smite') { world.smite(x, z); sound.stinger('kill'); }

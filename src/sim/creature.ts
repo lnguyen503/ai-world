@@ -36,6 +36,7 @@ export interface CreatureContext {
   dayFactor: number; // 0 = deep night, 1 = midday
   crowding: number; // ≥1; population-pressure brake on reproduction + metabolism
   camoHue: number; // the ground's dominant hue (prey near it are camouflaged from predators)
+  radiationBoost: number; // 0..1 adaptive-radiation surge: eases the bar to breed (mutation is global)
 }
 
 let nextCreatureId = 1;
@@ -307,7 +308,7 @@ export class Creature {
 
     // --- reproduce (only once grown up; a crowded world demands more spare energy to breed) ---
     // crowding raises the energy bar to breed; past ~1.0 it exceeds reachable energy, a soft cap on growth
-    const reproThresh = Math.min(1.1, LIFE.reproThreshold * ctx.crowding);
+    const reproThresh = Math.min(1.1, LIFE.reproThreshold * ctx.crowding) * (1 - ctx.radiationBoost * 0.35);
     if (this.age >= LIFE.matureAge && this.energy >= reproThresh * this.maxEnergy) {
       const childEnergy = this.energy * 0.5;
       this.energy *= 0.5;
