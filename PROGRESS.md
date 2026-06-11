@@ -811,6 +811,18 @@ and a real user pick still sticks) so first-enable needs no ~80MB download. Poli
 Node 18+ to build; optional Ollama/WebGPU clearly marked), a ready hero-image slot (`docs/`), and the
 voice docs updated for the new default. Verified in-browser: the voice dropdown defaults to a system voice.
 
+### v2.10.0 — Funnier critter chatter (a comedy pass)
+The chatter was *relevant* (v2.3) but still read as generic and repeated. This is a writing + character
+pass. Each **species now has a distinct comedy voice** (`SPECIES_VOICE`): Foxling is smug and analytical,
+Hopkin is a bundle of anxiety, Slink is chaotic and dim-but-confident, Pebble is a zen rock — so lineages
+feel like characters, not clones. A new **`META` pool** leans into the best material: the critters are
+faintly aware they're tiny creatures **watched by a "giant"** in a simulation ("someone keeps speeding up
+time", "i'd wave at the camera if i had hands", "the giant fed us again. simp."). **Every scenario pool
+was roughly doubled and the writing sharpened** (deadpan/absurd over merely cute), the pair-exchange and
+group-reaction pools grew, and a small **anti-repeat** (`fresh()` tracks the last ~16 lines) kills the
+"same line twice in a row" feel. When nothing dramatic is happening, idle/social lines lean ~60% on the
+species voice + meta gags. Verified: tsc + build clean.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

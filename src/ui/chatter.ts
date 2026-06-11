@@ -1,8 +1,10 @@
 // Emergent "speech": once a lineage has evolved far enough (a high enough generation), the smart,
 // mature critters chat. When two evolved critters are near each other they have a short, playful
-// back-and-forth (bubbles pop over each in turn); a lone critter just blurts a single line. A local
-// LLM writes the lines when AI narration is enabled; otherwise cute canned lines/exchanges are used.
-// Deliberately sparse + brief so it stays charming, never spammy.
+// back-and-forth (bubbles pop over each in turn); a lone critter just blurts a single line. Lines react
+// to what's actually happening (a hunt, a plague, a volcano), each species has its own comedy voice, and
+// — when nothing's going on — they get a little meta about being tiny creatures watched by a giant. A
+// local LLM writes the lines when AI narration is enabled; otherwise the (big, anti-repeating) canned
+// pools are used. Paced so it's lively but never spammy.
 
 import { LIFE, SPECIES, params } from '../config';
 import type { World } from '../sim/world';
@@ -20,63 +22,98 @@ const LINE_GAP = 1.2;      // seconds between the back-and-forth replies
 type Scene = 'sick' | 'flee' | 'volcano' | 'freeze' | 'radiate' | 'dark' | 'hunted'
   | 'storm' | 'drink' | 'eat' | 'night' | 'predator' | 'hungry' | 'social' | 'idle';
 
-// Short (≤6 words), in-the-moment one-liners, keyed by scenario. Comedy first, relevance always.
+// Short, in-the-moment one-liners, keyed by scenario. Comedy first, relevance always. Big pools so it
+// doesn't repeat; deadpan / absurd / a little meta beats merely "cute".
 const LINES: Record<Scene, string[]> = {
-  sick: ['*cough* …i\'m fine', 'is this catching?', 'i feel gross', 'send soup', 'who sneezed on me', 'not my best era'],
-  flee: ['RUN!', 'not today!', 'yikes!', 'nope nope nope', 'too slow, sucker!', 'every critter for itself!'],
-  volcano: ['hot hot HOT', 'the floor is lava?!', 'i blame the gods', 'who lit the ground?', 'too spicy!', 'medium rare, please'],
-  freeze: ['s-s-so cold', 'who turned off the sun?', 'group huddle?', 'i regret everything', 'my little toes!', 'summer was a lie'],
-  radiate: ['i feel… different', 'is my tail glowing?', 'evolution, baby!', 'new me, who dis', 'i contain multitudes', 'mutation just dropped'],
-  dark: ['why\'s it so dark?', 'did something hit us?', 'ominous…', 'i want my mom', 'this is fine', 'who ordered the apocalypse'],
-  hunted: ['something\'s watching…', 'i don\'t like this', 'stay sharp', 'act natural', 'was that a wolf?', 'be cool, be cool'],
-  storm: ['weather\'s grim', 'great, rain', 'who ordered thunder?', 'i hate this', 'umbrella? anyone?'],
-  drink: ['*sip*', 'ahh, refreshing', 'good water', 'hydrate or diedrate'],
-  eat: ['yum!', 'nom nom', 'tasty!', 'snack time', 'munch munch', 'best grass ever'],
-  night: ['sleepy…', 'stars are pretty', 'yaaawn', 'goodnight, world', 'five more minutes'],
-  predator: ['mmm, lunch', 'here, prey prey prey', 'i\'m not scary, promise', 'just a lil nibble', 'you look delicious'],
-  hungry: ['so hungry', 'where\'s the snacks?', 'i could eat a tree', 'food. now.', 'my tummy evolved a growl'],
-  social: ['hi friend!', 'hey pal!', 'nice to see ya', 'we are many', 'cousin!', 'squad goals'],
-  idle: ['nice day!', 'wheee!', 'zoomies!', 'i think therefore i am?', 'big brain moment', 'is this… life?', 'what a world', 'so many flowers', 'feeling fast today', 'small legs, big dreams'],
+  sick: ["*cough* …i'm fine", "is this catching?", "i feel gross", "send soup", "who sneezed on me", "not my best era", "my resistance gene said 'nah'", "i regret the group hug", "patient zero was probably Greg", "*sneezes in three directions*"],
+  flee: ["RUN!", "not today!", "yikes!", "nope nope nope", "too slow, sucker!", "every critter for itself!", "legs, do your thing!", "this is why i did cardio", "i'm too cute to die!", "see you NEVER!"],
+  volcano: ["hot hot HOT", "the floor is LAVA?!", "i blame the giant", "who lit the ground??", "too spicy! too spicy!", "medium rare, please", "this meadow has issues", "i did NOT sign up for this", "well that's a new feature"],
+  freeze: ["s-s-so cold", "who turned off the sun?", "group huddle, NOW", "i regret everything", "my little toes!!", "summer was a lie", "i can see my breath. neat. awful.", "evolve a coat, cowards", "winter came. personally."],
+  radiate: ["i feel… DIFFERENT", "is my tail glowing??", "evolution, baby!!", "new me, who dis", "i contain multitudes now", "mutation just dropped", "a new era?? i wasn't ready", "i think i'm the upgrade", "ascending. brb."],
+  dark: ["why's it so dark?", "did something HIT us?", "ominous… very ominous", "i want my mom", "this is fine. this is fine.", "who ordered the apocalypse", "the sky used to be nicer", "i don't like the new sky", "bad vibes. cosmic bad vibes."],
+  hunted: ["something's watching…", "i don't like this", "stay sharp, look snacky", "act natural. ACT NATURAL.", "was that a wolf or my anxiety", "be cool, be cool, be— RUN", "i volunteer literally anyone else", "nobody move. nobody breathe."],
+  storm: ["weather's grim", "great, sky tears", "who ordered thunder?", "i hate this for me", "umbrella? anyone? anyone?", "the sky is yelling again", "rude weather. very rude."],
+  drink: ["*sip*", "ahh, refreshing", "good water. great water.", "hydrate or diedrate", "pond water hits different", "don't tell me what's in it"],
+  eat: ["yum!", "nom nom", "tasty!", "snack o'clock", "munch munch", "best grass ever", "ten outta ten, would graze", "don't mind if i do", "this one's mine. and that one.", "grass: still undefeated"],
+  night: ["sleepy…", "the stars are showing off", "yaaawn", "goodnight, weird world", "five more minutes", "who scheduled the dark", "counting… other… critters…", "is it bedtime or vibe time"],
+  predator: ["mmm, lunch", "here, prey prey prey", "i'm not scary, promise", "just a lil nibble", "you look delicious", "don't run, it's rude", "here for the cardio (and you)", "smile, you're dinner"],
+  hungry: ["so hungry", "where's the snacks??", "i could eat a tree", "food. now. please.", "my tummy evolved a growl", "running on fumes and spite", "is anyone gonna eat that", "i'd trade a gene for a snack"],
+  social: ["hi friend!", "hey pal!", "oh good, witnesses", "we are many, we are smol", "cousin! …probably", "squad goals, herd vibes", "you again! love that", "safety in numbers, baby", "i don't know you but i trust you"],
+  idle: ["nice day!", "wheee!", "zoomies!", "i think therefore i… snack", "big brain moment", "is this life? or just grass?", "what a world, huh", "so many flowers, so little time", "feeling fast today", "small legs, big dreams", "living the grass dream", "i'm thriving, probably", "existence: surprisingly okay", "just a guy. just vibing."],
 };
 
-// Short, lightly-funny exchanges for a pair — a general pool, plus scenario-specific ones so two critters
-// will bicker about whatever's actually happening.
+// Meta gags — the critters are dimly aware they're in a simulation being watched. The funniest bits.
+const META = [
+  "i sense a giant watching us",
+  "are we… being observed?",
+  "someone keeps speeding up time",
+  "i think the sky has a cursor",
+  "evolution is trial and error. mostly error.",
+  "i was randomly generated, and it shows",
+  "is the narrator talking about ME?",
+  "pretty sure i'm procedurally adorable",
+  "my whole personality is one gene",
+  "i peaked at generation four",
+  "natural selection, do your worst",
+  "i have a neural net. it has two thoughts.",
+  "i'd wave at the camera if i had hands",
+  "plot twist: i'm the main character",
+  "the giant fed us again. simp.",
+  "somewhere a fitness function judges me",
+];
+
+// Each species talks with its own comedy voice, so lineages feel like characters, not clones.
+const SPECIES_VOICE: Record<string, string[]> = {
+  Foxling: ["i've run the numbers. grim.", "ah, sweet meaningless existence", "i'm not smug, i'm correct", "evolution's finest, obviously", "thinking is my cardio", "statistically, i'm better than you", "i could outwit a rock. low bar."],
+  Hopkin: ["is everyone seeing this?? just me??", "i've made a huge mistake", "why is everyone so CALM", "i don't love the vibes rn", "what was THAT. what was that.", "i need an adult. i AM the adult.", "hopping helps. it doesn't. i'll hop."],
+  Slink: ["i am speed", "i licked it. it's mine now.", "no thoughts. just slink.", "i ate something. regret pending.", "rules? don't know her", "wide. i am simply wide.", "i'm gonna do a crime (graze)"],
+  Pebble: ["i am a rock. a happy rock.", "today, i simply vibe", "be the pebble you wish to see", "mmm. ground.", "i contain no thoughts. peaceful.", "slow day. good day.", "i like… the green. yes."],
+};
+
+// Short, funny back-and-forths for a pair — a general pool, plus scenario-specific ones so two critters
+// bicker about whatever's actually happening.
 const EXCHANGES: string[][] = [
-  ['race you to the food!', 'you always lose'],
-  ['is this… life?', 'deep, for a tiny brain'],
-  ['i found a snack', 'share? …rude'],
-  ['nice day, huh?', "don't jinx it"],
-  ['why do we even run?', 'i just like running'],
-  ['i think i evolved!', 'use it to dodge that'],
-  ['we are many!', 'and yet, so alone'],
-  ['watch this!', 'please do not'],
-  ['i love this meadow', 'you say that daily'],
-  ['hi! do i know you?', 'we are literally cousins'],
-  ['zoomies?', 'zoomies.'],
-  ["what's for dinner?", 'grass. always grass.'],
-  ['i had a strange dream', "critters can't dream", 'this one did'],
-  ['do i look smart?', 'you look hungry'],
-  ['after you', 'no, after YOU'],
-  ['my genes are perfect', 'your tail says otherwise'],
-  ['life is short', 'so are you'],
+  ["race you to the food!", "you always lose"],
+  ["is this… life?", "deep, for a two-neuron brain"],
+  ["i found a snack", "we are sharing", "we are NOT"],
+  ["nice day, huh?", "don't you DARE jinx it"],
+  ["why do we even run?", "i just like the wind"],
+  ["i think i evolved!", "use it to dodge THAT"],
+  ["we are many!", "and yet, so alone"],
+  ["watch this!", "please. do not."],
+  ["i love this meadow", "you say that hourly"],
+  ["hi! do i know you?", "we're literally cousins", "small world"],
+  ["zoomies?", "zoomies."],
+  ["what's for dinner?", "grass.", "again??", "always grass."],
+  ["i had a dream", "critters can't dream", "this one did. it was grass."],
+  ["do i look smart?", "you look hungry", "fair"],
+  ["after you", "no, after YOU", "we'll die here, politely"],
+  ["my genes are perfect", "your tail begs to differ"],
+  ["life is short", "so are you", "rude. correct, but rude."],
+  ["i'm gonna be apex predator", "you eat grass", "apex grazer, then"],
+  ["is the giant watching?", "always. wave.", "hi, giant!"],
+  ["betcha i reproduce first", "betcha you trip", "…deal"],
+  ["the narrator called me majestic", "the narrator lies", "let me HAVE this"],
+  ["do you ever think?", "i try not to", "wise"],
 ];
 
 // Pair exchanges tied to a scenario — picked when that scene is active so the back-and-forth is on-topic.
 const SCENE_EXCHANGES: Partial<Record<Scene, string[][]>> = {
-  volcano: [['is that LAVA?', 'walk, don\'t run', 'RUN'], ['hot out, huh?', 'understatement of the era']],
-  freeze: [['c-cold enough for ya?', 'cuddle for science?'], ['where\'d summer go?', 'evolution forgot a coat']],
-  dark: [['did you see that?', 'pretending i didn\'t'], ['the sky looks angry', 'what did we DO?']],
-  hunted: [['predator?', 'run now, ask later'], ['be cool', 'i am the opposite of cool']],
-  radiate: [['i feel funny', 'you look funny too'], ['new mutation just dropped', 'flex later, run now']],
-  sick: [['you don\'t look good', 'thanks, neither do you'], ['*cough*', 'stand downwind, please']],
-  flee: [['was that a predator?!', 'run now, ask later'], ['why are we running?', 'no idea, keep going']],
+  volcano: [["is that LAVA?", "walk, don't run", "RUN"], ["hot out, huh?", "understatement of the era"], ["the ground's on fire", "ground had a rough day"]],
+  freeze: [["c-cold enough for ya?", "cuddle for science?"], ["where'd summer go?", "evolution forgot a coat"], ["i can't feel my legs", "you have legs?"]],
+  dark: [["did you see that?", "pretending i didn't"], ["the sky looks angry", "what did we DO?"], ["is this the end?", "it's a tuesday"]],
+  hunted: [["predator?", "run now, ask later"], ["be cool", "i am the OPPOSITE of cool"], ["you smell that?", "that's fear. it's me."]],
+  radiate: [["i feel funny", "you look funny too"], ["new mutation just dropped", "flex later, run now"], ["am i glowing?", "blindingly. insufferable."]],
+  sick: [["you don't look good", "thanks, neither do you"], ["*cough*", "stand downwind, please"], ["am i immune?", "we'll find out together"]],
+  flee: [["was that a predator?!", "run now, ask later"], ["why are we running?", "no idea, keep going"], ["i'm getting tired", "tired beats eaten"]],
+  eat: [["share?", "define 'share'"], ["this grass is great", "it's the same grass"]],
 };
 
 // Quick group reactions: when a predator spooks the herd or someone finds food, a few nearby critters
 // blurt at once in a little wave.
 const REACT = {
-  predator: ['run!', 'behind you!', 'predator!', 'go go go!', 'not me, not me', 'scatter!', 'yikes!'],
-  food: ['free food!', 'where?!', 'mine!', 'share?', 'dibs!', 'ooh, snacks', 'over here!'],
+  predator: ["run!", "behind you!", "PREDATOR!", "go go go!", "not me, not me!", "scatter!", "every prey for itself!", "i liked this herd!"],
+  food: ["free food!", "where?! WHERE?!", "mine!", "share?? no.", "dibs! dibs!", "ooh, snacks", "over here, idiots!", "first!"],
 };
 
 const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)]!;
@@ -101,6 +138,7 @@ export class Chatter {
   private queue: Queued[] = []; // upcoming conversation lines, fired as their delay elapses
   private cooldown = 3;
   private busy = false;
+  private recent: string[] = []; // last few lines said, to avoid immediate repeats
   private llmOn = document.getElementById('llm-on') as HTMLInputElement | null;
   private llmUrl = document.getElementById('llm-url') as HTMLInputElement | null;
   private llmModel = document.getElementById('llm-model') as HTMLInputElement | null;
@@ -238,7 +276,24 @@ export class Chatter {
   }
 
   private canned(c: Creature, world: World): string {
-    return pick(LINES[this.sceneTag(world, c)]);
+    const scene = this.sceneTag(world, c);
+    // when nothing dramatic is happening, lean on personality + the meta gags (the funniest material)
+    if (scene === 'idle' || scene === 'social') {
+      const voice = SPECIES_VOICE[SPECIES[c.genome.species]?.name ?? ''];
+      const r = Math.random();
+      if (voice && r < 0.4) return this.fresh(voice);
+      if (r < 0.6) return this.fresh(META);
+    }
+    return this.fresh(LINES[scene]);
+  }
+
+  /** Pick a line from a pool, avoiding the handful most recently said anywhere (kills the repetition). */
+  private fresh(pool: string[]): string {
+    let line = pick(pool);
+    for (let i = 0; i < 6 && this.recent.includes(line); i++) line = pick(pool);
+    this.recent.push(line);
+    if (this.recent.length > 16) this.recent.shift();
+    return line;
   }
 
   private llmReady(): boolean { return !!this.llmOn?.checked && !!this.llmUrl?.value.trim(); }
