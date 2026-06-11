@@ -366,6 +366,16 @@ stable ~150 across generations 1→30+ without ever crashing**, food stays healt
 can watch selection actually play out — the clever **Foxling** lineage out-competing the
 rest once the world lives long enough to evolve.
 
+### v0.73.0 — A calmer camera (from feedback)
+The cinematic director (v0.68) was switching subjects too often and tracking too tightly —
+enough to feel a little dizzying. It's now much gentler: it **hangs back farther** and eases
+onto a subject slowly (so a wandering critter never whips the view around), **dwells far
+longer** on each one (~20–34s instead of ~11–19s) with longer calm orbit interludes between,
+only settles on **calm, awake grazers** (no startled sprinters or darting hunters), and the
+free-roam orbit drifts more slowly. And there's now a **🎥 Auto-cam toggle** (button by Photo
+/ Stargaze, or the **C** key): turn it off and the camera simply drifts in a slow, steady
+orbit — clicking a creature still follows it manually either way.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

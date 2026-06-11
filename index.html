@@ -24,13 +24,13 @@
       }
       /* photo mode: hide all UI for a clean cinematic frame (toggle with the button or the H key) */
       body.photo .panel, body.photo #hint { opacity: 0; pointer-events: none; }
-      #photo-btn, #gaze-btn { position: fixed; z-index: 20; bottom: 14px; font: inherit; font-size: 12px;
+      #photo-btn, #gaze-btn, #autocam-btn { position: fixed; z-index: 20; bottom: 14px; font: inherit; font-size: 12px;
         font-weight: 600; color: #e6edf3; background: rgba(13,18,28,0.6); border: 1px solid rgba(255,255,255,0.14);
         border-radius: 8px; padding: 6px 10px; cursor: pointer; backdrop-filter: blur(8px); transition: opacity 0.3s; }
-      #photo-btn { left: 14px; } #gaze-btn { left: 112px; }
-      #photo-btn:hover, #gaze-btn:hover { background: rgba(255,255,255,0.16); }
-      #gaze-btn.on { background: #2563eb; border-color: #3b82f6; }
-      body.photo #photo-btn, body.photo #gaze-btn { opacity: 0.32; }
+      #photo-btn { left: 14px; } #gaze-btn { left: 112px; } #autocam-btn { left: 210px; }
+      #photo-btn:hover, #gaze-btn:hover, #autocam-btn:hover { background: rgba(255,255,255,0.16); }
+      #gaze-btn.on, #autocam-btn.on { background: #2563eb; border-color: #3b82f6; }
+      body.photo #photo-btn, body.photo #gaze-btn, body.photo #autocam-btn { opacity: 0.32; }
       #hud-top { top: 14px; left: 14px; min-width: 240px; }
       #hud-top h1 { margin: 0 0 8px; font-size: 14px; letter-spacing: 0.4px; font-weight: 600; color: #9ad0ff; }
       .stat { display: flex; justify-content: space-between; gap: 18px; font-size: 12.5px; line-height: 1.7; }
@@ -177,6 +177,7 @@
     <div id="hint" class="">Drag to look · scroll to zoom · click a creature to follow it</div>
     <button id="photo-btn" title="Photo mode — hide the UI (H)">📷 Photo</button>
     <button id="gaze-btn" title="Stargaze — look up at the night sky (G)">🔭 Stargaze</button>
+    <button id="autocam-btn" class="on" title="Auto-camera — let the view glide between critters (C)">🎥 Auto-cam</button>
 
     <details class="panel" id="hud-controls" open>
       <summary>LEVERS — shape the world</summary>

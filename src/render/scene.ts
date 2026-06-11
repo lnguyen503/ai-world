@@ -352,6 +352,7 @@ export class Scene3D {
   private autoFollowId: number | null = null;
   private autoTimer = 0;
   private autoMode: 'follow' | 'orbit' = 'orbit';
+  private autoCam = true; // when off, the camera just drifts in a slow gentle orbit (no auto-follow)
 
   private lastDt = 0;
   private dramaTimer = 0;
@@ -384,7 +385,7 @@ export class Scene3D {
     this.controls.maxPolarAngle = Math.PI * 0.495;
     this.controls.minDistance = 3;
     this.controls.maxDistance = WORLD.half * 2.6;
-    this.controls.autoRotateSpeed = 0.35; // slow, relaxing drift when not following anyone
+    this.controls.autoRotateSpeed = 0.22; // slow, relaxing drift when not following anyone
 
     this.hemi = new THREE.HemisphereLight(0xbcd7ff, 0x20301a, 0.6);
     this.scene.add(this.hemi);
@@ -1773,8 +1774,8 @@ export class Scene3D {
     const sel = this.selectedId != null ? world.creatures.find((x) => x.id === this.selectedId) : undefined;
     if (this.selectedId != null && !sel) this.setSelected(null); // the creature we followed died
 
-    // when nobody is manually selected, let the director glide between critters
-    const auto = this.selectedId == null ? this.updateDirector(world) : undefined;
+    // when nobody is manually selected (and auto-cam is on), let the director glide between critters
+    const auto = this.selectedId == null && this.autoCam ? this.updateDirector(world) : undefined;
     const followed = sel ?? auto;
 
     // floating name tag above whoever the camera is watching (manual pick or auto subject)
@@ -1819,36 +1820,42 @@ export class Scene3D {
     if (this.autoTimer <= 0 || (this.autoMode === 'follow' && !cur)) {
       if (this.autoMode === 'follow') {
         this.autoMode = 'orbit'; this.autoFollowId = null; cur = undefined;
-        this.autoTimer = 5 + Math.random() * 5; // a brief orbit between subjects
+        this.autoTimer = 10 + Math.random() * 7; // a calm orbit between subjects
       } else {
         const next = this.pickAutoTarget(world);
-        if (next) { this.autoMode = 'follow'; this.autoFollowId = next.id; cur = next; this.autoTimer = 11 + Math.random() * 8; }
-        else { this.autoTimer = 3; } // nobody to follow yet — keep orbiting
+        if (next) { this.autoMode = 'follow'; this.autoFollowId = next.id; cur = next; this.autoTimer = 20 + Math.random() * 14; }
+        else { this.autoTimer = 4; } // nobody to follow yet — keep orbiting
       }
     }
     return this.autoMode === 'follow' ? cur : undefined;
   }
 
-  /** Pick the next critter for the director to spotlight — sometimes a hunting predator, else random. */
+  /** Pick the next critter to settle on — a calm, awake grazer (no startled sprinters or hunters). */
   private pickAutoTarget(world: World): Creature | undefined {
-    const alive = world.creatures.filter((c) => c.alive);
-    if (!alive.length) return undefined;
-    const preds = alive.filter((c) => c.isPredator);
-    const pool = preds.length && Math.random() < 0.4 ? preds : alive;
-    return pool[Math.floor(Math.random() * pool.length)];
+    const calm = world.creatures.filter((c) => c.alive && !c.asleep && c.startleTimer <= 0 && !c.isPredator);
+    const pool = calm.length ? calm : world.creatures.filter((c) => c.alive);
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)] : undefined;
   }
 
-  /** Ease the orbit target onto a creature and pull the camera in to a comfortable follow distance. */
+  /** Ease the orbit target onto a creature. On auto-cam it hangs back farther and drifts in gently
+   *  (so tracking a wandering critter never whips the view around); a manual follow stays closer. */
   private followCreature(c: Creature): void {
     const manual = this.selectedId != null;
     TMP.set(c.x, this.biome.height(c.x, c.z) + c.radius + 0.5, c.z);
-    this.controls.target.lerp(TMP, manual ? 0.12 : 0.07); // a touch smoother for the auto glide
-    const desired = 5 + c.genome.size * 3;
-    if (this.camera.position.distanceTo(this.controls.target) > desired * 1.6) {
+    this.controls.target.lerp(TMP, manual ? 0.12 : 0.035); // gentle, lagging ease on auto
+    const desired = (manual ? 5 : 9) + c.genome.size * 3; // hang back farther when auto-following
+    if (this.camera.position.distanceTo(this.controls.target) > desired * (manual ? 1.6 : 2.0)) {
       const dir = this.camera.position.clone().sub(this.controls.target).normalize();
-      this.camera.position.lerp(this.controls.target.clone().add(dir.multiplyScalar(desired)), manual ? 0.08 : 0.05);
+      this.camera.position.lerp(this.controls.target.clone().add(dir.multiplyScalar(desired)), manual ? 0.08 : 0.025);
     }
   }
+
+  /** Turn the cinematic auto-follow on/off. Off → the camera just drifts in a slow, gentle orbit. */
+  setAutoCam(on: boolean): void {
+    this.autoCam = on;
+    if (!on) { this.autoMode = 'orbit'; this.autoFollowId = null; }
+  }
+  isAutoCam(): boolean { return this.autoCam; }
 
   setSelected(id: number | null): void { this.selectedId = id; this.onSelect(id); }
   getSelected(): number | null { return this.selectedId; }

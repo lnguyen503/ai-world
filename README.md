@@ -121,6 +121,7 @@ src/
 - v0.70 ✓ — **the critters have voices**: little **stereo-panned** sounds — an **alarm squeak** when one bolts in fright, a **chirp** when one finds food, a contented **hum** while grazing (with the Nature ambience on).
 - v0.71 ✓ — **pond life & sun shafts**: **fish** circle and dart under the pond surface, and a soft **god-ray glare** fans out from the low sun at **dawn and dusk**.
 - v0.72 ✓ — **a food chain that doesn't crash**: gave prey an **innate foraging drive** and added a **carrying-capacity** brake, so the population now holds a **stable ~150 for generations** instead of booming and busting to extinction — and you can finally watch natural selection play out (the clever lineages win).
+- v0.73 ✓ — **a calmer camera**: the auto-follow now hangs back, eases gently, dwells far longer on **calm** critters, and can be switched off entirely with a **🎥 Auto-cam** button (or the **C** key) — much less motion, your choice.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel and enter a URL + model. It POSTs `{model, prompt, stream:false}` to e.g. Ollama's `http://localhost:11434/api/generate` and uses the `response`. If your server rejects browser requests (CORS), set `OLLAMA_ORIGINS=*` (or your origin) before starting it; otherwise it falls back to the built-in narration.

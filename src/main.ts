@@ -52,10 +52,21 @@ const toggleGaze = (): void => {
 };
 gazeBtn?.addEventListener('click', toggleGaze);
 
+// auto-camera — let the view gently glide between critters (button or the C key); off = slow orbit
+const autoCamBtn = document.getElementById('autocam-btn');
+const toggleAutoCam = (): void => {
+  const on = !scene.isAutoCam();
+  scene.setAutoCam(on);
+  autoCamBtn?.classList.toggle('on', on);
+  if (autoCamBtn) autoCamBtn.textContent = on ? '🎥 Auto-cam' : '🎥 Auto-cam off';
+};
+autoCamBtn?.addEventListener('click', toggleAutoCam);
+
 window.addEventListener('keydown', (e) => {
   if (e.target instanceof HTMLInputElement) return;
   if (e.key === 'h' || e.key === 'H') togglePhoto();
   if (e.key === 'g' || e.key === 'G') toggleGaze();
+  if (e.key === 'c' || e.key === 'C') toggleAutoCam();
 });
 
 controls.onNewBiome = () => {

@@ -16,6 +16,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.70: **per-creature vocalizations** — stereo-panned alarm/chirp/hum by what each critter is doing.
 - v0.71: **pond fish** (circling/darting under the surface) + **dawn/dusk god-ray sun shafts**.
 - v0.72: **food-chain balance** — innate prey foraging + carrying-capacity brake; population now holds a stable ~150 for generations instead of crashing to extinction.
+- v0.73: **calmer camera** (from feedback) — gentler/farther auto-follow, calm subjects, longer dwells, + a 🎥 Auto-cam on/off toggle (C key).
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).
