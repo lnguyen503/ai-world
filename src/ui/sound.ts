@@ -41,6 +41,9 @@ export class SoundManager {
   private nextNight = 0;
   private nextThunder = 0;
 
+  // spatial audio: a listener that rides the camera, so positioned sounds pan + fade as you move/zoom
+  private closeness = 0; // 0 = zoomed far out (a wide wash) … 1 = right down among the critters
+
   // music layers
   private musicMaster: GainNode | null = null;
   private musicNodes: AudioNode[] = [];
@@ -73,6 +76,49 @@ export class SoundManager {
       this.noise = buf;
     }
     return this.noise;
+  }
+
+  /** Drive the Web Audio listener from the camera each frame: every positioned sound then pans + fades
+   *  relative to where you're looking and how close you are. `dist` (camera→target) sets the "closeness"
+   *  that swells the nearby-critter chatter when you zoom in and thins it to a murmur when you pull back. */
+  setCamera(f: {
+    px: number; py: number; pz: number; fx: number; fy: number; fz: number;
+    ux: number; uy: number; uz: number; dist: number;
+  }): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const L = ctx.listener as AudioListener & {
+      setPosition?: (x: number, y: number, z: number) => void;
+      setOrientation?: (fx: number, fy: number, fz: number, ux: number, uy: number, uz: number) => void;
+    };
+    if (L.positionX) { // modern AudioParam interface
+      L.positionX.value = f.px; L.positionY.value = f.py; L.positionZ.value = f.pz;
+      L.forwardX.value = f.fx; L.forwardY.value = f.fy; L.forwardZ.value = f.fz;
+      L.upX.value = f.ux; L.upY.value = f.uy; L.upZ.value = f.uz;
+    } else { // deprecated fallback (older Safari)
+      L.setPosition?.(f.px, f.py, f.pz);
+      L.setOrientation?.(f.fx, f.fy, f.fz, f.ux, f.uy, f.uz);
+    }
+    // close, low zoom (dist ~20) → 1; pulled far back (dist ~115) → 0
+    this.closeness = Math.max(0, Math.min(1, (115 - f.dist) / 95));
+  }
+
+  /** How "down among the critters" the camera is (0..1) — main.ts uses it to pace the chatter density. */
+  get proximity(): number { return this.closeness; }
+
+  /** A 3D-positioned panner at a world point, with gentle distance attenuation. Short-lived emitters
+   *  (creature voices, kill thuds) connect through one of these so they sit where they happen in space. */
+  private makePanner(ctx: AudioContext, x: number, y: number, z: number): PannerNode {
+    const p = ctx.createPanner();
+    p.panningModel = 'HRTF';
+    p.distanceModel = 'inverse';
+    p.refDistance = 10;
+    p.maxDistance = 170;
+    p.rolloffFactor = 1.1;
+    const pp = p as PannerNode & { setPosition?: (x: number, y: number, z: number) => void };
+    if (p.positionX) { p.positionX.value = x; p.positionY.value = y; p.positionZ.value = z; }
+    else pp.setPosition?.(x, y, z);
+    return p;
   }
 
   setMode(mode: Mode): void {
@@ -315,16 +361,16 @@ export class SoundManager {
   }
 
   /**
-   * A short creature vocalization, panned by the speaker's world-x (-1 left … +1 right). Only sounds
-   * when the Nature layer is on (so it belongs to the soundscape). 'alarm' is a sharp rising squeak,
-   * 'chirp' a friendly call, 'hum' a soft contented graze.
+   * A short creature vocalization, emitted from the speaker's world position (x, z) through a 3D panner,
+   * so it pans + fades by where the critter is relative to your camera — fly or zoom and it shifts. Only
+   * sounds when the Nature layer is on. 'alarm' is a sharp rising squeak, 'chirp' a friendly call, 'hum'
+   * a soft contented graze.
    */
-  voice(kind: 'alarm' | 'chirp' | 'hum', pan: number): void {
+  voice(kind: 'alarm' | 'chirp' | 'hum', x: number, z: number): void {
     const ctx = this.ctx;
     if (!ctx || !this.natureOn) return;
     const t = ctx.currentTime;
-    const panner = ctx.createStereoPanner();
-    panner.pan.value = Math.max(-1, Math.min(1, pan));
+    const panner = this.makePanner(ctx, x, 1.2, z); // just above the ground, at the critter
     panner.connect(this.master!);
     const o = ctx.createOscillator();
     const g = ctx.createGain();
@@ -351,8 +397,9 @@ export class SoundManager {
     o.onended = () => panner.disconnect();
   }
 
-  /** A short musical cue tied to a dramatic moment (plays only when some ambience is on). */
-  stinger(kind: 'birth' | 'kill' | 'milestone'): void {
+  /** A short musical cue tied to a dramatic moment (plays only when some ambience is on). A kill can pass
+   *  its world (x, z) so the thud sounds from where it happened — louder and placed when you're close. */
+  stinger(kind: 'birth' | 'kill' | 'milestone', x?: number, z?: number): void {
     const ctx = this.ctx;
     if (!ctx || this.mode === 'off') return;
     const t = ctx.currentTime;
@@ -365,11 +412,15 @@ export class SoundManager {
       o.connect(g).connect(this.master!); o.start(when); o.stop(when + dur + 0.05);
     };
     if (kind === 'kill') {
+      // place the thud in space when we know where the kill was; otherwise play it flat at the master
+      const dest: AudioNode = x != null && z != null ? this.makePanner(ctx, x, 1.2, z) : this.master!;
+      if (dest !== this.master!) { dest.connect(this.master!); }
       const o = ctx.createOscillator(); o.type = 'sine';
       const g = ctx.createGain();
       o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(68, t + 0.5);
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.11, t + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
-      o.connect(g).connect(this.master!); o.start(t); o.stop(t + 0.65); // a low ominous thud
+      o.connect(g).connect(dest); o.start(t); o.stop(t + 0.65); // a low ominous thud
+      if (dest !== this.master!) o.onended = () => dest.disconnect();
     } else if (kind === 'birth') {
       [523.25, 659.25, 783.99].forEach((f, i) => tone(f, t + i * 0.09, 0.5, 0.075, 'triangle')); // bright rising chime
     } else {

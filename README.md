@@ -160,6 +160,7 @@ src/
 - v1.7 ✓ — **❄️ Ice Age**: a slow global freeze — a **white-out blizzard**, the meadow ices over (food crash), the cold saps the herd and culls the weak, then it **thaws and life rebounds**.
 - v1.8 ✓ — **🦠 Plague**: a contagion with a new **heritable resistance gene** — it spreads creature-to-creature, saps the sick (less if resistant), and survivors breed, so each outbreak **selects the herd's resistance upward**. Sick critters glow a clammy green.
 - v1.9 ✓ — **🌟 Radiations & Eras**: the recovery payoff — a **Radiation** burst (on demand, or **auto after a crash**) opens a **new era** with cranked mutation + eased breeding → explosive diversification. The world counts its **eras** — **punctuated equilibrium**: die-off → radiation → "🌟 Era N".
+- v2.0 ✓ — **🔊 Spatial audio**: a Web Audio **listener that rides your camera** — critter voices (and the kill thud) emit from each critter's **world position** through 3D panners, so the soundscape **pans and fades as you fly and zoom**, swelling into lively chatter up close and thinning to a murmur from on high. *(Turn on Nature or Nature + Music in the panel.)*
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

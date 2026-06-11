@@ -1,4 +1,4 @@
-import { SIM, WORLD, params } from './config';
+import { SIM, params } from './config';
 import { Biome } from './biome';
 import { World, type WorldSnapshot } from './sim/world';
 import { Scene3D } from './render/scene';
@@ -230,21 +230,29 @@ function frame(now: number): void {
   const novelty = world.noveltyFlash > 0 ? world.lastNovelty : null;
   narrator.update(stats, biome.name, params.weather, world.lightningFlash > 0, world.dayFactor, world.prowling > 0, hunt, novelty);
   sound.update(params.weather, world.dayFactor);
+  sound.setCamera(scene.audioFrame()); // the listener rides the camera → sounds pan + fade as you move/zoom
 
-  // give the critters a voice: sample one each tick and chirp/alarm/hum by what it's doing
+  // give the critters a voice: each tick, pick a critter near where the camera is looking and chirp/
+  // alarm/hum by what it's doing — emitted from its world position, so it sounds from where it is.
+  // The closer you zoom in, the livelier the chatter; pulled far back it thins to a sparse murmur.
   voiceCd -= realDt;
   if (simDt > 0 && voiceCd <= 0 && world.creatures.length > 0) {
-    const c = world.creatures[Math.floor(Math.random() * world.creatures.length)]!;
+    const cam = scene.cameraInfo();
+    let c = world.creatures[Math.floor(Math.random() * world.creatures.length)]!;
+    for (let i = 0; i < 5; i++) { // sample a few, keep the one nearest the camera (what you're watching)
+      const o = world.creatures[Math.floor(Math.random() * world.creatures.length)]!;
+      if ((o.x - cam.x) ** 2 + (o.z - cam.z) ** 2 < (c.x - cam.x) ** 2 + (c.z - cam.z) ** 2) c = o;
+    }
     const kind = c.startleTimer > 0 ? 'alarm'
       : c.signalTimer > 0 ? 'chirp'
       : !c.asleep && c.energy > 0.5 * c.maxEnergy && Math.random() < 0.25 ? 'hum'
       : null;
-    if (kind) { sound.voice(kind, Math.max(-1, Math.min(1, c.x / WORLD.half))); voiceCd = 0.25 + Math.random() * 0.55; }
+    if (kind) { sound.voice(kind, c.x, c.z); voiceCd = (0.22 + Math.random() * 0.5) * (1.3 - 0.8 * sound.proximity); }
     else voiceCd = 0.12;
   }
 
-  // event stingers — a low thud on a kill, a bright chime on a striking birth (real-time gated)
-  if (world.killFlash > 0.9 && now - killStingerMs > 4000) { sound.stinger('kill'); killStingerMs = now; }
+  // event stingers — a low thud on a kill (placed where it happened), a bright chime on a striking birth
+  if (world.killFlash > 0.9 && now - killStingerMs > 4000) { sound.stinger('kill', world.lastKillX, world.lastKillZ); killStingerMs = now; }
   if (world.noveltyFlash > 1.2 && now - birthStingerMs > 6000) { sound.stinger('birth'); birthStingerMs = now; }
 
   scene.render();

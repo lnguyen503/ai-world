@@ -690,6 +690,19 @@ discovery-log + milestone stinger (`World.onNewEra`). This closes the loop the a
 age/plague open. Verified: button renders (13 god-mode tools total), click fires the "🌟 Era 2" banner,
 logs it, and bumps the era counter; the radiation surge + auto-detect build clean.
 
+### v2.0.0 — Spatial audio (the soundscape rides your camera)
+Until now the soundscape reacted to *time and weather* but not to *where you were looking* — a critter
+across the map sounded as loud and as centred as one under your nose. v2.0 makes the audio **3D**. A new
+`Scene3D.audioFrame()` hands the camera's world position + orientation + zoom distance to
+`SoundManager.setCamera`, which drives the **Web Audio listener** every frame. Creature voices (and the
+kill thud) now play through **3D HRTF panner nodes positioned at the critter's actual world coordinates**
+(`makePanner`), so they **pan and attenuate by where they are relative to your camera** — fly around or
+zoom and the whole field shifts in your ears. The per-tick voice picker now **biases toward the critters
+nearest the camera** (what you're watching), and a `closeness` value derived from the zoom distance
+**paces the chatter — lively and dense when you drop in among the herd, sparse and distant when you pull
+back to a god's-eye view**. Verified: tsc + build clean; in-browser the modern listener/panner AudioParam
++ HRTF paths are supported and the graph runs with zero Web Audio errors.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

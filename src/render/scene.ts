@@ -2073,6 +2073,24 @@ export class Scene3D {
     return { x: p.x, z: p.z, yaw: Math.atan2(t.z - p.z, t.x - p.x) };
   }
 
+  /** The camera as a Web Audio listener frame: world position, normalized forward + up basis, and the
+   *  distance to what it's looking at (the zoom level). The spatial soundscape rides this each frame. */
+  audioFrame(): {
+    px: number; py: number; pz: number;
+    fx: number; fy: number; fz: number;
+    ux: number; uy: number; uz: number; dist: number;
+  } {
+    const p = this.camera.position, t = this.controls.target;
+    const fx = t.x - p.x, fy = t.y - p.y, fz = t.z - p.z;
+    const fl = Math.hypot(fx, fy, fz) || 1;
+    const e = this.camera.matrixWorld.elements; // column 1 (elements 4..6) is the camera's up axis
+    return {
+      px: p.x, py: p.y, pz: p.z,
+      fx: fx / fl, fy: fy / fl, fz: fz / fl,
+      ux: e[4]!, uy: e[5]!, uz: e[6]!, dist: fl,
+    };
+  }
+
   isStargazing(): boolean { return this.stargaze; }
 
   /** Stargaze mode: free the camera to tilt up and pan across the night sky. */
