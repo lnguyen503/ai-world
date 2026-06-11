@@ -165,6 +165,9 @@ src/
 - v2.2 ✓ — **🧭 Panel alignment pass**: the HUD panels unified to one width + edge so the left and right columns line up, the hidden "Flyers" stat row is back, and the bottom-left is an even, non-overlapping stack.
 - v2.3 ✓ — **💬 Livelier, on-topic chatter**: critters talk sooner (gen 2), more often, and about **what's actually happening** — a volcano, the freeze, a plague (sick ones say sick things), a hunt, a new era — with short, funny, scenario-specific lines (and matching pair banter).
 - v2.4 ✓ — **🌌 Night-sky polish**: **de-pixelated galaxies** (soft glowing spirals, not hard dots) and a **different deep sky every night** — a random handful of constellations scattered to new spots, galaxies/nebulae repositioned and re-tinted (some absent on a given night), and **more stars on clear nights, fewer when it clouds over**.
+- v2.5 ✓ — **💥 Cataclysm feedback**: each disaster fires an instant **screen flash** (asteroid + volcano also **shake the screen**) so it's impossible to miss.
+- v2.6 ✓ — **🎞 Frame pacing**: camera smoothing is now **frame-rate-independent** (smooth at 60/144/240Hz) and the HUD is throttled — fixes jitter, and keeps it consistent across machines.
+- v2.7 ✓ — **🔥 Cataclysm set-pieces**: the asteroid **streaks in as a fireball and bursts** (flash + ground shockwave + debris); the volcano **erupts a roaring lava fountain**. Both land **where the camera is looking**, so you see them.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

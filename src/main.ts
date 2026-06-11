@@ -67,19 +67,23 @@ function screenShake(): void {
 }
 function triggerCataclysm(id: string): void {
   if (id === 'asteroid') {
-    const p = world.asteroidImpact();
+    const vc = scene.viewCenter();
+    const p = world.asteroidImpact(vc.x, vc.z); // land where the camera is looking, so it's on-screen
+    scene.highlightPoint(p.x, p.z); // swoop the camera to the crater
+    scene.cataclysmAsteroid(p.x, p.z); // the fireball streaks in + bursts
     banner.flash('☄️ Impact!', 'a fireball slams into the world');
     discovery.add('☄️ an asteroid struck — the skies darken', world.age);
     sound.stinger('kill');
-    screenFlash('rgba(255,248,235,1)', 0.9); screenShake(); // blinding impact + a jolt
-    scene.highlightPoint(p.x, p.z); // swoop the camera to the crater
+    screenShake(); setTimeout(() => screenFlash('rgba(255,248,235,1)', 0.9), 520); // jolt now, blinding flash as it lands
   } else if (id === 'volcano') {
-    const p = world.eruptVolcano();
+    const vc = scene.viewCenter();
+    const p = world.eruptVolcano(vc.x, vc.z);
+    scene.highlightPoint(p.x, p.z); // swoop the camera to the vent
+    scene.cataclysmVolcano(p.x, p.z, 18); // the lava fountain roars for the eruption
     banner.flash('🌋 Eruption!', 'a volcano splits the earth and spews fire');
     discovery.add('🌋 a volcano erupted — ash blots the sun', world.age);
     sound.stinger('kill');
-    screenFlash('rgba(255,110,30,1)', 0.7); screenShake(); // fiery glare + a jolt
-    scene.highlightPoint(p.x, p.z); // swoop the camera to the vent
+    screenFlash('rgba(255,110,30,1)', 0.6); screenShake(); // fiery glare + a jolt
   } else if (id === 'iceage') {
     world.iceAge();
     banner.flash('❄️ Ice Age', 'a great cold descends — the world freezes over');

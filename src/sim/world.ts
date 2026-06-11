@@ -226,10 +226,14 @@ export class World implements CreatureContext {
     }
   }
 
-  /** Cataclysm — an asteroid slams down: mass death in a wide radius + a lasting impact winter. */
-  asteroidImpact(): { x: number; z: number } {
+  /** Cataclysm — an asteroid slams down: mass death in a wide radius + a lasting impact winter.
+   *  If a (nearX, nearZ) is given, it lands near there (so it happens where the camera is looking). */
+  asteroidImpact(nearX?: number, nearZ?: number): { x: number; z: number } {
     const h = this.half - 10;
-    const cx = (Math.random() * 2 - 1) * h, cz = (Math.random() * 2 - 1) * h;
+    const pick = (near: number | undefined): number => near == null
+      ? (Math.random() * 2 - 1) * h
+      : Math.max(-h, Math.min(h, near + (Math.random() - 0.5) * 24));
+    const cx = pick(nearX), cz = pick(nearZ);
     const r2 = 22 * 22;
     for (const c of this.creatures) if (c.alive && (c.x - cx) ** 2 + (c.z - cz) ** 2 <= r2) { c.energy = 0; c.alive = false; }
     this.burst(2, cx, cz); // a big impact POW
@@ -237,10 +241,14 @@ export class World implements CreatureContext {
     return { x: cx, z: cz };
   }
 
-  /** Cataclysm — a volcano erupts: an initial blast, then a sustained lava field + lingering ashfall. */
-  eruptVolcano(): { x: number; z: number } {
+  /** Cataclysm — a volcano erupts: an initial blast, then a sustained lava field + lingering ashfall.
+   *  If a (nearX, nearZ) is given, it erupts near there (so it happens where the camera is looking). */
+  eruptVolcano(nearX?: number, nearZ?: number): { x: number; z: number } {
     const h = this.half - 12;
-    const cx = (Math.random() * 2 - 1) * h, cz = (Math.random() * 2 - 1) * h;
+    const pick = (near: number | undefined): number => near == null
+      ? (Math.random() * 2 - 1) * h
+      : Math.max(-h, Math.min(h, near + (Math.random() - 0.5) * 20));
+    const cx = pick(nearX), cz = pick(nearZ);
     this.volcanoX = cx; this.volcanoZ = cz; this.volcanoT = 18; // ~18s of active eruption
     const r2 = 13 * 13; // the initial pyroclastic blast
     for (const c of this.creatures) if (c.alive && (c.x - cx) ** 2 + (c.z - cz) ** 2 <= r2) { c.energy = 0; c.alive = false; }

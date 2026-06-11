@@ -776,6 +776,19 @@ smoothly across a wide range of machines — important for open-sourcing. (Note:
 driver/compositor setting outside the app's control; this pass fixes the in-app judder.) Verified: tsc +
 build clean, no console errors, HUD still updates live and the camera follows smoothly.
 
+### v2.7.0 — Cataclysm set-pieces (real animations for asteroid + volcano)
+v2.5 made the disasters *register* (flash + shake + darkening), but they still had no actual on-screen event
+— no fireball, no eruption — so they read as weak. This adds proper 3D set-pieces in a new
+`src/render/cataclysmFx.ts` (a small effect-manager of self-disposing animation closures). The **asteroid**
+now streaks in as a **fireball with an ember trail**, accelerating down to the ground, then **bursts** — a
+flash sphere, an **expanding ground shockwave ring**, a **debris particle spray**, and a light pop. The
+**volcano** erupts a **sustained lava fountain** (≈150 gravity-driven particles, hot-orange at the top
+cooling to deep red, recycled for the whole ~18s eruption) with a **flickering red glow light** at the vent.
+Crucially, both cataclysms now take the camera's look-at point and **land near where you're looking**
+(`world.asteroidImpact(nearX, nearZ)` / `eruptVolcano(...)` + `scene.viewCenter()`), and the camera swoops
+in — so the action is on-screen instead of at a random off-map spot. Verified live: the volcano fountain and
+the asteroid fireball + shockwave ring render dramatically, zero console errors.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

@@ -8,6 +8,7 @@ import type { World } from '../sim/world';
 import type { Creature } from '../sim/creature';
 import type { Biome, SkyState } from '../biome';
 import { Cosmos } from './cosmos';
+import { CataclysmFx } from './cataclysmFx';
 
 const MAX_PULSES = 256; // max simultaneous "found food!" signal rings drawn
 const RAIN_HEIGHT = 60; // how high rain spawns above the ground
@@ -244,6 +245,7 @@ export class Scene3D {
   private skyMat: THREE.ShaderMaterial;
   private skyMesh!: THREE.Mesh;
   private cosmos = new Cosmos();
+  private cfx = new CataclysmFx(); // god-mode cataclysm set-pieces (fireball, lava fountain)
   private terrain!: THREE.Mesh;
 
   private toonGrad = toonGradient();
@@ -425,6 +427,7 @@ export class Scene3D {
     this.skyMesh = new THREE.Mesh(new THREE.SphereGeometry(WORLD.half * 3.2, 32, 16), this.skyMat);
     this.scene.add(this.skyMesh);
     this.scene.add(this.cosmos.group);
+    this.scene.add(this.cfx.group);
 
     this.buildTerrain();
     this.scene.add(this.horizonGroup);
@@ -671,6 +674,7 @@ export class Scene3D {
     const t = this.clock.getElapsedTime();
     const dt = Math.min(0.1, t - this.lastT); this.lastT = t;
     this.lastDt = dt;
+    this.cfx.update(dt); // animate any in-flight cataclysm set-pieces (fireball, lava fountain)
     // the sky is infinitely far: keep its dome centred on the viewer so there's no parallax
     // when you orbit — it reads as a real planetary sky, not a nearby curved wall.
     this.skyMesh.position.copy(this.camera.position);
@@ -2063,6 +2067,15 @@ export class Scene3D {
 
   /** Swoop the cinematic camera to a world point — used by cataclysms to show the impact. */
   highlightPoint(x: number, z: number): void { this.startHighlight(x, z); }
+
+  /** The ground point the camera is currently looking at — cataclysms aim near here so you see them. */
+  viewCenter(): { x: number; z: number } { return { x: this.controls.target.x, z: this.controls.target.z }; }
+
+  /** Play the asteroid set-piece (a falling fireball + impact burst) at a world spot. */
+  cataclysmAsteroid(x: number, z: number): void { this.cfx.asteroid(x, this.biome.height(x, z), z); }
+
+  /** Play the volcano set-piece (a sustained lava fountain) at a world spot. */
+  cataclysmVolcano(x: number, z: number, dur: number): void { this.cfx.volcano(x, this.biome.height(x, z), z, dur); }
 
   /** Turn the cinematic auto-follow on/off. Off → the camera just drifts in a slow, gentle orbit. */
   setAutoCam(on: boolean): void {
