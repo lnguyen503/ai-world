@@ -98,6 +98,8 @@
       #tts-voice { display: none; width: 100%; margin-bottom: 8px; font-size: 11px; padding: 3px;
         color: #cdd6e0; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; }
       #tts-voice.show { display: block; }
+      #tts-status { display: none; font-size: 10px; color: #8b98a8; margin: -4px 0 8px; min-height: 12px; }
+      #tts-status.show { display: block; }
       #tts-url { display: none; width: 100%; margin-bottom: 8px; font-size: 11px; padding: 4px 6px; color: #cdd6e0;
         background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; }
       #tts-url.show { display: block; }
@@ -161,6 +163,7 @@
       <div class="nhead"><span>🎙 a life documentary</span>
         <button id="tts-btn">🔇 voice off</button></div>
       <select id="tts-voice" title="Narrator voice"></select>
+      <div id="tts-status"></div>
       <input id="tts-url" placeholder="local neural TTS URL (optional)" />
       <label id="llm-row"><input type="checkbox" id="llm-on" /> 🤖 AI narration (local LLM)</label>
       <input id="llm-url" value="http://localhost:11434/api/generate" placeholder="LLM URL — e.g. http://localhost:11434/api/generate" />

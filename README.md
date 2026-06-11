@@ -126,6 +126,7 @@ src/
 - v0.75 ✓ — **better narration**: the documentary voice no longer **repeats itself** (it remembers its recent lines), no longer **floods** at fast-forward (real-time pacing), and now reflects the **biome's character** (a frozen tundra and strange cyan wilds narrate differently), not just its name.
 - v0.76 ✓ — **smoother frames**: render hygiene — high-performance GPU hint, capped render resolution, a tighter sim sub-step cap (no post-hitch spikes), and fewer per-frame allocations, to reduce judder and lighten the load on hi-DPI / weaker GPUs.
 - v0.77 ✓ — **narration model picker**: a dropdown that **auto-detects the models installed on your Ollama** (plus recommended tags and a Custom entry), defaulting to your biggest local model — pick whichever you like.
+- v0.78 ✓ — **a real narrator voice**: an in-browser **neural TTS** (Kokoro, ~82M) that runs locally on **WebGPU** — pick from British/American voices (defaults to a British male), no server. Falls back to the system voice.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama
@@ -146,5 +147,14 @@ traces for short lines. Pull one with e.g. `ollama pull qwen2.5:32b`.
 
 The same model also writes the critters' spontaneous **speech-bubble** lines once a lineage evolves
 far enough.
+
+## The narrator's voice
+Click **🔊 voice** in the documentary panel and pick a voice. The default is **Neural** — **Kokoro**,
+a small open TTS that runs **entirely in your browser** (WebGPU if available, else WASM); its weights
+(~300 MB) download once from the Hugging Face CDN and the browser caches them, so the first line waits
+on that download and the rest are instant. Choose a British or American voice (defaults to British
+male **George**). Prefer something else? The dropdown also lists your OS's **system voices**, and the
+optional **local neural-TTS URL** box still works (POST `{text}` → audio) for a Piper/XTTS server.
+Note: Kokoro emits a couple of harmless `onnxruntime` warnings to the console on load.
 
 Built with TypeScript + Three.js + Vite.

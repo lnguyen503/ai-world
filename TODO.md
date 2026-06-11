@@ -21,6 +21,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.75: **narration fixes** (from feedback) — no repeats (recent-line memory), real-time pacing (no fast-forward flood), and per-biome character woven into the lines + LLM prompt.
 - v0.76: **render hygiene** (from feedback on smoothness) — high-perf GPU hint, 1.5× pixel-ratio cap, sub-step cap 40→14, fewer per-frame allocations.
 - v0.77: **narration model picker** — auto-detects installed Ollama models (/api/tags) + recommended tags + Custom entry; defaults to your biggest local model.
+- v0.78: **in-browser neural narrator voice** — Kokoro TTS via transformers.js (WebGPU), voice picker (British/American), system-voice fallback; loaded as a lazy chunk.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).
@@ -46,7 +47,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 
 ## Audio
 - [ ] **Fuller spatial audio / reverb** (a convolver room on the music + nature bed; v0.70 added a music echo and panned creature voices, but the bed is still mono).
-- [ ] **Better narrator voice** than the default Web Speech system voice: an in-browser neural TTS (e.g. **Kokoro** via transformers.js — no server) and/or a documented **Piper / XTTS** local-server path (the app already POSTs `{text}` to a TTS URL). A voice/model picker like the v0.77 LLM one would fit here too.
+- [x] **Better narrator voice** — done in v0.78 (in-browser **Kokoro** neural TTS via transformers.js, WebGPU, with a voice picker; system-voice + remote-URL fallbacks). *Next:* optional self-hosted model/wasm for fully-offline use (currently fetches from HF + jsdelivr CDNs on first load), and streaming synthesis.
 
 ## Narration & AI
 - [ ] Let the **local LLM** name dramatic individuals and tell their ongoing story across the session.

@@ -422,6 +422,20 @@ is written to a hidden `#llm-model` field, so the narrator and the critter-chatt
 are unchanged. Verified live against a real Ollama install: it listed all the pulled models and
 defaulted to a 33B local model; the Custom path and the detect/fallback both work.
 
+### v0.78.0 — A real narrator voice (in-browser neural TTS)
+The narrator's voice was the browser's robotic Web Speech default. It now offers **Kokoro**, an open
+~82M neural TTS that runs **locally in the browser** via transformers.js — on **WebGPU** where
+available (fast on a real GPU), else WASM. The voice dropdown lists the neural voices first (British
+males George / Lewis / Daniel for the documentary feel, plus a few American voices), then the system
+voices, with **British-male George as the default**. The model weights download once from the HF CDN
+and the browser caches them; a status line shows progress. `kokoro-js` is pulled in with a dynamic
+`import()` so it's a **separate lazy chunk** (the main bundle is unchanged until you turn the neural
+voice on). New `src/ui/kokoro.ts` owns the model; `src/ui/tts.ts` became a three-engine speaker
+(neural / system / remote-server), keeping the finish-then-latest queue and a watchdog (stretched to
+cover the one-time download), and falling back to the system voice on any failure. Verified live: the
+lazy chunk loaded, the model initialised on **WebGPU** and built an inference session with no real
+errors, and the picker / default / status all behaved.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

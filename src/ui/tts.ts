@@ -1,65 +1,84 @@
+import { KokoroVoice } from './kokoro';
+
 /**
- * Local text-to-speech for the narrator, using the browser's built-in Web Speech API.
- * This runs on-device through your OS/browser voices — no cloud, no API key. A toggle button
- * enables it (the click is the user gesture browsers require), and a dropdown picks the voice.
- * It prefers a British English male voice for the David Attenborough feel.
+ * Narrator voice. Three engines, chosen by the voice dropdown:
+ *  - Neural (Kokoro, in-browser): high-quality local TTS, model downloads once. The default.
+ *  - System: the browser's built-in Web Speech voices.
+ *  - Remote: if a local neural-TTS server URL is filled in, POST {text} there and play the audio.
+ * Lines never overlap: while one is speaking, only the newest follow-up is queued (so a burst of
+ * narration finishes the current line then jumps to the latest), with a watchdog so it can't lock up.
  */
+
+// A curated set of Kokoro voices (it has ~28; these are the clearest). British males first for the
+// documentary feel. Values are the Kokoro voice ids.
+const KOKORO_VOICES: [string, string][] = [
+  ['bm_george', '🇬🇧 George — British male'],
+  ['bm_lewis', '🇬🇧 Lewis — British male'],
+  ['bm_daniel', '🇬🇧 Daniel — British male'],
+  ['bf_emma', '🇬🇧 Emma — British female'],
+  ['am_michael', '🇺🇸 Michael — American male'],
+  ['am_onyx', '🇺🇸 Onyx — American male, deep'],
+  ['af_heart', '🇺🇸 Heart — American female'],
+  ['af_bella', '🇺🇸 Bella — American female'],
+];
+const DEFAULT_VOICE = 'kokoro:bm_george';
+
 export class Speaker {
   private enabled = false;
   private supported = typeof window !== 'undefined' && 'speechSynthesis' in window;
   private btn: HTMLButtonElement | null;
   private select: HTMLSelectElement | null;
   private urlInput: HTMLInputElement | null;
-  private voices: SpeechSynthesisVoice[] = [];
-  private voice: SpeechSynthesisVoice | null = null;
+  private statusEl: HTMLElement | null;
+  private systemVoices: SpeechSynthesisVoice[] = [];
+  private kokoro = new KokoroVoice();
+  private current: HTMLAudioElement | null = null; // the neural/remote clip currently playing
   private lastLine = '';
   private speaking = false;
-  private pending: string | null = null; // the newest line to say once the current one finishes
+  private pending: string | null = null;
   private watchdog: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     this.btn = document.getElementById('tts-btn') as HTMLButtonElement | null;
     this.select = document.getElementById('tts-voice') as HTMLSelectElement | null;
     this.urlInput = document.getElementById('tts-url') as HTMLInputElement | null;
+    this.statusEl = document.getElementById('tts-status');
     if (!this.btn || !this.select) return;
     this.btn.addEventListener('click', () => this.toggle());
-    if (this.supported) {
-      this.select.addEventListener('change', () => { this.voice = this.voices[this.select!.selectedIndex] ?? null; });
-      this.loadVoices();
-      window.speechSynthesis.onvoiceschanged = () => this.loadVoices();
-    } else {
-      this.select.innerHTML = '<option>system voice unavailable</option>';
-    }
+    this.kokoro.onStatus = (m) => { if (this.statusEl) this.statusEl.textContent = m; };
+    this.buildVoiceList();
+    if (this.supported) window.speechSynthesis.onvoiceschanged = () => this.buildVoiceList();
+    // pre-warm the neural model as soon as a neural voice is selected (so the first line isn't delayed)
+    this.select.addEventListener('change', () => { if (this.usingKokoro()) void this.kokoro.load(); });
   }
 
-  /** Optional local neural-TTS server URL (e.g. a Piper/XTTS server). Empty = use the system voice. */
-  private endpoint(): string {
-    return this.urlInput?.value.trim() ?? '';
-  }
-
-  private loadVoices(): void {
+  /** Build the dropdown: neural (Kokoro) voices first, then the system voices. */
+  private buildVoiceList(): void {
     if (!this.select) return;
-    const all = window.speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('en'));
-    if (!all.length) return;
-    this.voices = all;
+    const prev = this.select.value;
     this.select.innerHTML = '';
-    all.forEach((v, i) => {
-      const o = document.createElement('option');
-      o.value = String(i);
-      o.textContent = `${v.name} (${v.lang})`;
-      this.select!.appendChild(o);
-    });
-    // score voices: prefer en-GB, then male-sounding / Attenborough-ish names
-    const score = (v: SpeechSynthesisVoice): number =>
-      (/en-gb/i.test(v.lang) ? 3 : 0)
-      + (/(male|george|ryan|daniel|arthur|uk english male|brian|guy)/i.test(v.name) ? 2 : 0)
-      + (/google uk english male/i.test(v.name) ? 4 : 0);
-    let best = 0;
-    let bestScore = -1;
-    all.forEach((v, i) => { const sc = score(v); if (sc > bestScore) { bestScore = sc; best = i; } });
-    this.voice = all[best] ?? null;
-    this.select.selectedIndex = best;
+    const group = (label: string): HTMLOptGroupElement => {
+      const og = document.createElement('optgroup'); og.label = label; this.select!.appendChild(og); return og;
+    };
+    const neural = group('Neural — in-browser, downloads once');
+    for (const [id, label] of KOKORO_VOICES) {
+      const o = document.createElement('option'); o.value = `kokoro:${id}`; o.textContent = label; neural.appendChild(o);
+    }
+    this.systemVoices = this.supported
+      ? window.speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('en'))
+      : [];
+    if (this.systemVoices.length) {
+      const sys = group('System voices');
+      this.systemVoices.forEach((v, i) => {
+        const o = document.createElement('option'); o.value = `sys:${i}`; o.textContent = `${v.name} (${v.lang})`; sys.appendChild(o);
+      });
+    }
+    const want = prev || DEFAULT_VOICE;
+    this.select.value = [...this.select.options].some((o) => o.value === want) ? want : DEFAULT_VOICE;
   }
+
+  private endpoint(): string { return this.urlInput?.value.trim() ?? ''; }
+  private usingKokoro(): boolean { return !this.endpoint() && (this.select?.value ?? '').startsWith('kokoro:'); }
 
   private toggle(): void {
     if (!this.btn || !this.select) return;
@@ -68,8 +87,13 @@ export class Speaker {
     this.btn.textContent = this.enabled ? '🔊 voice on' : '🔇 voice off';
     this.select.classList.toggle('show', this.enabled);
     this.urlInput?.classList.toggle('show', this.enabled);
-    if (this.enabled) this.utter(this.lastLine || 'Here, life unfolds — one small moment at a time.');
-    else this.stop();
+    this.statusEl?.classList.toggle('show', this.enabled);
+    if (this.enabled) {
+      if (this.usingKokoro()) void this.kokoro.load();
+      this.utter(this.lastLine || 'Here, life unfolds — one small moment at a time.');
+    } else {
+      this.stop();
+    }
   }
 
   /** Called by the narrator on every new line. Speaks it if TTS is enabled. */
@@ -78,21 +102,22 @@ export class Speaker {
     if (this.enabled) this.utter(text);
   }
 
-  /**
-   * Speak a line. If one is already in progress, remember only the most recent follow-up: a fast
-   * burst of narration (a hunt, a flurry of events) then finishes the current sentence and jumps to
-   * the latest line, instead of cancelling itself mid-word every time a new line arrives.
-   */
+  /** Speak a line, or queue the newest one if we're mid-line (so bursts never cut themselves off). */
   private utter(text: string): void {
     if (!text) return;
     if (this.speaking) { this.pending = text; return; }
     this.speaking = true;
-    const url = this.endpoint();
-    if (url) this.speakRemote(url, text);
-    else this.speakLocal(text);
-    // safety net: if the engine never reports completion, recover so narration can't lock up silent
+    let watchdogMs = Math.min(15000, 1500 + text.length * 70);
+    if (this.endpoint()) {
+      this.speakRemote(this.endpoint(), text);
+    } else if (this.usingKokoro()) {
+      watchdogMs = this.kokoro.ready ? 9000 : 45000; // allow for the one-time model download
+      this.speakKokoro(text, (this.select!.value).slice('kokoro:'.length));
+    } else {
+      this.speakLocal(text);
+    }
     if (this.watchdog) clearTimeout(this.watchdog);
-    this.watchdog = setTimeout(() => this.finished(), Math.min(15000, 1500 + text.length * 70));
+    this.watchdog = setTimeout(() => this.finished(), watchdogMs);
   }
 
   /** One line finished (or errored / timed out) — speak the latest queued line, if any. */
@@ -109,13 +134,22 @@ export class Speaker {
     this.pending = null;
     this.speaking = false;
     if (this.watchdog) { clearTimeout(this.watchdog); this.watchdog = null; }
+    if (this.current) { try { this.current.pause(); } catch { /* ignore */ } this.current = null; }
     if (this.supported) window.speechSynthesis.cancel();
+  }
+
+  /** Neural (Kokoro) synthesis → play the WAV blob. Falls back to the system voice on any failure. */
+  private speakKokoro(text: string, voice: string): void {
+    this.kokoro.synthBlob(text, voice)
+      .then((blob) => this.play(new Audio(URL.createObjectURL(blob))))
+      .catch(() => this.speakLocal(text));
   }
 
   private speakLocal(text: string): void {
     if (!this.supported) { this.finished(); return; }
     const u = new SpeechSynthesisUtterance(text);
-    if (this.voice) u.voice = this.voice;
+    const v = this.selectedSystemVoice();
+    if (v) u.voice = v;
     u.rate = 0.86; // slow, measured
     u.pitch = 0.92; // a touch lower
     u.onend = () => this.finished();
@@ -123,17 +157,28 @@ export class Speaker {
     window.speechSynthesis.speak(u); // no cancel(): let the current line complete first
   }
 
-  /** POST {text} to a local neural-TTS server (Piper/XTTS/etc.) and play the audio it returns;
-   *  if anything fails, fall back to the system voice so the narration is never silent. */
+  /** The selected system voice, or a sensible British-male fallback (e.g. when a neural voice failed). */
+  private selectedSystemVoice(): SpeechSynthesisVoice | null {
+    const val = this.select?.value ?? '';
+    if (val.startsWith('sys:')) return this.systemVoices[Number(val.slice(4))] ?? null;
+    return this.systemVoices.find((v) => /en-gb/i.test(v.lang) && /male|george|daniel|arthur|ryan/i.test(v.name))
+      ?? this.systemVoices.find((v) => /en-gb/i.test(v.lang))
+      ?? this.systemVoices[0] ?? null;
+  }
+
+  /** POST {text} to a local neural-TTS server (Piper/XTTS/etc.) and play the audio it returns. */
   private speakRemote(url: string, text: string): void {
     fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) })
       .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(`tts ${r.status}`))))
-      .then((blob) => {
-        const a = new Audio(URL.createObjectURL(blob));
-        a.onended = () => this.finished();
-        a.onerror = () => this.finished();
-        void a.play().catch(() => this.speakLocal(text)); // playback blocked → fall back to system voice
-      })
+      .then((blob) => this.play(new Audio(URL.createObjectURL(blob))))
       .catch(() => this.speakLocal(text));
+  }
+
+  /** Play a synthesized clip, wiring completion back into the queue. */
+  private play(a: HTMLAudioElement): void {
+    this.current = a;
+    a.onended = () => this.finished();
+    a.onerror = () => this.finished();
+    void a.play().catch(() => this.finished());
   }
 }
