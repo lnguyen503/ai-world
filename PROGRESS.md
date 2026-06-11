@@ -436,6 +436,18 @@ cover the one-time download), and falling back to the system voice on any failur
 lazy chunk loaded, the model initialised on **WebGPU** and built an inference session with no real
 errors, and the picker / default / status all behaved.
 
+### v0.79.0 — Critters talk to each other
+The talking critters (v0.64) only ever blurted lone one-liners. Now, once a lineage has evolved
+far enough, two evolved critters who are **near each other strike up a short conversation** — a bubble
+pops over the first, then a beat later the reply pops over the second (a real back-and-forth), with a
+little humor ("hi! do i know you?" → "we are literally cousins"; "i feel fast today" → "famous last
+words"). A lone critter still just muses to itself. `src/ui/chatter.ts` now finds the nearest eligible
+partner within range and queues an alternating exchange (2–3 lines, spaced ~1.5s); when AI narration
+is on the LLM writes a short witty two-line exchange between the two named critters (parsed from
+"Name: line" form, with the canned exchanges as fallback). Kept deliberately brief and well
+cooldowned so it stays charming. Verified live (gen 37): a "we are literally cousins" reply popped
+over a critter mid-conversation, no console errors.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

@@ -127,6 +127,7 @@ src/
 - v0.76 ✓ — **smoother frames**: render hygiene — high-performance GPU hint, capped render resolution, a tighter sim sub-step cap (no post-hitch spikes), and fewer per-frame allocations, to reduce judder and lighten the load on hi-DPI / weaker GPUs.
 - v0.77 ✓ — **narration model picker**: a dropdown that **auto-detects the models installed on your Ollama** (plus recommended tags and a Custom entry), defaulting to your biggest local model — pick whichever you like.
 - v0.78 ✓ — **a real narrator voice**: an in-browser **neural TTS** (Kokoro, ~82M) that runs locally on **WebGPU** — pick from British/American voices (defaults to a British male), no server. Falls back to the system voice.
+- v0.79 ✓ — **critters talk to each other**: once evolved, two nearby critters strike up a short, slightly-funny **back-and-forth** ("hi! do i know you?" → "we are literally cousins") instead of only blurting solo lines — written by the local LLM when AI narration is on, canned otherwise.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama
