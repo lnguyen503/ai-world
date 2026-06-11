@@ -88,7 +88,7 @@ function applyGodTool(x: number, z: number, tool: string): void {
   else if (tool === 'drought') world.addZone(x, z, true);
   else if (tool === 'raise' || tool === 'dig') {
     biome.addEdit(x, z, tool === 'raise' ? 7 : -7); // sculpt a hill or a basin
-    scene.buildTerrain(); scene.buildTrees(); world.placePonds(); scene.setPonds(world.ponds);
+    scene.buildTerrain(); scene.buildTrees(); world.placePonds(); scene.setPonds(world.ponds); sound.setEnvironment(world.ponds);
   }
 }
 const chatter = new Chatter(); // critters start talking once evolved enough
@@ -98,7 +98,7 @@ const biomeEl = document.getElementById('s-biome');
 const showBiome = (): void => { if (biomeEl) biomeEl.textContent = biome.name; };
 showBiome();
 scene.setTrees(world.trees);
-scene.setPonds(world.ponds);
+scene.setPonds(world.ponds); sound.setEnvironment(world.ponds);
 
 hud.onSpeedChange = (s) => { params.timeSpeed = s; };
 hud.onDeselect = () => scene.setSelected(null);
@@ -148,14 +148,14 @@ controls.onNewBiome = () => {
   scene.buildTerrain();
   scene.buildTrees();
   world.placePonds(); // re-settle ponds into the new terrain's basins
-  scene.setPonds(world.ponds);
+  scene.setPonds(world.ponds); sound.setEnvironment(world.ponds);
   showBiome();
 };
 controls.onReset = () => {
   world = new World(biome);
   scene.setSelected(null);
   scene.setTrees(world.trees);
-  scene.setPonds(world.ponds);
+  scene.setPonds(world.ponds); sound.setEnvironment(world.ponds);
 };
 controls.onSave = () => {
   const text = world.serialize();
@@ -174,7 +174,7 @@ controls.onLoadFile = (text) => {
     world.placePonds(); // ponds aren't saved — re-settle them into the loaded biome
     scene.buildTerrain();
     scene.setTrees(world.trees);
-    scene.setPonds(world.ponds);
+    scene.setPonds(world.ponds); sound.setEnvironment(world.ponds);
     scene.setSelected(null);
     showBiome();
   } catch {
@@ -209,7 +209,7 @@ function frame(now: number): void {
     const steps = Math.min(SIM.maxSubStepsPerFrame, Math.max(1, Math.ceil(simDt / SIM.maxStep)));
     const stepDt = simDt / steps;
     for (let i = 0; i < steps; i++) world.step(stepDt);
-    if (world.creatures.length === 0) { world = new World(biome); scene.setSelected(null); scene.setTrees(world.trees); scene.setPonds(world.ponds); }
+    if (world.creatures.length === 0) { world = new World(biome); scene.setSelected(null); scene.setTrees(world.trees); scene.setPonds(world.ponds); sound.setEnvironment(world.ponds); }
   }
 
   world.computeLinks();

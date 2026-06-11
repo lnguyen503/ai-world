@@ -703,6 +703,15 @@ nearest the camera** (what you're watching), and a `closeness` value derived fro
 back to a god's-eye view**. Verified: tsc + build clean; in-browser the modern listener/panner AudioParam
 + HRTF paths are supported and the graph runs with zero Web Audio errors.
 
+### v2.1.0 — Positional surroundings (water you can hear move past)
+v2.0 placed the *critters* in space; v2.1 places the *surroundings*. Each **pond** now carries a soft,
+**looping water bed** (filtered noise shaped into a watery lap) parked at its world location through a 3D
+panner, with `refDistance` scaled to the pond's size so bigger pools carry a little farther. Fly past and
+the water sits on the correct side and **fades with distance**; the beds only sound while Nature is on and
+are **rebuilt when ponds move** (e.g. after terraforming) via a new `SoundManager.setEnvironment(ponds)`
+that `main.ts` calls wherever it sets the ponds. Verified: tsc + build clean; in-browser nature audio
+enables with the pond beds and zero Web Audio errors.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

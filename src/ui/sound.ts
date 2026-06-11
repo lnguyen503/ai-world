@@ -43,6 +43,9 @@ export class SoundManager {
 
   // spatial audio: a listener that rides the camera, so positioned sounds pan + fade as you move/zoom
   private closeness = 0; // 0 = zoomed far out (a wide wash) … 1 = right down among the critters
+  // positional surroundings: a looping water bed parked at each pond (3D-panned, so it sits in the world)
+  private ponds: { x: number; z: number; r: number }[] = [];
+  private pondNodes: { src: AudioBufferSourceNode; panner: PannerNode; gain: GainNode }[] = [];
 
   // music layers
   private musicMaster: GainNode | null = null;
@@ -121,6 +124,39 @@ export class SoundManager {
     return p;
   }
 
+  /** Tell the soundscape where the ponds are. Each gets a soft looping water bed parked in 3D, so you
+   *  hear water on the correct side as you fly past and it fades with distance. Re-call when ponds move
+   *  (e.g. after terraforming). The beds only sound while the Nature layer is on. */
+  setEnvironment(ponds: { x: number; z: number; r: number }[]): void {
+    this.ponds = ponds.map((p) => ({ x: p.x, z: p.z, r: p.r }));
+    if (this.natureOn && this.ctx) this.buildPondBeds(this.ctx);
+  }
+
+  /** (Re)build the per-pond water emitters: looping noise → a low/band shape → a 3D panner at the pond. */
+  private buildPondBeds(ctx: AudioContext): void {
+    this.clearPondBeds();
+    const buf = this.noiseBuf(ctx);
+    for (const pond of this.ponds) {
+      const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 720 + Math.random() * 180;
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 220; // thin it to a watery lap
+      const gain = ctx.createGain(); gain.gain.value = 0.05; // soft — the panner gives it presence up close
+      const panner = this.makePanner(ctx, pond.x, 0.5, pond.z);
+      panner.refDistance = Math.max(8, pond.r); // bigger ponds carry a little farther
+      src.connect(hp).connect(lp).connect(gain).connect(panner).connect(this.master!);
+      src.start();
+      this.pondNodes.push({ src, panner, gain });
+    }
+  }
+
+  private clearPondBeds(): void {
+    for (const n of this.pondNodes) {
+      try { n.src.stop(); } catch { /* already stopped */ }
+      n.src.disconnect(); n.gain.disconnect(); n.panner.disconnect();
+    }
+    this.pondNodes = [];
+  }
+
   setMode(mode: Mode): void {
     if (mode === this.mode) return;
     this.stopAmbience();
@@ -141,6 +177,7 @@ export class SoundManager {
     this.windGain?.disconnect(); this.windGain = null;
     this.rainGain?.disconnect(); this.rainGain = null;
     this.rainLp?.disconnect(); this.rainLp = null;
+    this.clearPondBeds(); // stop the per-pond water emitters
     for (const n of this.musicNodes) n.disconnect();
     this.musicNodes = [];
     this.musicMaster?.disconnect(); this.musicMaster = null; // cuts any ringing note tails
@@ -164,6 +201,7 @@ export class SoundManager {
     rsrc.connect(rlp).connect(rg).connect(this.master!);
     rsrc.start();
     this.rainSrc = rsrc; this.rainGain = rg; this.rainLp = rlp;
+    this.buildPondBeds(ctx); // park a soft water bed at each known pond
     const t = ctx.currentTime;
     this.nextBird = t + 1.5; this.nextCricket = t + 1; this.nextNight = t + 4; this.nextThunder = t + 3;
   }

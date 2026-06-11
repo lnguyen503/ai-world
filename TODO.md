@@ -54,6 +54,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v1.8: **🦠 Plague cataclysm** — a contagion with a new **heritable resistance gene**: a few patient-zeros infect neighbours, sickness saps energy (less if resistant), survivors gain immunity and breed — so each outbreak **selects the population's resistance upward**. Sick critters glow a clammy green.
 - v1.9: **🌟 Radiations & Eras** — the recovery payoff: a **🌟 Radiation** tool (and an automatic trigger when the population rebounds from a crash) opens a **new era** with an adaptive-radiation surge — cranked mutation + eased breeding → explosive diversification. The world tracks an **era counter** (punctuated equilibrium): die-off → radiation → new era, announced with a banner.
 - v2.0: **🔊 Spatial audio** — a Web Audio **listener that rides the camera**, so the soundscape pans and fades as you fly and zoom. Critter voices (and the kill thud) now emit from each critter's **world position** through 3D HRTF panners; the chatter biases toward whatever you're looking at and **swells when you zoom in, thins to a murmur when you pull back**.
+- v2.1: **💧 Positional surroundings** — each **pond** now carries a soft **looping water bed parked in 3D** at its location, so as you fly past you hear water on the correct side and it fades with distance. Rebuilds when ponds move (terraforming).
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).
