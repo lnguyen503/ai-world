@@ -615,6 +615,12 @@ the weather-lightning flash + beam visual), **killing everything in a ~9-unit ra
 stinger. Cull a runaway predator pack, clear a crowded patch, or just play angry god. Verified: tool
 appears in the toolbar; built on the proven ground-click + lightning-render paths.
 
+### v1.2.0 — Spawn tools
+Two tools to seed life directly: **🌿 Hatch** drops a fresh prey critter where you click, and **🐺
+Predator** drops a carnivore (`World.spawnAt` makes a random genome with the predator gene set
+high/low and spawns it well-fed). Introduce an apex predator and watch the arms race ignite, or repopulate
+after a cataclysm. Verified: both tools in the toolbar; reuses the proven spawn + ground-click paths.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

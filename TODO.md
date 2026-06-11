@@ -45,6 +45,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.99: **blood moon** — rare red-moon night (moon-shader tint) with a banner + discovery-log entry.
 - v1.0: **God Mode foundation** — top toolbar + ground-click raycast; 🌾 Feed tool rains food where you click.
 - v1.1: **⚡ Smite tool** — click to strike lightning that kills in a radius (reuses the lightning visual).
+- v1.2: **Spawn tools** — 🌿 Hatch (prey) / 🐺 Predator drop fresh creatures where you click.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).

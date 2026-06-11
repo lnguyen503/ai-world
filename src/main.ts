@@ -48,6 +48,8 @@ scene.onGround = (x, z, tool) => applyGodTool(x, z, tool);
 function applyGodTool(x: number, z: number, tool: string): void {
   if (tool === 'feed') world.addFoodAt(x, z, 14);
   else if (tool === 'smite') { world.smite(x, z); sound.stinger('kill'); }
+  else if (tool === 'hatch') world.spawnAt(x, z, false);
+  else if (tool === 'predator') world.spawnAt(x, z, true);
 }
 const chatter = new Chatter(); // critters start talking once evolved enough
 narrator.onLine = (text) => speaker.speak(text);

@@ -204,6 +204,13 @@ export class World implements CreatureContext {
     }
   }
 
+  /** Drop a fresh creature at a spot (god-mode Spawn tools), as a predator or as prey. */
+  spawnAt(x: number, z: number, asPredator: boolean): void {
+    const g = randomGenome();
+    g.predator = asPredator ? 0.8 : 0.2;
+    this.spawnChild(g, x, z, this.generation, LIFE.startEnergy * 1.2);
+  }
+
   /** Strike lightning at a spot (the god-mode Smite tool): a bolt + flash that kills in a radius. */
   smite(x: number, z: number): void {
     this.lightningX = x; this.lightningZ = z; this.lightningFlash = 0.4;
