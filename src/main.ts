@@ -11,6 +11,7 @@ import { Tips } from './ui/tips';
 import { Chatter } from './ui/chatter';
 import { ModelPicker } from './ui/llm-models';
 import { EventBanner } from './ui/banner';
+import { HallOfFame } from './ui/hof';
 
 const container = document.getElementById('app');
 if (!container) throw new Error('missing #app');
@@ -26,6 +27,7 @@ const sound = new SoundManager();
 new Tips(); // gentle "did you know" nudges
 new ModelPicker(); // narration model dropdown (auto-detects installed Ollama models)
 const banner = new EventBanner(); // cinematic title cards for milestone moments
+const hof = new HallOfFame(); // the world's standout individuals
 const chatter = new Chatter(); // critters start talking once evolved enough
 narrator.onLine = (text) => speaker.speak(text);
 
@@ -149,6 +151,7 @@ function frame(now: number): void {
   const stats = world.stats();
   hud.updateStats(stats);
   banner.update(stats); // milestone title cards
+  hof.update(world); // current standout individuals
   const sel = scene.getSelected();
   hud.showSelected(sel != null ? (world.creatures.find((c) => c.id === sel) ?? null) : null);
   const hunt = world.killFlash > 0 ? 'kill' : world.prowling > 0 ? 'chase' : 'none';

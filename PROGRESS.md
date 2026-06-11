@@ -463,6 +463,13 @@ and hidden in photo mode. (The HUD graph panel was trimmed and the narration pan
 room for the new trait graph without overlap.) Verified live: caught "🕊 The Age of Flight" and
 "Generation 25" firing as the world ran.
 
+### v0.82.0 — Hall of Fame
+A tiny bottom-left panel (`src/ui/hof.ts`) tracks the world's current standout individuals so a long
+watch has named characters to root for: the **eldest** soul (name + age), the **most prolific** parent
+(critters now count their offspring), and the **biggest** creature alive. Updated a couple of times a
+second, it changes hands as records are beaten and elders pass. Verified live: showed "Dralaa · 113s"
+eldest, "Zinaix · 6" most young, "Sudonwyn · 2.20×" biggest.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

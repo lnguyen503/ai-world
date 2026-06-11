@@ -25,6 +25,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.79: **critters talk to each other** (from feedback) — nearby evolved critters have a short, lightly-funny back-and-forth (canned or LLM-written); lone ones still muse solo.
 - v0.80: **trait-over-time graph** — avg size/speed/sense normalised + plotted under the species race.
 - v0.81: **milestone banners** — cinematic title cards (first flight, first predator, generation/dominance/peak milestones).
+- v0.82: **Hall of Fame** — eldest / most-prolific / biggest living critters (offspring counter added).
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).

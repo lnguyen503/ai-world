@@ -49,6 +49,7 @@ export class Creature {
   energy: number;
   age = 0;
   generation: number;
+  offspring = 0; // how many young this critter has produced (for the Hall of Fame)
   alive = true;
   senseIn: number[] = [0, 0, 0, 0, 1]; // last brain inputs (for the follow panel)
   act: [number, number] = [0, 0]; // last brain outputs [turn, throttle]
@@ -305,6 +306,7 @@ export class Creature {
         : mutate(g);
       const novelty = noveltyKind(childGenome, g); // did a bold mutation just appear?
       ctx.spawnChild(childGenome, this.x + Math.cos(a) * (this.radius + 0.6), this.z + Math.sin(a) * (this.radius + 0.6), this.generation + 1, childEnergy, novelty);
+      this.offspring++;
     }
 
     // --- age & death ---

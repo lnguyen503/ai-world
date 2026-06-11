@@ -61,6 +61,9 @@
       #event-banner .eb-sub { font-family: Georgia, serif; font-style: italic; font-size: 15px; color: #dbe5f0;
         margin-top: 7px; text-shadow: 0 2px 12px rgba(0,0,0,0.85); }
       body.photo #event-banner { display: none; }
+      #hof { left: 14px; bottom: 52px; width: 196px; }
+      #hof h2 { margin: 0 0 6px; font-size: 12px; color: #8b98a8; font-weight: 600; }
+      body.photo #hof { opacity: 0; pointer-events: none; }
 
       #hud-selected { bottom: 14px; right: 14px; width: 250px; display: none; }
       #hud-selected.show { display: block; }
@@ -197,6 +200,12 @@
     <button id="photo-btn" title="Photo mode — hide the UI (H)">📷 Photo</button>
     <button id="gaze-btn" title="Stargaze — look up at the night sky (G)">🔭 Stargaze</button>
     <button id="autocam-btn" class="on" title="Auto-camera — let the view glide between critters (C)">🎥 Auto-cam</button>
+    <div class="panel" id="hof">
+      <h2>🏆 Hall of Fame</h2>
+      <div class="stat"><span>👑 Eldest</span><span id="hof-eldest">—</span></div>
+      <div class="stat"><span>🏅 Most young</span><span id="hof-kids">—</span></div>
+      <div class="stat"><span>🐘 Biggest</span><span id="hof-big">—</span></div>
+    </div>
 
     <details class="panel" id="hud-controls" open>
       <summary>LEVERS — shape the world</summary>
