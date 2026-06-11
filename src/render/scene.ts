@@ -395,7 +395,8 @@ export class Scene3D {
 
   constructor(container: HTMLElement, biome: Biome) {
     this.biome = biome;
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    // preserveDrawingBuffer lets the canvas be read back for screenshots (negligible cost on desktop GPUs)
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
     // cap the render resolution: on hi-DPI screens, 2× pixel ratio quadruples the pixels (esp. costly
     // through the bloom passes) and is a common cause of frame-time variance / tearing — 1.5 is plenty
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));

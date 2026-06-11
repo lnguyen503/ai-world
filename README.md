@@ -9,9 +9,11 @@ creature to follow it close-up, speed up or slow down time to watch generations 
 neural-net brains, the visuals, the sound) is computed locally and works fully offline. An optional
 local LLM + neural voice can narrate it (see below), but they're not required.
 
-<!-- Hero image: in-app, hit the 📷 Photo button for a clean frame, screenshot it to docs/hero.png,
-     then uncomment the next line. -->
-<!-- ![AI World — a living, evolving 3D zoo](docs/hero.png) -->
+![AI World — a sunlit meadow full of evolving creatures](docs/hero.jpg)
+
+<sub>☀️ A meadow at midday — and the same world after dark, where bioluminescent lineages glow under the stars and deep-space sky:</sub>
+
+![AI World at night — glowing critters under a nebula](docs/night.jpg)
 
 Inspired by artificial-life simulations like **The Bibites**, MinuteLabs' evolution simulator, and
 Framsticks.

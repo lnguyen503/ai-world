@@ -1,7 +1,10 @@
 # docs
 
-Drop a hero screenshot here as `hero.png` to show it at the top of the main README.
+Screenshots shown in the main [README](../README.md):
 
-To capture a clean one: run the app, hit the **📷 Photo** button (hides the UI), frame a nice
-moment, take an OS screenshot, and save it as `docs/hero.png`. Then uncomment the image line near
-the top of `../README.md`.
+- `hero.jpg` — a sunlit meadow at midday.
+- `night.jpg` — the same world after dark, with bioluminescent critters under the deep-space sky.
+
+To refresh them: run the app, frame a nice moment (the 📷 Photo button hides the UI), and replace these
+files. The in-canvas renderer keeps its drawing buffer, so a quick `canvas.toDataURL('image/png')` in the
+console exports the current frame.
