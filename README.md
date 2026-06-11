@@ -168,6 +168,7 @@ src/
 - v2.5 ✓ — **💥 Cataclysm feedback**: each disaster fires an instant **screen flash** (asteroid + volcano also **shake the screen**) so it's impossible to miss.
 - v2.6 ✓ — **🎞 Frame pacing**: camera smoothing is now **frame-rate-independent** (smooth at 60/144/240Hz) and the HUD is throttled — fixes jitter, and keeps it consistent across machines.
 - v2.7 ✓ — **🔥 Cataclysm set-pieces**: the asteroid **streaks in as a fireball and bursts** (flash + ground shockwave + debris); the volcano **erupts a roaring lava fountain**. Both land **where the camera is looking**, so you see them.
+- v2.8 ✓ — **🪶 Pre-ship polish**: removed the aurora for a cleaner night sky, and refined the terrain — **rock on steep faces**, gentle valley shading, and a per-vertex grain so the ground looks natural instead of a flat gradient.
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama

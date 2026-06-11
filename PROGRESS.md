@@ -789,6 +789,17 @@ Crucially, both cataclysms now take the camera's look-at point and **land near w
 in — so the action is on-screen instead of at a random off-map spot. Verified live: the volcano fountain and
 the asteroid fireball + shockwave ring render dramatically, zero console errors.
 
+### v2.8.0 — Pre-ship visual polish (cleaner night sky + richer terrain)
+Two polish passes ahead of open-sourcing. **Night sky**: the **aurora borealis was removed** — its drifting
+green/violet curtains were a distraction from an otherwise clean starfield, so the aurora mesh, shader and
+its `setCalm`/`setAuroraStrength` plumbing are gone (the nightfall hook still rolls fresh constellations +
+galaxies and the rare blood moon). **Terrain**: the displaced ground plane was vertex-coloured purely by
+elevation (three flat stops) with smooth normals, so cliffs looked like grass and the colour banded. It now
+runs at a bit more resolution (110→144 seg) and a second colour pass adds **slope-aware rock** (the biome's
+rock colour bleeds onto steep faces), faint **valley shading** (low ground sits slightly in shadow), and a
+subtle **per-vertex grain** that breaks up the flat gradient — the ground reads as natural rather than a
+smooth ramp. Verified in-browser across biomes: cleaner nights, more natural terrain, zero console errors.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

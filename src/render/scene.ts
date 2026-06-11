@@ -334,7 +334,7 @@ export class Scene3D {
   private moon!: THREE.Mesh;
   private moonMat!: THREE.ShaderMaterial;
   private lastAge = 0;
-  private prevNightForAurora = false;
+  private prevNightForNewSky = false;
   private gloom = 0; // cataclysm darkening, read from world each frame
   private volcano = 0; // 0..1 eruption glow: reddens the sky + casts a lava light
   private cold = 0; // 0..1 ice-age whiteout: pales the sky + forces snow
@@ -490,21 +490,40 @@ export class Scene3D {
   buildTerrain(): void {
     if (this.terrain) { this.scene.remove(this.terrain); this.terrain.geometry.dispose(); }
     const size = WORLD.half * 2;
-    const seg = 110;
+    const seg = 144; // a touch more resolution for a smoother silhouette
     const geo = new THREE.PlaneGeometry(size, size, seg, seg);
     const pos = geo.attributes.position as THREE.BufferAttribute;
     const colors = new Float32Array(pos.count * 3);
+    const amp = this.biome.amplitude;
+    // pass 1 — displace by height + base colour by elevation
     for (let i = 0; i < pos.count; i++) {
       const wx = pos.getX(i), wz = -pos.getY(i);
       const h = this.biome.height(wx, wz);
       pos.setZ(i, h);
-      const h01 = Math.max(0, Math.min(1, (h + this.biome.amplitude * 0.5) / (this.biome.amplitude)));
+      const h01 = Math.max(0, Math.min(1, (h + amp * 0.5) / amp));
       const [r, g, b] = this.biome.groundColorRgb(h01);
       colors[i * 3] = r / 255; colors[i * 3 + 1] = g / 255; colors[i * 3 + 2] = b / 255;
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     geo.computeVertexNormals();
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
+    // pass 2 — polish: rock bleeds onto steep faces, valleys sit a touch in shadow, and a faint per-vertex
+    // grain breaks up the flat colour banding so the ground reads as natural, not a smooth gradient
+    const norm = geo.attributes.normal as THREE.BufferAttribute;
+    const [rr, rg, rb] = this.biome.groundColorRgb(1); // the biome's rock colour
+    for (let i = 0; i < pos.count; i++) {
+      const slope = Math.max(0, 1 - norm.getZ(i)); // 0 flat … ~1 vertical
+      const k = Math.min(0.7, slope * 1.6); // steep ground turns rocky
+      let r = colors[i * 3]! + (rr / 255 - colors[i * 3]!) * k;
+      let g = colors[i * 3 + 1]! + (rg / 255 - colors[i * 3 + 1]!) * k;
+      let b = colors[i * 3 + 2]! + (rb / 255 - colors[i * 3 + 2]!) * k;
+      const h01 = Math.max(0, Math.min(1, (pos.getZ(i) + amp * 0.5) / amp));
+      const shade = 0.86 + h01 * 0.14; // low ground slightly shadowed (fake valley AO)
+      const f = Math.sin(i * 12.9898) * 43758.5453; const grain = 0.95 + (f - Math.floor(f)) * 0.1;
+      const s = shade * grain;
+      colors[i * 3] = Math.min(1, r * s); colors[i * 3 + 1] = Math.min(1, g * s); colors[i * 3 + 2] = Math.min(1, b * s);
+    }
+    (geo.attributes.color as THREE.BufferAttribute).needsUpdate = true;
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0 });
     this.terrain = new THREE.Mesh(geo, mat);
     this.terrain.rotation.x = -Math.PI / 2;
     this.terrain.receiveShadow = true;
@@ -1002,7 +1021,6 @@ export class Scene3D {
   private syncWeather(world: World): void {
     const w = params.weather;
     const fog = this.scene.fog as THREE.Fog;
-    this.cosmos.setCalm(1 - Math.min(1, w)); // storms wash out the aurora
     this.cosmos.setClarity(Math.max(0, 1 - w * 1.4)); // clouds thin the starfield (fewer stars when overcast)
 
     // an ice age forces a heavy white-out snow even in fair weather; otherwise cold biomes snow, others rain
@@ -1443,19 +1461,16 @@ export class Scene3D {
       this.hemi.intensity *= 1 + k * 0.25; // flat, cold, snow-bounced light
     }
     this.cosmos.setNight(s.starAlpha);
-    // roll a fresh aurora each nightfall — most nights none/faint, occasionally a real show
+    // at each nightfall, roll a fresh deep sky (constellations + galaxies) and maybe a blood moon
     const isNight = s.starAlpha > 0.5;
-    if (isNight && !this.prevNightForAurora) {
+    if (isNight && !this.prevNightForNewSky) {
       this.cosmos.newNight(); // fresh constellations + deep-space objects each nightfall
-      const r = Math.random();
-      const strength = r < 0.45 ? 0 : r < 0.8 ? 0.2 + Math.random() * 0.25 : 0.55 + Math.random() * 0.45;
-      this.cosmos.setAuroraStrength(strength);
       // a rare blood moon: the moon runs deep red for the night
       this.bloodMoon = Math.random() < 0.09;
       (this.moonMat.uniforms.uTint!.value as THREE.Color).setHSL(this.bloodMoon ? 0.0 : 0.6, this.bloodMoon ? 0.85 : 0.0, this.bloodMoon ? 0.5 : 1.0);
       if (this.bloodMoon) this.onBloodMoon();
     }
-    this.prevNightForAurora = isNight;
+    this.prevNightForNewSky = isNight;
     // water reflects the sky colour + dims at night
     (this.waterMat.uniforms.uSky!.value as THREE.Color).copy(toVec3(s.bottom));
     (this.waterMat.uniforms.uSun!.value as THREE.Color).copy(toVec3(s.sunColor));

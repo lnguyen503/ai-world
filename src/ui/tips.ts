@@ -16,7 +16,7 @@ const TIPS = [
   'Enable 🤖 AI narration to let a local LLM describe your world',
   'Predators hunt in packs — they fan out, circle, then dart at their prey',
   'A storm clearing by day can leave a rainbow 🌈',
-  'Some nights bring an aurora, shooting stars, and a moon that waxes and wanes',
+  'Some nights bring shooting stars, comets, and a moon that waxes and wanes',
   'Wings can evolve — watch flyers escape the predators below',
   'Once a clever lineage evolves far enough, the critters start talking 💬',
 ];

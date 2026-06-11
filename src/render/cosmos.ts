@@ -30,8 +30,6 @@ export class Cosmos {
   private cometState = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, life: 0, max: 1 };
   private cometTimer = 25;
   private lastT = 0;
-  private aurora!: THREE.Mesh;
-  private auroraMat!: THREE.ShaderMaterial;
   private constellations: THREE.Group[] = [];
 
   private static readonly METEORS = 14;
@@ -48,7 +46,6 @@ export class Cosmos {
     this.makeConstellations();
     this.makeMeteors();
     this.makeComet();
-    this.makeAurora();
     this.group.renderOrder = -1; // behind everything
     this.newNight(); // roll the first night's sky (positions, tints, which patterns are out)
   }
@@ -518,47 +515,6 @@ export class Cosmos {
     }
   }
 
-  /** A waving aurora curtain near the horizon — shows on clear, calm nights. */
-  private makeAurora(): void {
-    const h = DOME * 0.5;
-    const geo = new THREE.CylinderGeometry(DOME * 0.72, DOME * 0.72, h, 80, 1, true);
-    this.auroraMat = new THREE.ShaderMaterial({
-      transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
-      uniforms: { uTime: { value: 0 }, uNight: { value: 0 }, uCalm: { value: 1 }, uStrength: { value: 0 } },
-      vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-      fragmentShader: `
-        uniform float uTime; uniform float uNight; uniform float uCalm; uniform float uStrength; varying vec2 vUv;
-        float h1(float x){ return fract(sin(x * 12.9898) * 43758.5453); }
-        float nz(float x){ float i = floor(x), f = fract(x); return mix(h1(i), h1(i + 1.0), smoothstep(0.0, 1.0, f)); }
-        void main(){
-          // stacked, slowly drifting vertical curtains
-          float drift = uTime * 0.06;
-          float band = 0.5 + 0.5 * sin(vUv.x * 38.0 + drift * 6.0 + nz(vUv.x * 7.0 + drift) * 7.0);
-          band = pow(band, 3.0);
-          // brightest near the horizon, fading up into space; soft wavy lower edge
-          float lo = 0.05 + 0.06 * sin(vUv.x * 14.0 + uTime * 0.4);
-          float vfade = smoothstep(0.95, 0.1, vUv.y) * smoothstep(lo, lo + 0.12, vUv.y);
-          float a = band * vfade * uNight * uCalm * uStrength * 0.55;
-          vec3 col = mix(vec3(0.18, 1.0, 0.55), vec3(0.65, 0.3, 1.0), 0.5 + 0.5 * sin(vUv.x * 5.0 + uTime * 0.25));
-          gl_FragColor = vec4(col, a);
-        }`,
-    });
-    this.aurora = new THREE.Mesh(geo, this.auroraMat);
-    this.aurora.position.y = DOME * 0.05 + h * 0.5; // sit the curtain on the horizon
-    this.aurora.frustumCulled = false;
-    this.group.add(this.aurora);
-  }
-
-  /** Calm weather (0 stormy .. 1 clear) gates the aurora — storms wash it out. */
-  setCalm(calm: number): void {
-    if (this.auroraMat) this.auroraMat.uniforms.uCalm!.value = calm;
-  }
-
-  /** Per-night aurora intensity (0 = no show tonight). Rolled fresh each nightfall. */
-  setAuroraStrength(v: number): void {
-    if (this.auroraMat) this.auroraMat.uniforms.uStrength!.value = v;
-  }
-
   /** Clear sky (0 = thick cloud .. 1 = crystal clear) — fades out the faint stars when it clouds over. */
   setClarity(clear: number): void {
     this.starMat.uniforms.uClear!.value = Math.max(0, Math.min(1, clear));
@@ -567,7 +523,6 @@ export class Cosmos {
   /** 0 = full daylight (sky hidden) .. 1 = deep night (sky at full brightness). */
   setNight(night: number): void {
     this.starMat.uniforms.uNight!.value = night;
-    if (this.auroraMat) this.auroraMat.uniforms.uNight!.value = night;
     this.group.visible = night > 0.02;
     for (const n of this.nebulae) {
       (n.material as THREE.SpriteMaterial).opacity = (n.userData.baseOpacity as number) * night * (n.userData.nightVis as number);
@@ -595,7 +550,6 @@ export class Cosmos {
     this.updateComet(dt, night);
     if (!this.group.visible) return;
     this.starMat.uniforms.uTime!.value = t;
-    this.auroraMat.uniforms.uTime!.value = t;
     for (const g of this.galaxies) g.rotateY((g.userData.spin as number) * 0.016);
     for (const n of this.nebulae) {
       const ph = n.userData.phase as number;
