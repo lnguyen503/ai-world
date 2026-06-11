@@ -55,18 +55,36 @@ If the population ever fully dies out, the world reseeds with fresh random creat
 
 ```
 src/
-  config.ts          all the tunable numbers (food, energy, mutation, gene ranges)
-  sim/               the simulation (no rendering)
-    genome.ts        genes + mutation
-    creature.ts      one creature's behavior (sense → move → eat → reproduce → age)
-    food.ts          food pellets
-    world.ts         owns everything, runs each step, tracks stats (+ spatial grid)
-  render/scene.ts    Three.js scene, creatures, food, the follow ("zoo") camera
-  ui/hud.ts          stats, time controls, follow panel, population graph
-  main.ts            wires it together + the time-scaled loop
+  config.ts            all the tunable numbers (food, energy, mutation, gene ranges)
+  biome.ts             procedural terrain, palettes, day/night + season, sky
+  sim/                 the simulation (no rendering)
+    genome.ts          genes + mutation + crossover
+    creature.ts        one creature's behavior (sense → move → eat → reproduce → age)
+    food.ts            food pellets
+    world.ts           owns everything, runs each step, tracks stats (+ spatial grids)
+  render/
+    scene.ts           Three.js scene, creatures, terrain, the follow ("zoo") camera
+    cosmos.ts          the night sky (stars, galaxies, constellations, meteors, comet)
+    cataclysmFx.ts     god-mode set-pieces (the asteroid fireball, the lava fountain)
+  ui/                  hud, controls, narrator, chatter, sound, tts, banners, minimap…
+  main.ts              wires it together + the time-scaled loop
 ```
 
-## Roadmap (it grows over iterations)
+## Highlights
+
+What's in there after a long line of iterations:
+
+- 🧠 **Brains that evolve** — each creature forages with a small inherited+mutated neural net; foraging skill emerges on its own, it's never hard-coded.
+- 🦊 **A living food chain** — predators hunt, prey flee, and traits (size, speed, sense, camouflage, wings, disease resistance) drift over generations under real selection.
+- 🐾 **Emergent social life** — creatures herd, broadcast "found food!" signals, and — once a lineage gets clever — **talk to each other** in short, scenario-aware, lightly-funny lines.
+- ⚡ **God Mode** — shape the world by hand: rain food, smite, spawn predators/prey, paint bloom/drought, and **sculpt the terrain**.
+- 🌋 **Cataclysms** — unleash an **asteroid, volcano, ice age, plague, or radiation** (and watch the population crash, then explosively re-diversify into a new era — punctuated equilibrium).
+- 🌍 **A world that breathes** — procedural biomes, day/night, seasons, weather (rain → storms → killer lightning), and a deep-space night sky (galaxies, constellations, meteors, comets, a rare blood moon).
+- 🔊 **Spatial audio** — a soundscape that pans and fades as you fly and zoom, plus mood-aware music.
+- 🎙 *Optional* **local-LLM narration + neural voice** — fully offline by default; no setup required.
+
+<details>
+<summary>📜 Full changelog — every version (v0.2 → v2.9)</summary>
 
 - v0.2 ✓ — procedural **biomes** (a different world every time), **terrain**, **day/night**, **seasons**, drifting fertile zones, **bloom glow**, and a live **levers** panel
 - v0.3 ✓ — **neural-net brains**: each creature thinks with a small inherited+mutated neural network, so foraging skill **evolves on its own** instead of being hard-coded. Follow a creature to watch its brain fire.
@@ -188,6 +206,9 @@ src/
 - v2.6 ✓ — **🎞 Frame pacing**: camera smoothing is now **frame-rate-independent** (smooth at 60/144/240Hz) and the HUD is throttled — fixes jitter, and keeps it consistent across machines.
 - v2.7 ✓ — **🔥 Cataclysm set-pieces**: the asteroid **streaks in as a fireball and bursts** (flash + ground shockwave + debris); the volcano **erupts a roaring lava fountain**. Both land **where the camera is looking**, so you see them.
 - v2.8 ✓ — **🪶 Pre-ship polish**: removed the aurora for a cleaner night sky, and refined the terrain — **rock on steep faces**, gentle valley shading, and a per-vertex grain so the ground looks natural instead of a flat gradient.
+- v2.9 ✓ — **🚀 Ship prep**: MIT license, filled-out package metadata, the narrator voice now defaults to the instant browser voice (neural stays one click away), and a cleaned-up README.
+
+</details>
 
 ## Connecting a local LLM for narration
 Tick **🤖 AI narration** in the panel. The URL is pre-filled for Ollama
