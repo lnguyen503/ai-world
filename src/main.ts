@@ -34,6 +34,7 @@ new ModelPicker(); // narration model dropdown (auto-detects installed Ollama mo
 const banner = new EventBanner(); // cinematic title cards for milestone moments
 const discovery = new DiscoveryLog(); // running log of the world's notable moments
 banner.onShow = (title) => { sound.stinger('milestone'); discovery.add(title, world.age); };
+scene.onBloodMoon = () => banner.flash('🌑 Blood Moon', 'the moon runs red over the world tonight');
 const hof = new HallOfFame(); // the world's standout individuals
 const minimap = new MiniMap(); // corner overview map
 new TimeLapse(); // ⏩ fast-forward montage with chapter cards

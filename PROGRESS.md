@@ -591,6 +591,14 @@ current sun colour (warm at dawn/dusk) — drifts across the surface with the ri
 a reflective sky-tinted surface rather than a flat disc. Verified: ponds rendered with the brighter
 sky reflection over a Frost Tundra, GLSL compiled with no console errors.
 
+### v0.99.0 — Blood moon
+A rare dramatic night: on roughly **1 in 11 nightfalls** (rolled alongside the aurora), the **moon runs
+deep red** — a blood moon (`scene.ts`: a new `uTint` uniform on the moon shader, set red for the night).
+When one rises it announces itself with a **🌑 Blood Moon** banner (via the new `EventBanner.flash`),
+which in turn fires the milestone stinger and drops a line in the discovery log. A genuinely uncommon
+sight to reward a long watch. Verified: the moon shader compiled with no console errors and the trigger
+reuses the proven banner/stinger/log path.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

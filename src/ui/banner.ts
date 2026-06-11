@@ -71,6 +71,9 @@ export class EventBanner {
     return m;
   }
 
+  /** Show an arbitrary banner immediately (for one-off spectacles like a blood moon). */
+  flash(title: string, sub: string): void { this.show(title, sub); }
+
   private show(title: string, sub: string): void {
     if (!this.el) return;
     if (this.titleEl) this.titleEl.textContent = title;

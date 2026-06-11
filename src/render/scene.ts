@@ -327,6 +327,8 @@ export class Scene3D {
   private moonMat!: THREE.ShaderMaterial;
   private lastAge = 0;
   private prevNightForAurora = false;
+  private bloodMoon = false; // a rare red-moon night
+  onBloodMoon: () => void = () => {}; // fired when a blood moon rises
   private lastSky!: SkyState;
   private motes!: THREE.Points;
   private motesBase!: Float32Array;
@@ -1397,6 +1399,10 @@ export class Scene3D {
       const r = Math.random();
       const strength = r < 0.45 ? 0 : r < 0.8 ? 0.2 + Math.random() * 0.25 : 0.55 + Math.random() * 0.45;
       this.cosmos.setAuroraStrength(strength);
+      // a rare blood moon: the moon runs deep red for the night
+      this.bloodMoon = Math.random() < 0.09;
+      (this.moonMat.uniforms.uTint!.value as THREE.Color).setHSL(this.bloodMoon ? 0.0 : 0.6, this.bloodMoon ? 0.85 : 0.0, this.bloodMoon ? 0.5 : 1.0);
+      if (this.bloodMoon) this.onBloodMoon();
     }
     this.prevNightForAurora = isNight;
     // water reflects the sky colour + dims at night
@@ -1428,10 +1434,10 @@ export class Scene3D {
     // a moon that waxes and wanes — a shader terminator sweeps across the disk with the phase
     this.moonMat = new THREE.ShaderMaterial({
       transparent: true, depthWrite: false,
-      uniforms: { uPhase: { value: 0 }, uOpacity: { value: 0 } },
+      uniforms: { uPhase: { value: 0 }, uOpacity: { value: 0 }, uTint: { value: new THREE.Color(1, 1, 1) } },
       vertexShader: `varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
       fragmentShader: `
-        uniform float uPhase; uniform float uOpacity; varying vec3 vN;
+        uniform float uPhase; uniform float uOpacity; uniform vec3 uTint; varying vec3 vN;
         void main(){
           // light direction sweeps around the moon as the phase advances (view space)
           float a = uPhase * 6.28318;
@@ -1439,7 +1445,7 @@ export class Scene3D {
           float lit = smoothstep(-0.12, 0.12, dot(normalize(vN), L));
           vec3 day = vec3(0.93, 0.94, 1.0);
           vec3 night = vec3(0.06, 0.07, 0.12); // faint earthshine on the dark limb
-          vec3 col = mix(night, day, lit);
+          vec3 col = mix(night, day, lit) * uTint;
           float a2 = uOpacity * (0.18 + 0.82 * lit);
           gl_FragColor = vec4(col, a2);
         }`,
