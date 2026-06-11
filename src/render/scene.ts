@@ -16,7 +16,22 @@ const STORM = new THREE.Color(0x2a2e36);
 const FLASH = new THREE.Color(0xe6f0ff);
 const FOLIAGE_SUMMER = new THREE.Color(0x3f8f4a);
 const FOLIAGE_AUTUMN = new THREE.Color(0xc8772e);
+const BLOSSOM_PINK = new THREE.Color(0xffb7d5); // spring blossom on the broadleaf trees
+const FRUIT_RED = new THREE.Color(0xe2402c); // late-season fruit
 const toVec3 = (hex: number): THREE.Color => new THREE.Color(hex);
+
+/** A soft round dot sprite, tinted via material color — used for tree blossom/fruit accents. */
+function dotTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = c.height = 24;
+  const x = c.getContext('2d')!;
+  const g = x.createRadialGradient(12, 12, 0, 12, 12, 12);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.5, 'rgba(255,255,255,0.85)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.beginPath(); x.arc(12, 12, 12, 0, Math.PI * 2); x.fill();
+  const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t;
+}
 
 /** 4-step grayscale ramp that turns standard lighting into flat cel/toon bands. */
 function toonGradient(): THREE.DataTexture {
@@ -260,6 +275,10 @@ export class Scene3D {
   private treePositions: { x: number; z: number }[] = [];
   // each tree sways as a whole from its base: rz/rx are its resting lean, amp scales the wind
   private treeSway: { grp: THREE.Group; rx: number; rz: number; phase: number; amp: number }[] = [];
+  private bushGroup = new THREE.Group();
+  // blossom (spring) / fruit (late season) accents on the broadleaf trees — colour set by season
+  private accentMat = new THREE.PointsMaterial({ map: dotTexture(), size: 0.5, transparent: true, opacity: 0, depthWrite: false, fog: true });
+  private treeAccentGeos: THREE.BufferGeometry[] = [];
   private horizonGroup = new THREE.Group();
   private horizonGeo = new THREE.ConeGeometry(1, 1, 5);
   private horizonMat = new THREE.MeshToonMaterial({ gradientMap: this.toonGrad });
@@ -379,6 +398,7 @@ export class Scene3D {
     this.scene.add(this.foodMesh);
     this.makeSocialViz();
     this.scene.add(this.treeGroup);
+    this.scene.add(this.bushGroup);
     this.makeWater();
     this.scene.add(this.pondGroup);
     this.scene.add(this.ripples.mesh);
@@ -450,7 +470,30 @@ export class Scene3D {
     this.terrain.receiveShadow = true;
     this.scene.add(this.terrain);
     this.fillFlowers(); // re-seat the wildflowers on the new terrain
+    this.makeBushes(); // re-scatter the understory shrubs
     this.buildHorizon(); // re-tint the distant hills to the new palette
+  }
+
+  /** Scatter low shrubs across the meadow (rebuilt per biome; share the seasonal foliage material). */
+  private makeBushes(): void {
+    this.bushGroup.clear();
+    const h = WORLD.half - 4;
+    for (let i = 0; i < 46; i++) {
+      const x = (Math.random() * 2 - 1) * h, z = (Math.random() * 2 - 1) * h;
+      const bush = new THREE.Group();
+      bush.position.set(x, this.biome.height(x, z), z);
+      bush.rotation.y = Math.random() * Math.PI * 2;
+      const r = 0.5 + Math.random() * 0.55;
+      const lobes = 2 + Math.floor(Math.random() * 3);
+      for (let k = 0; k < lobes; k++) {
+        const blob = new THREE.Mesh(this.foliageGeo, this.foliageMat);
+        blob.scale.setScalar((r * (0.7 + Math.random() * 0.5)) / 2.5);
+        blob.position.set((Math.random() * 2 - 1) * r, r * 0.5 + Math.random() * 0.3, (Math.random() * 2 - 1) * r);
+        blob.castShadow = true;
+        bush.add(blob);
+      }
+      this.bushGroup.add(bush);
+    }
   }
 
   /** A ring of hazy low-poly hills around the arena, fog-faded for a sense of distance and depth. */
@@ -875,6 +918,13 @@ export class Scene3D {
     // seasonal foliage colour drifts green -> autumn -> green
     const sp = (world.age / Math.max(1, params.seasonLengthSec)) % 1;
     this.foliageMat.color.copy(FOLIAGE_SUMMER).lerp(FOLIAGE_AUTUMN, (Math.sin(sp * Math.PI * 2) + 1) / 2);
+    // blossom in spring (sp≈0), fruit toward the autumn turn — both fade out in deep summer/winter
+    const phase = sp * Math.PI * 2;
+    const bloom = Math.max(0, Math.cos(phase));
+    const fruit = Math.max(0, Math.sin(phase));
+    const df = this.lastSky ? this.lastSky.dayFactor : 1;
+    this.accentMat.opacity = Math.max(bloom, fruit) * 0.8 * (0.4 + 0.55 * df);
+    this.accentMat.color.copy(BLOSSOM_PINK).lerp(FRUIT_RED, fruit / (bloom + fruit + 0.001));
 
     const storm = Math.min(1, w);
     fog.far = WORLD.half * (3.4 - storm * 1.9);
@@ -1028,6 +1078,8 @@ export class Scene3D {
   }
 
   buildTrees(): void {
+    for (const geo of this.treeAccentGeos) geo.dispose(); // per-tree accent clouds are the only per-tree geo
+    this.treeAccentGeos = [];
     this.treeGroup.clear();
     this.treeSway = [];
     this.glowMats = [];
@@ -1126,6 +1178,25 @@ export class Scene3D {
         );
         blob.castShadow = true;
         g.add(blob);
+      }
+      // seasonal blossom/fruit accents scattered through the crown (colour animated by season)
+      if (Math.random() < 0.72) {
+        const n = 8 + Math.floor(Math.random() * 9);
+        const arr = new Float32Array(n * 3);
+        for (let i = 0; i < n; i++) {
+          const rr = canopyR * (0.5 + Math.random() * 0.6);
+          const a = Math.random() * Math.PI * 2;
+          const b = Math.acos(Math.random() * 2 - 1);
+          arr[i * 3] = Math.sin(b) * Math.cos(a) * rr;
+          arr[i * 3 + 1] = th + canopyR * 0.2 + Math.cos(b) * rr * 0.7;
+          arr[i * 3 + 2] = Math.sin(b) * Math.sin(a) * rr;
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+        this.treeAccentGeos.push(geo);
+        const pts = new THREE.Points(geo, this.accentMat);
+        pts.frustumCulled = false;
+        g.add(pts);
       }
     }
     return g;

@@ -311,6 +311,17 @@ where sim-seconds fly by in real time) each line cut off the last. Now it finish
 the current sentence and then jumps to the **latest** queued line — with a watchdog
 so it can never lock up silent — so you always hear complete lines.
 
+### v0.69.0 — Understory & blossoms
+The ground between the trees was bare, so the meadow now grows **shrubs** — ~46 low,
+rounded bushes (small clusters of foliage lobes) scattered and re-seeded with each
+biome, sharing the seasonal foliage material so they drift green↔autumn with the
+trees. The broadleaf trees also gained **seasonal blossom/fruit**: a little cloud
+of soft dots through each crown that the season animates — **pink blossom** in
+spring, ripening to **red fruit** toward the autumn turn, fading away in deep
+summer and winter (and dimming at night). The accents share one material and one
+small dot sprite, and their per-tree point clouds are disposed on rebuild so
+hopping biomes doesn't leak.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles
