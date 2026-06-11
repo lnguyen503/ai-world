@@ -448,6 +448,12 @@ is on the LLM writes a short witty two-line exchange between the two named critt
 cooldowned so it stays charming. Verified live (gen 37): a "we are literally cousins" reply popped
 over a critter mid-conversation, no console errors.
 
+### v0.80.0 — Watch the traits evolve
+Under the species race, a second mini-graph (`src/ui/hud.ts`) now plots the population's **average
+size, speed and sense over time** — each normalised to its gene range so they share one axis — with a
+colour-matched legend. Paired with the species race it tells the genetic story at a glance: you can
+watch the herd drift smaller, faster, sharper-eyed as selection works.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

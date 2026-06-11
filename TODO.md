@@ -23,6 +23,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.77: **narration model picker** — auto-detects installed Ollama models (/api/tags) + recommended tags + Custom entry; defaults to your biggest local model.
 - v0.78: **in-browser neural narrator voice** — Kokoro TTS via transformers.js (WebGPU), voice picker (British/American), system-voice fallback; loaded as a lazy chunk.
 - v0.79: **critters talk to each other** (from feedback) — nearby evolved critters have a short, lightly-funny back-and-forth (canned or LLM-written); lone ones still muse solo.
+- v0.80: **trait-over-time graph** — avg size/speed/sense normalised + plotted under the species race.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).

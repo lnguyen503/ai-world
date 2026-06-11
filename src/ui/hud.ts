@@ -15,6 +15,13 @@ const norm = (v: number, [lo, hi]: readonly [number, number]): number =>
 // used for both the species-panel labels and their lines on the population-over-time graph
 const SPECIES_COLORS = ['#6ec6ff', '#ff9e54', '#6ee7a8', '#b794f6', '#ff7eb6'];
 
+// average heritable traits tracked over time (normalised to their gene range, so they share one axis)
+const TRAITS = [
+  { key: 'size' as const, label: 'size', color: '#fbbf24', range: GENE_RANGES.size },
+  { key: 'speed' as const, label: 'speed', color: '#60a5fa', range: GENE_RANGES.speed },
+  { key: 'sense' as const, label: 'sense', color: '#4ade80', range: GENE_RANGES.sense },
+];
+
 export class Hud {
   onSpeedChange: (speed: number) => void = () => {};
   onDeselect: () => void = () => {};
@@ -43,6 +50,9 @@ export class Hud {
   private gctx = this.graph.getContext('2d')!;
   private history: number[] = [];
   private speciesHistory: number[][] = SPECIES.map(() => []); // per-species count over time
+  private tgraph = $('tgraph') as HTMLCanvasElement;
+  private tgctx = this.tgraph.getContext('2d')!;
+  private traitHistory: Record<'size' | 'speed' | 'sense', number[]> = { size: [], speed: [], sense: [] };
   private frame = 0;
 
   constructor() {
@@ -68,6 +78,10 @@ export class Hud {
       });
     }
 
+    // trait-graph legend (colours match the lines drawn in drawTraitGraph)
+    const legend = document.getElementById('tgraph-legend');
+    if (legend) legend.innerHTML = TRAITS.map((t) => `<span style="color:${t.color}">■ ${t.label}</span>`).join('');
+
     this.resizeGraph();
     window.addEventListener('resize', () => this.resizeGraph());
   }
@@ -76,6 +90,9 @@ export class Hud {
     const r = this.graph.getBoundingClientRect();
     this.graph.width = Math.max(120, r.width);
     this.graph.height = Math.max(60, r.height);
+    const tr = this.tgraph.getBoundingClientRect();
+    this.tgraph.width = Math.max(120, tr.width);
+    this.tgraph.height = Math.max(40, tr.height);
   }
 
   updateStats(s: WorldStats): void {
@@ -103,7 +120,31 @@ export class Hud {
         hist.push(s.speciesCounts[i] ?? 0);
         if (hist.length > 240) hist.shift();
       }
+      this.traitHistory.size.push(norm(s.avgSize, GENE_RANGES.size));
+      this.traitHistory.speed.push(norm(s.avgSpeed, GENE_RANGES.speed));
+      this.traitHistory.sense.push(norm(s.avgSense, GENE_RANGES.sense));
+      for (const k of ['size', 'speed', 'sense'] as const) {
+        if (this.traitHistory[k].length > 240) this.traitHistory[k].shift();
+      }
       this.drawGraph();
+      this.drawTraitGraph();
+    }
+  }
+
+  private drawTraitGraph(): void {
+    const { width: w, height: h } = this.tgraph;
+    const ctx = this.tgctx;
+    ctx.clearRect(0, 0, w, h);
+    for (const t of TRAITS) {
+      const series = this.traitHistory[t.key];
+      if (series.length < 2) continue;
+      ctx.beginPath();
+      series.forEach((v, i) => {
+        const x = (i / (series.length - 1)) * w;
+        const y = h - v * (h - 6) - 3; // values are already 0..1 (normalised to the gene range)
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = t.color; ctx.lineWidth = 1.6; ctx.stroke();
     }
   }
 
