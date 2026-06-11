@@ -10,6 +10,7 @@ backlog of things that would make the zoo richer or more enjoyable to watch.
 - v0.50–v0.58: wildflowers, autumn leaves, pond drinking, per-species HUD counts, kill-drift camera, feature tips, lily pads, drinking ripples.
 - v0.59–v0.65: visible macro-mutations, morning mist, dragonflies, glowing mushrooms, horizon hills, **critters talk** (emergent speech bubbles), and **smartness-aware dialogue**.
 - v0.66: a **living soundscape** — day/night/weather-reactive nature (birdsong, crickets, owls, frogs, wind, rain, thunder) and **mood-aware music** (day/night/storm) with a new "Nature + Music" mode.
+- v0.67: **trees with character** — per-tree randomized trunk/lean, real branches with leaf clumps, broadleaf vs conifer silhouettes, whole-tree sway.
 
 ## Building on the new work
 - [ ] **More species + species-specific diet/behaviour** (e.g. a burrower that hides, a glider tied to wings).

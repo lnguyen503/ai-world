@@ -286,6 +286,18 @@ loudness and register with the world — bright and lilting by day, a slow octav
 for space. A new **"Nature + Music"** Ambience option layers both. The soundscape
 is driven from the frame loop with the live weather and `dayFactor`.
 
+### v0.67.0 — Trees with character
+Every tree used to be the same cylinder-and-blob. Now each is generated as its own
+little group with **randomized** proportions — trunk height and girth, a slight
+lean, a random facing — and **real branches**: a few woody limbs fork out from the
+upper trunk, each angled outward and tipped with a small leaf clump, so the limbs
+read against the crown. Two canopy styles add silhouette variety: **broadleaf** (a
+modest crown of rounded blobs over the visible branches) and **conifer** (stacked
+tapering cones — a little pine). Parts share scaled geometry and the seasonal
+foliage material, so trees stay cheap and still drift green↔autumn together, and
+the whole tree now **sways from its base** on the wind (trunk, branches and canopy
+moving as one) instead of the canopy floating free of the trunk.
+
 ## How it's verified
 Every iteration: `tsc --noEmit` (zero errors) + `vite build` (clean bundle),
 plus visual spot-checks via Chrome. Note: a backgrounded browser tab throttles

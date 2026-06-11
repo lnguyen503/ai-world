@@ -245,7 +245,10 @@ export class Scene3D {
   private redOutlineMat = new THREE.MeshBasicMaterial({ color: 0xff2a2a, side: THREE.BackSide });
   private groups = new Map<number, THREE.Group>();
 
-  private trunkGeo = new THREE.CylinderGeometry(0.5, 0.75, 4.2, 8);
+  // unit tree parts (base sitting at local y=0) — scaled per tree so every tree is shaped differently
+  private trunkGeo = new THREE.CylinderGeometry(0.7, 1.0, 1, 7).translate(0, 0.5, 0);
+  private branchGeo = new THREE.CylinderGeometry(0.06, 0.16, 1, 5).translate(0, 0.5, 0);
+  private coneGeo = new THREE.ConeGeometry(1, 1, 7).translate(0, 0.5, 0);
   private foliageGeo = new THREE.IcosahedronGeometry(2.5, 1);
   private trunkMat = new THREE.MeshToonMaterial({ color: 0x6b4a2b, gradientMap: this.toonGrad });
   private foliageMat = new THREE.MeshToonMaterial({ color: 0x3f8f4a, gradientMap: this.toonGrad });
@@ -254,7 +257,8 @@ export class Scene3D {
   private glowMats: THREE.MeshToonMaterial[] = [];
   private treeGroup = new THREE.Group();
   private treePositions: { x: number; z: number }[] = [];
-  private treeSway: { foliage: THREE.Mesh; bx: number; bz: number; phase: number }[] = [];
+  // each tree sways as a whole from its base: rz/rx are its resting lean, amp scales the wind
+  private treeSway: { grp: THREE.Group; rx: number; rz: number; phase: number; amp: number }[] = [];
   private horizonGroup = new THREE.Group();
   private horizonGeo = new THREE.ConeGeometry(1, 1, 5);
   private horizonMat = new THREE.MeshToonMaterial({ gradientMap: this.toonGrad });
@@ -1025,14 +1029,13 @@ export class Scene3D {
     const glowHues = [0.5, 0.78, 0.33, 0.95];
     for (const t of this.treePositions) {
       const y = this.biome.height(t.x, t.z);
-      const trunk = new THREE.Mesh(this.trunkGeo, this.trunkMat);
-      trunk.position.set(t.x, y + 2.1, t.z);
-      trunk.castShadow = true;
-      const foliage = new THREE.Mesh(this.foliageGeo, this.foliageMat);
-      foliage.position.set(t.x, y + 5.3, t.z);
-      foliage.castShadow = true;
-      this.treeGroup.add(trunk, foliage);
-      this.treeSway.push({ foliage, bx: t.x, bz: t.z, phase: Math.random() * Math.PI * 2 });
+      const tree = this.makeTree();
+      const lean = (Math.random() * 2 - 1) * 0.06;
+      tree.position.set(t.x, y, t.z);
+      tree.rotation.y = Math.random() * Math.PI * 2; // face a random way
+      tree.rotation.z = lean;
+      this.treeGroup.add(tree);
+      this.treeSway.push({ grp: tree, rx: 0, rz: lean, phase: Math.random() * Math.PI * 2, amp: 0.5 + Math.random() * 0.6 });
 
       // a cluster of little mushrooms at the base that glow softly after dark
       const shrooms = Math.floor(Math.random() * 3);
@@ -1052,14 +1055,84 @@ export class Scene3D {
     }
   }
 
-  /** Sway the tree canopies on the breeze — gentle when calm, whipping in a storm. */
+  /**
+   * Build one randomized tree as a group whose base sits at the local origin: a tapered trunk of
+   * random height/girth, a few angled branches each tipped with a leaf tuft, and either a cluster of
+   * rounded canopy blobs (broadleaf) or stacked cones (conifer). Parts share scaled geometry + the
+   * seasonal foliage material, so trees stay cheap and still drift green->autumn together.
+   */
+  private makeTree(): THREE.Group {
+    const g = new THREE.Group();
+    const conifer = Math.random() < 0.28;
+    const th = (conifer ? 3.2 : 3.0) + Math.random() * (conifer ? 2.6 : 3.2); // trunk height
+    const tr = 0.32 + Math.random() * 0.34; // trunk radius
+
+    const trunk = new THREE.Mesh(this.trunkGeo, this.trunkMat);
+    trunk.scale.set(tr, th, tr);
+    trunk.castShadow = true;
+    g.add(trunk);
+
+    // a few limbs forking out from the trunk, each ending in a leaf clump — visible below the crown
+    const branches = conifer ? 0 : 3 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < branches; i++) {
+      const yaw = new THREE.Group();
+      yaw.position.y = th * (0.42 + Math.random() * 0.32);
+      yaw.rotation.y = (i / branches) * Math.PI * 2 + Math.random() * 0.8; // fan around the trunk
+      const limb = new THREE.Group();
+      limb.rotation.z = 0.7 + Math.random() * 0.5; // angle well out so it clears the crown
+      const len = 1.6 + Math.random() * 1.8;
+      const br = new THREE.Mesh(this.branchGeo, this.trunkMat);
+      br.scale.set(tr * (0.4 + Math.random() * 0.22), len, tr * 0.4);
+      br.castShadow = true;
+      limb.add(br);
+      const tuft = new THREE.Mesh(this.foliageGeo, this.foliageMat);
+      tuft.scale.setScalar((0.6 + Math.random() * 0.55) / 2.5);
+      tuft.position.y = len * (0.92 + Math.random() * 0.1); // sit at the limb tip, leaving woody branch visible
+      tuft.castShadow = true;
+      limb.add(tuft);
+      yaw.add(limb);
+      g.add(yaw);
+    }
+
+    if (conifer) {
+      const tiers = 3 + Math.floor(Math.random() * 2);
+      const spread = 1.6 + Math.random() * 0.8;
+      for (let i = 0; i < tiers; i++) {
+        const f = i / tiers;
+        const cone = new THREE.Mesh(this.coneGeo, this.foliageMat);
+        const r = spread * (1 - f * 0.55);
+        cone.scale.set(r, 1.6 + Math.random() * 0.4, r);
+        cone.position.y = th * 0.45 + f * th * 0.6;
+        cone.castShadow = true;
+        g.add(cone);
+      }
+    } else {
+      // a modest crown of 1-2 blobs sitting above the limbs (small enough that the branches read)
+      const blobs = 1 + Math.floor(Math.random() * 2);
+      const canopyR = 1.4 + Math.random() * 1.0;
+      for (let i = 0; i < blobs; i++) {
+        const blob = new THREE.Mesh(this.foliageGeo, this.foliageMat);
+        blob.scale.setScalar((canopyR * (0.7 + Math.random() * 0.5)) / 2.5);
+        const spread = i === 0 ? 0 : 1; // first blob caps the trunk; the rest scatter around it
+        blob.position.set(
+          (Math.random() * 2 - 1) * canopyR * 0.7 * spread,
+          th + canopyR * 0.25 + (Math.random() * 2 - 1) * 0.5 * spread,
+          (Math.random() * 2 - 1) * canopyR * 0.7 * spread,
+        );
+        blob.castShadow = true;
+        g.add(blob);
+      }
+    }
+    return g;
+  }
+
+  /** Sway each whole tree from its base on the breeze — gentle when calm, whipping in a storm. */
   private updateTrees(t: number): void {
-    const wind = 0.05 + params.weather * 0.16;
+    const wind = 0.04 + params.weather * 0.10;
     for (const s of this.treeSway) {
-      s.foliage.position.x = s.bx + Math.sin(t * 0.8 + s.phase) * wind * 2.2;
-      s.foliage.position.z = s.bz + Math.cos(t * 0.6 + s.phase) * wind * 1.6;
-      s.foliage.rotation.z = Math.sin(t * 0.8 + s.phase) * wind;
-      s.foliage.rotation.x = Math.cos(t * 0.6 + s.phase) * wind * 0.7;
+      const w = wind * s.amp;
+      s.grp.rotation.z = s.rz + Math.sin(t * 0.8 + s.phase) * w;
+      s.grp.rotation.x = s.rx + Math.cos(t * 0.6 + s.phase) * w * 0.7;
     }
   }
 
